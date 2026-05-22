@@ -1,8 +1,239 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+@{
+    ViewData["Title"] = "Trang Chủ - C# Project Hub";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<!-- Floating Animated Orbs in Background -->
+<div class="glow-orb orb-1"></div>
+<div class="glow-orb orb-2"></div>
+<div class="glow-orb orb-3"></div>
+
+<div class="container py-4">
+    <!-- HERO BANNER SECTION -->
+    <div class="row align-items-center mb-5">
+        <div class="col-lg-8 text-center text-lg-start">
+            <span class="badge bg-primary bg-gradient px-3 py-2 rounded-pill mb-3 text-uppercase fw-bold tracking-wider">
+                <i class="bi bi-rocket-takeoff-fill me-1"></i> C# Course Project 2026
+            </span>
+            <h1 class="display-4 text-white fw-extrabold mb-3">
+                Hệ Thống <span class="gradient-text">Project Hub</span> Đa Năng
+            </h1>
+            <p class="lead text-light-50 mb-4 fs-5" style="max-width: 680px; line-height: 1.6;">
+                Nền tảng tích hợp cấu trúc đồ án môn học Ngôn ngữ lập trình C#. Được thiết kế theo mô hình ASP.NET Core MVC 9.0 hiện đại, sẵn sàng tích hợp các tính năng quản lý nghiệp vụ, xử lý dữ liệu và giao diện người dùng tối ưu.
+            </p>
+            <div class="d-flex flex-wrap justify-content-center justify-content-lg-start gap-3">
+                <a href="#modules" class="btn premium-btn">
+                    <i class="bi bi-grid-fill"></i> Bắt đầu khám phá
+                </a>
+                <a href="#team" class="btn premium-btn-outline">
+                    <i class="bi bi-people-fill"></i> Thành viên nhóm
+                </a>
+            </div>
+        </div>
+        <div class="col-lg-4 d-none d-lg-block text-center position-relative">
+            <div class="glass-card glow-effect p-4 border-2 border-primary-subtle rounded-4 d-inline-block position-relative" style="animation: floatCard 6s infinite alternate ease-in-out;">
+                <!-- Abstract Pure CSS Design for Core Project System -->
+                <div class="d-flex flex-column align-items-center justify-content-center py-4 px-3" style="width: 260px; height: 260px;">
+                    <i class="bi bi-cpu text-info display-1 mb-3 filter-glow"></i>
+                    <h5 class="text-white fw-bold">DoAn-CSharp.csproj</h5>
+                    <span class="badge bg-success-subtle text-success px-3 py-1 rounded-pill mt-2">
+                        <span class="spinner-grow spinner-grow-sm me-1" role="status" aria-hidden="true"></span>
+                        Active .NET 9.0
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- INFO / STATS ROW -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="glass-card py-4 px-2">
+                <div class="row text-center g-4">
+                    <div class="col-md-3 col-6 stat-box">
+                        <div class="stat-val gradient-text">C# 13 / .NET 9</div>
+                        <div class="stat-lbl">Nền Tảng Core</div>
+                    </div>
+                    <div class="col-md-3 col-6 stat-box">
+                        <div class="stat-val gradient-text-purple">ASP.NET MVC</div>
+                        <div class="stat-lbl">Mô Hình Thiết Kế</div>
+                    </div>
+                    <div class="col-md-3 col-6 stat-box">
+                        <div class="stat-val gradient-text-coral">Học kỳ 2</div>
+                        <div class="stat-lbl">Năm Học 2025 - 2026</div>
+                    </div>
+                    <div class="col-md-3 col-6 stat-box">
+                        <div class="stat-val text-info">100% Clean</div>
+                        <div class="stat-lbl">Trạng Thái Source</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN MODULES SECTION -->
+    <div id="modules" class="row g-4 mb-5 pt-3">
+        <div class="col-12 text-center mb-2">
+            <h2 class="text-white fw-bold"><i class="bi bi-grid-3x3-gap-fill text-info me-2"></i> Bảng Điều Hướng Phân Hệ</h2>
+            <p class="text-muted">Lối tắt truy cập nhanh vào các chức năng và cấu trúc dự án mẫu có sẵn</p>
+        </div>
+        
+        <div class="col-md-6 col-lg-3">
+            <div class="glass-card glow-effect">
+                <div class="feature-icon-wrapper">
+                    <i class="bi bi-speedometer2"></i>
+                </div>
+                <h4 class="h5 text-white fw-bold mb-3">Phân Hệ Hệ Thống</h4>
+                <p class="text-muted small mb-4">
+                    Bảng điều khiển trung tâm, theo dõi thông số, biểu đồ dữ liệu và cấu hình phân quyền người dùng đồ án.
+                </p>
+                <a asp-controller="Home" asp-action="Index" class="btn premium-btn-outline btn-sm w-100 mt-auto">
+                    Vào Hệ Thống <i class="bi bi-arrow-right-short ms-1"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-3">
+            <div class="glass-card glow-effect glass-card-purple">
+                <div class="feature-icon-wrapper feature-icon-wrapper-purple">
+                    <i class="bi bi-folder-symlink-fill"></i>
+                </div>
+                <h4 class="h5 text-white fw-bold mb-3">Nghiệp Vụ Cốt Lõi</h4>
+                <p class="text-muted small mb-4">
+                    Quản lý danh sách thực thể chính của đề tài (như thực thể Sinh viên, Sản phẩm hoặc Phòng ban tùy chọn).
+                </p>
+                <a asp-controller="Home" asp-action="Privacy" class="btn premium-btn-outline btn-sm w-100 mt-auto">
+                    Khám Phá Nghiệp Vụ <i class="bi bi-arrow-right-short ms-1"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-3">
+            <div class="glass-card glow-effect">
+                <div class="feature-icon-wrapper">
+                    <i class="bi bi-database-fill-gear"></i>
+                </div>
+                <h4 class="h5 text-white fw-bold mb-3">Cơ Sở Dữ Liệu</h4>
+                <p class="text-muted small mb-4">
+                    Giao diện test kết nối Entity Framework Core, SQL Server, thực hiện đồng bộ Migration và kiểm tra Seed Data.
+                </p>
+                <a href="#" onclick="alert('Module CSDL đang chờ tích hợp chuỗi Connection String trong appsettings.json!'); return false;" class="btn premium-btn-outline btn-sm w-100 mt-auto">
+                    Kết Nối DB <i class="bi bi-arrow-right-short ms-1"></i>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-6 col-lg-3">
+            <div class="glass-card glow-effect glass-card-purple">
+                <div class="feature-icon-wrapper feature-icon-wrapper-coral">
+                    <i class="bi bi-book-half"></i>
+                </div>
+                <h4 class="h5 text-white fw-bold mb-3">Tài Liệu Hướng Dẫn</h4>
+                <p class="text-muted small mb-4">
+                    Hướng dẫn setup môi trường phát triển, tài liệu API, sơ đồ cơ sở dữ liệu quan hệ (ERD) chi tiết.
+                </p>
+                <a href="#readme-anchor" class="btn premium-btn-outline btn-sm w-100 mt-auto">
+                    Đọc Tài Liệu <i class="bi bi-arrow-right-short ms-1"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- DEVELOPMENT TEAM SECTION -->
+    <div id="team" class="row g-4 mb-5 pt-3">
+        <div class="col-12 text-center mb-2">
+            <h2 class="text-white fw-bold"><i class="bi bi-people-fill text-info me-2"></i> Nhóm Lập Trình Viên Phát Triển</h2>
+            <p class="text-muted">Thành viên chịu trách nhiệm thiết kế hệ thống và lập trình đồ án</p>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="glass-card text-center glow-effect">
+                <div class="team-avatar-container">
+                    <div class="team-avatar">
+                        NN
+                    </div>
+                </div>
+                <h3 class="h4 text-white fw-bold mb-1">Nguyễn Trọng Nguyễn</h3>
+                <span class="role-badge">Lead Architect &amp; Backend Dev</span>
+                <p class="text-muted px-lg-4 mb-4 small" style="min-height: 70px;">
+                    Chịu trách nhiệm thiết kế kiến trúc tổng quan hệ thống, tổ chức cơ sở dữ liệu, xây dựng các Service, API nghiệp vụ cốt lõi và quản lý mã nguồn trên Git.
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="https://github.com" target="_blank" class="text-info fs-5"><i class="bi bi-github"></i></a>
+                    <a href="mailto:nguyen@student.edu.vn" class="text-info fs-5"><i class="bi bi-envelope-fill"></i></a>
+                    <a href="#" class="text-info fs-5"><i class="bi bi-linkedin"></i></a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="glass-card text-center glow-effect glass-card-purple">
+                <div class="team-avatar-container team-avatar-container-purple">
+                    <div class="team-avatar" style="background: #0f172a;">
+                        NH
+                    </div>
+                </div>
+                <h3 class="h4 text-white fw-bold mb-1">Nguyễn Ngọc Hải</h3>
+                <span class="role-badge role-badge-purple">Full-stack Dev &amp; UI/UX Designer</span>
+                <p class="text-muted px-lg-4 mb-4 small" style="min-height: 70px;">
+                    Chịu trách nhiệm thiết kế giao diện đồ họa người dùng, tùy chỉnh Bootstrap 5/CSS nâng cao, xây dựng Controller, tích hợp API Frontend và kiểm thử trải nghiệm.
+                </p>
+                <div class="d-flex justify-content-center gap-3">
+                    <a href="https://github.com" target="_blank" class="text-info fs-5"><i class="bi bi-github"></i></a>
+                    <a href="mailto:hai@student.edu.vn" class="text-info fs-5"><i class="bi bi-envelope-fill"></i></a>
+                    <a href="#" class="text-info fs-5"><i class="bi bi-linkedin"></i></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TECH STACK INFO -->
+    <div id="tech-stack" class="row mb-5 pt-3">
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <h3 class="text-white fw-bold h5 mb-4 text-center text-md-start">
+                    <i class="bi bi-code-slash text-info me-2"></i> Công Nghệ Hệ Thống Tích Hợp
+                </h3>
+                <div class="d-flex flex-wrap justify-content-center justify-content-md-start gap-2">
+                    <span class="tech-pill"><i class="bi bi-c-circle-fill text-primary"></i> C# 13</span>
+                    <span class="tech-pill"><i class="bi bi-bootstrap-fill text-purple" style="color: #a78bfa;"></i> .NET Core 9.0 (MVC)</span>
+                    <span class="tech-pill"><i class="bi bi-braces text-success"></i> EF Core</span>
+                    <span class="tech-pill"><i class="bi bi-database text-warning"></i> SQL Server</span>
+                    <span class="tech-pill"><i class="bi bi-filetype-html text-danger"></i> Razor Pages / HTML5</span>
+                    <span class="tech-pill"><i class="bi bi-filetype-css text-info"></i> CSS3 Glassmorphism</span>
+                    <span class="tech-pill"><i class="bi bi-filetype-js text-warning"></i> jQuery &amp; Vanilla JS</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- QUICK README SECTION -->
+    <div id="readme-anchor" class="row">
+        <div class="col-12">
+            <div class="glass-card p-4">
+                <h3 class="text-white fw-bold h5 mb-3">
+                    <i class="bi bi-info-circle text-info me-2"></i> Hướng Dẫn Tùy Biến Đồ Án
+                </h3>
+                <p class="small text-muted mb-3">
+                    Các tệp tin nghiệp vụ chính đã được tổ chức ngăn nắp và khoa học trong cấu trúc dự án. Để bắt đầu xây dựng dự án riêng của bạn, hãy thực hiện các bước sau:
+                </p>
+                <ul class="text-muted small ps-3 mb-0" style="line-height: 1.7;">
+                    <li><strong>Models/</strong>: Tạo các class mô tả thực thể dữ liệu (ví dụ: <code class="text-light">Student.cs</code>, <code class="text-light">Product.cs</code>).</li>
+                    <li><strong>Controllers/</strong>: Tạo các Controller kế thừa từ <code class="text-light">Controller</code> để xử lý luồng logic nghiệp vụ.</li>
+                    <li><strong>Views/</strong>: Thiết kế các trang hiển thị dữ liệu dạng Razor (<code class="text-light">.cshtml</code>) liên kết trực tiếp với Model.</li>
+                    <li><strong>appsettings.json</strong>: Thay đổi chuỗi kết nối <code class="text-light">ConnectionStrings</code> để liên kết cơ sở dữ liệu SQL Server cục bộ hoặc đám mây.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+    /* Dynamic Floating card visual effect */
+    @@keyframes floatCard {
+        0% { transform: translateY(0px) rotate(0deg); }
+        100% { transform: translateY(-15px) rotate(2deg); }
+    }
+    .filter-glow {
+        filter: drop-shadow(0 0 15px rgba(0, 242, 254, 0.4));
+    }
+</style>

@@ -1,0 +1,371 @@
+/* 
+   landing.css - Custom stylesheet for C# Project Hub Landing Page
+   Designed with premium Glassmorphism, Neon Glow effects, and smooth animations.
+*/
+
+:root {
+    --bg-dark: #070b19;
+    --card-bg: rgba(13, 20, 41, 0.45);
+    --card-border: rgba(255, 255, 255, 0.08);
+    --card-border-active: rgba(0, 242, 254, 0.4);
+    
+    --neon-cyan: #00f2fe;
+    --neon-blue: #4facfe;
+    --neon-purple: #b92b27;
+    --neon-violet: #8e2de2;
+    --neon-pink: #ff007f;
+    
+    --gradient-primary: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+    --gradient-secondary: linear-gradient(135deg, #8e2de2 0%, #4a00e0 100%);
+    --gradient-coral: linear-gradient(135deg, #ff0844 0%, #ffb199 100%);
+    --gradient-dark: radial-gradient(circle at 50% 50%, #151e3d 0%, #070b19 100%);
+
+    --text-title: #ffffff;
+    --text-body: #a0aec0;
+    --text-muted: #718096;
+}
+
+/* Custom Body Styling override */
+body.landing-page {
+    background: var(--bg-dark);
+    background-image: var(--gradient-dark);
+    font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--text-body);
+    min-height: 100vh;
+    position: relative;
+    overflow-x: hidden;
+}
+
+/* Animated Background Glow Orbs */
+.glow-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    z-index: 0;
+    opacity: 0.15;
+    pointer-events: none;
+    animation: floatOrb 15s infinite alternate ease-in-out;
+}
+
+.orb-1 {
+    width: 400px;
+    height: 400px;
+    background: var(--neon-cyan);
+    top: -100px;
+    right: -100px;
+}
+
+.orb-2 {
+    width: 500px;
+    height: 500px;
+    background: var(--neon-violet);
+    bottom: -150px;
+    left: -150px;
+    animation-delay: -5s;
+}
+
+.orb-3 {
+    width: 300px;
+    height: 300px;
+    background: var(--neon-pink);
+    top: 40%;
+    left: 30%;
+    animation-delay: -10s;
+}
+
+@keyframes floatOrb {
+    0% {
+        transform: translate(0, 0) scale(1);
+    }
+    100% {
+        transform: translate(50px, 30px) scale(1.1);
+    }
+}
+
+/* Container Z-index adjustment */
+.landing-content {
+    position: relative;
+    z-index: 1;
+}
+
+/* Typography styles */
+.gradient-text {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+}
+
+.gradient-text-purple {
+    background: var(--gradient-secondary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+}
+
+.gradient-text-coral {
+    background: var(--gradient-coral);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-weight: 800;
+}
+
+/* Glassmorphism Card style */
+.glass-card {
+    background: var(--card-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.3);
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    height: 100%;
+}
+
+.glass-card:hover {
+    transform: translateY(-5px);
+    border-color: var(--card-border-active);
+    box-shadow: 0 20px 40px rgba(0, 242, 254, 0.15);
+}
+
+.glass-card-purple:hover {
+    border-color: rgba(142, 45, 226, 0.5);
+    box-shadow: 0 20px 40px rgba(142, 45, 226, 0.15);
+}
+
+/* Glass Header Cards for Project Hub */
+.hub-header {
+    background: rgba(13, 20, 41, 0.6);
+    border-bottom: 1px solid var(--card-border);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+}
+
+/* Team Profile Cards */
+.team-avatar-container {
+    width: 90px;
+    height: 90px;
+    margin: 0 auto 1.25rem;
+    position: relative;
+    border-radius: 50%;
+    padding: 4px;
+    background: var(--gradient-primary);
+    box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+}
+
+.team-avatar-container-purple {
+    background: var(--gradient-secondary);
+    box-shadow: 0 0 15px rgba(142, 45, 226, 0.3);
+}
+
+.team-avatar {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.role-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 50px;
+    background: rgba(0, 242, 254, 0.1);
+    color: var(--neon-cyan);
+    border: 1px solid rgba(0, 242, 254, 0.2);
+    margin-bottom: 0.75rem;
+}
+
+.role-badge-purple {
+    background: rgba(142, 45, 226, 0.1);
+    color: #a78bfa;
+    border: 1px solid rgba(142, 45, 226, 0.2);
+}
+
+/* Feature/Grid List Items for Hub */
+.feature-icon-wrapper {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 1.25rem;
+    background: rgba(0, 242, 254, 0.08);
+    color: var(--neon-cyan);
+    border: 1px solid rgba(0, 242, 254, 0.15);
+}
+
+.feature-icon-wrapper-purple {
+    background: rgba(142, 45, 226, 0.08);
+    color: #a78bfa;
+    border: 1px solid rgba(142, 45, 226, 0.15);
+}
+
+.feature-icon-wrapper-coral {
+    background: rgba(255, 8, 68, 0.08);
+    color: #ff6b8b;
+    border: 1px solid rgba(255, 8, 68, 0.15);
+}
+
+/* Interactive custom technology pills */
+.tech-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    color: var(--text-body);
+    transition: all 0.3s ease;
+    margin-right: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.tech-pill:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+/* Premium Buttons */
+.premium-btn {
+    position: relative;
+    background: var(--gradient-primary);
+    color: #070b19;
+    font-weight: 600;
+    border: none;
+    padding: 0.75rem 1.75rem;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0, 242, 254, 0.3);
+    transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.premium-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 242, 254, 0.5);
+    color: #000;
+}
+
+.premium-btn-outline {
+    background: transparent;
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    padding: 0.75rem 1.75rem;
+    border-radius: 12px;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.premium-btn-outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #fff;
+    transform: translateY(-2px);
+}
+
+/* Modern project stat items */
+.stat-box {
+    text-align: center;
+    border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.stat-box:last-child {
+    border-right: none;
+}
+
+.stat-val {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 0.25rem;
+}
+
+.stat-lbl {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Adjustments for default ASP.NET styling compatibility */
+.navbar-custom {
+    background: rgba(7, 11, 25, 0.8) !important;
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
+}
+
+.navbar-custom .navbar-brand {
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: #ffffff !important;
+}
+
+.navbar-custom .nav-link {
+    color: var(--text-body) !important;
+    font-weight: 500;
+    transition: color 0.3s ease;
+}
+
+.navbar-custom .nav-link:hover {
+    color: var(--neon-cyan) !important;
+}
+
+.footer-custom {
+    background: rgba(7, 11, 25, 0.95);
+    border-top: 1px solid rgba(255, 255, 255, 0.06) !important;
+    color: var(--text-muted) !important;
+    padding: 1.5rem 0;
+}
+
+/* Extra micro-animations */
+.glow-effect {
+    position: relative;
+}
+.glow-effect::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: inherit;
+    box-shadow: 0 0 20px rgba(0, 242, 254, 0.1);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+.glow-effect:hover::after {
+    opacity: 1;
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+    .stat-box {
+        border-right: none;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        padding: 1rem 0;
+    }
+    .stat-box:last-child {
+        border-bottom: none;
+    }
+}
