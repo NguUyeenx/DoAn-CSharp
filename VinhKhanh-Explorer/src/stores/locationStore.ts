@@ -11,7 +11,7 @@ interface LocationState {
   isTracking: boolean;
   isSimulatorActive: boolean;
   lastUpdated: number | null;
-  setPosition: (pos: GPSPosition) => void;
+  setPosition: (pos: GPSPosition | null) => void;
   setTracking: (isTracking: boolean) => void;
   setSimulatorActive: (active: boolean) => void;
 }
@@ -21,7 +21,7 @@ export const useLocationStore = create<LocationState>((set) => ({
   isTracking: false,
   isSimulatorActive: false,
   lastUpdated: null,
-  setPosition: (position: GPSPosition) =>
+  setPosition: (position: GPSPosition | null) =>
     set({ position, lastUpdated: Date.now() }),
   setTracking: (isTracking: boolean) => set({ isTracking }),
   setSimulatorActive: (isSimulatorActive: boolean) => set({ isSimulatorActive }),

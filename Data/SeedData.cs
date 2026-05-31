@@ -13,27 +13,27 @@ namespace DoAn_CSharp.Data
             // Ensure database is created and migrated
             await context.Database.MigrateAsync();
 
-            // Check if database has already been seeded
-            if (await context.POIs.AnyAsync())
+            // Seed Admin User
+            if (!await context.AdminUsers.AnyAsync())
             {
-                return; // DB has been seeded
+                var adminUser = new AdminUser
+                {
+                    Username = "admin",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+                    Role = "admin",
+                    CreatedAt = DateTime.UtcNow
+                };
+                await context.AdminUsers.AddAsync(adminUser);
+                await context.SaveChangesAsync();
             }
 
-            // Seed Admin User
-            var adminUser = new AdminUser
-            {
-                Username = "admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
-                Role = "admin",
-                CreatedAt = DateTime.UtcNow
-            };
-            await context.AdminUsers.AddAsync(adminUser);
-
             // Seed POIs with their Translations, MenuItems, and QR Codes
-            var pois = GetPoisToSeed();
-            await context.POIs.AddRangeAsync(pois);
-
-            await context.SaveChangesAsync();
+            if (!await context.POIs.AnyAsync())
+            {
+                var pois = GetPoisToSeed();
+                await context.POIs.AddRangeAsync(pois);
+                await context.SaveChangesAsync();
+            }
 
             // Seed walking tour
             if (!await context.Tours.AnyAsync())

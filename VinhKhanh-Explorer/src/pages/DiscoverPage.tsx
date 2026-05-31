@@ -7,7 +7,7 @@ import { api } from '../services/api';
 import { useSettingsStore } from '../stores/settingsStore';
 import { useLocationStore } from '../stores/locationStore';
 import { computeHaversineDistance } from '../lib/utils';
-import type { POIListDto, TourListDto } from '../types/poi';
+import type { POIListDto, TourListDto, TourDto } from '../types/poi';
 
 const CATEGORIES = [
   { id: 'all', label_en: 'All', label_vi: 'Tất cả' },
@@ -32,6 +32,15 @@ export default function DiscoverPage() {
   const [searchQuery, setSearchQuery] = useState<string>(initialSearch);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'default' | 'distance'>('default');
+
+  const [expandedTourId, setExpandedTourId] = useState<number | null>(null);
+
+  // Fetch full details for the expanded tour (for stop preview)
+  const { data: expandedTour, isLoading: isLoadingTourDetails } = useQuery<TourDto>({
+    queryKey: ['tourDetails', expandedTourId, language],
+    queryFn: () => api.get<TourDto>(`/tours/${expandedTourId}?lang=${language}`),
+    enabled: expandedTourId !== null,
+  });
 
   // Fetch active POI list
   const { data: pois = [], isLoading } = useQuery<POIListDto[]>({
@@ -307,13 +316,87 @@ export default function DiscoverPage() {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => navigate(`/explore?tour=${tour.id}`)}
-                    className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-extrabold rounded-xl transition-all shadow-md active:scale-[0.98] group"
-                  >
-                    <span>{language === 'vi' ? 'Bắt Đầu Hành Trình' : 'Start Walking Tour'}</span>
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-                  </button>
+                  <div className="flex gap-2.5">
+                    <button
+                      onClick={() => setExpandedTourId(expandedTourId === tour.id ? null : tour.id)}
+                      className="flex items-center justify-center gap-1.5 flex-1 py-3 bg-zinc-900 hover:bg-zinc-850 text-zinc-300 text-xs font-bold rounded-xl border border-zinc-800 transition-all active:scale-[0.98]"
+                    >
+                      {expandedTourId === tour.id ? (
+                        <>
+                          <span>{language === 'vi' ? 'Thu gọn ▲' : 'Collapse ▲'}</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>{language === 'vi' ? 'Xem chặng dừng ▼' : 'Show stops ▼'}</span>
+                        </>
+                      )}
+                    </button>
+                    
+                    <button
+                      onClick={() => navigate(`/?tour=${tour.id}`)}
+                      className="flex items-center justify-center gap-2 flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 text-zinc-950 text-xs font-extrabold rounded-xl transition-all shadow-md active:scale-[0.98] group"
+                    >
+                      <span>{language === 'vi' ? 'Bắt Đầu Đi' : 'Start Tour'}</span>
+                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </button>
+                  </div>
+
+                  {expandedTourId === tour.id && (
+                    <div className="mt-2 border-t border-zinc-900 pt-4 flex flex-col gap-4 animate-in fade-in slide-in-from-top-1 duration-200">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-400">
+                        {language === 'vi' ? 'Lộ trình chi tiết' : 'Detailed timeline'}
+                      </h4>
+
+                      {isLoadingTourDetails ? (
+                        <div className="flex items-center justify-center py-6 gap-2 text-zinc-500">
+                          <div className="w-4 h-4 border-2 border-t-emerald-500 border-zinc-800 rounded-full animate-spin"></div>
+                          <span className="text-xs font-medium">{language === 'vi' ? 'Đang tải chặng dừng...' : 'Loading stops...'}</span>
+                        </div>
+                      ) : expandedTour && expandedTour.stops && expandedTour.stops.length > 0 ? (
+                        <div className="relative flex flex-col gap-4 pl-4 border-l border-zinc-850 ml-1.5 mt-1">
+                          {expandedTour.stops
+                            .sort((a, b) => a.stopOrder - b.stopOrder)
+                            .map((stop, index) => (
+                              <div key={stop.id} className="relative text-left flex flex-col gap-1">
+                                {/* Dot Indicator */}
+                                <div className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full border-2 ${
+                                  index === 0
+                                    ? 'bg-emerald-500 border-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]'
+                                    : index === expandedTour.stops.length - 1
+                                      ? 'bg-rose-500 border-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.5)]'
+                                      : 'bg-zinc-800 border-zinc-700'
+                                }`} />
+
+                                <div className="flex items-center justify-between gap-2">
+                                  <span className="text-xs font-bold text-zinc-200">
+                                    {language === 'vi' ? `Chặng ${stop.stopOrder}` : `Stop ${stop.stopOrder}`}: {stop.poiName}
+                                  </span>
+                                  <span className="text-[9px] font-semibold tracking-wider px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800 text-zinc-400">
+                                    {stop.poiCategory}
+                                  </span>
+                                </div>
+
+                                {stop.poiShortDescription && (
+                                  <p className="text-[11px] text-zinc-400 leading-relaxed mt-0.5">
+                                    {stop.poiShortDescription}
+                                  </p>
+                                )}
+
+                                {stop.transitionNote && (
+                                  <p className="text-[10px] text-zinc-500 italic mt-0.5 flex items-center gap-1">
+                                    <span>🚶‍♂️</span> {stop.transitionNote}
+                                  </p>
+                                )}
+                              </div>
+                            ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-zinc-500 italic text-center py-2">
+                          {language === 'vi' ? 'Không có điểm dừng nào được đăng ký.' : 'No stops registered for this tour.'}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

@@ -85,6 +85,7 @@ export interface TourStopDto {
   longitude: number;
   stopOrder: number;
   transitionNote?: string;
+  poiShortDescription?: string;
 }
 
 export interface TourDto {

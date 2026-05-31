@@ -62,14 +62,33 @@ namespace DoAn_CSharp.Services
                 .Select(ts => {
                     var poi = ts.POI;
                     var name = poi?.Name ?? string.Empty;
+                    var shortDesc = string.Empty;
                     
-                    // Fallback localization for POI Name inside Tour Stops
+                    // Fallback localization for POI Name & Short Description inside Tour Stops
                     if (poi != null)
                     {
-                        var translation = poi.Translations.FirstOrDefault(tr => tr.LanguageCode.ToLower() == lang.ToLower());
-                        if (translation != null && !string.IsNullOrEmpty(translation.Name))
+                        var targetLang = lang.ToLowerInvariant();
+                        var translation = poi.Translations.FirstOrDefault(tr => tr.LanguageCode.ToLowerInvariant() == targetLang);
+                        
+                        // Fallback to English (en) if requested language not found
+                        if (translation == null && targetLang != "en")
                         {
-                            name = translation.Name;
+                            translation = poi.Translations.FirstOrDefault(tr => tr.LanguageCode.ToLowerInvariant() == "en");
+                        }
+                        
+                        // Ultimate fallback to first available translation
+                        if (translation == null)
+                        {
+                            translation = poi.Translations.FirstOrDefault();
+                        }
+
+                        if (translation != null)
+                        {
+                            if (!string.IsNullOrEmpty(translation.Name))
+                            {
+                                name = translation.Name;
+                            }
+                            shortDesc = translation.ShortDescription;
                         }
                     }
 
@@ -82,7 +101,8 @@ namespace DoAn_CSharp.Services
                         Latitude = poi?.Latitude ?? 0,
                         Longitude = poi?.Longitude ?? 0,
                         StopOrder = ts.StopOrder,
-                        TransitionNote = ts.TransitionNote
+                        TransitionNote = ts.TransitionNote,
+                        POIShortDescription = shortDesc
                     };
                 }).ToList();
 

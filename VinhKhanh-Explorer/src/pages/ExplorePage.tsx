@@ -199,11 +199,12 @@ export default function ExplorePage() {
   const [isSimulatorExpanded, setIsSimulatorExpanded] = useState<boolean>(true);
   const watchIdRef = useRef<number | null>(null);
 
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const tourParam = searchParams.get('tour');
   const [activeTourId, setActiveTourId] = useState<number | null>(null);
+  const [tourCompletedPoiIds, setTourCompletedPoiIds] = useState<number[]>([]);
 
-  const { checkInPoi, visitedPoiIds } = useGamificationStore();
+  const { checkInPoi, visitedPoiIds, completeTour } = useGamificationStore();
 
   // Fetch active POI list
   const { data: pois = [] } = useQuery<POIListDto[]>({
@@ -245,6 +246,13 @@ export default function ExplorePage() {
     }
   }, [tourParam]);
 
+  // Reset tour stop completion progress when starting a new tour
+  useEffect(() => {
+    setTimeout(() => {
+      setTourCompletedPoiIds([]);
+    }, 0);
+  }, [activeTourId]);
+
   // Leaflet map and overlay elements refs
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -254,7 +262,7 @@ export default function ExplorePage() {
   const poiCirclesRef = useRef<Record<number, L.Circle>>({});
   const activePolylineRef = useRef<L.Polyline | null>(null);
 
-  // Draw Active Walking Tour Guided Route (Leaflet Polyline)
+  // Draw Active Walking Tour Guided Route (Leaflet Polyline - Dynamically shortens based on visited stops)
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
@@ -266,11 +274,26 @@ export default function ExplorePage() {
     }
 
     if (activeTour && activeTour.stops && activeTour.stops.length > 0) {
-      const coordinates = [...activeTour.stops]
-        .sort((a, b) => a.stopOrder - b.stopOrder)
-        .map(stop => [stop.latitude, stop.longitude] as L.LatLngTuple);
+      // 1. Phân loại các chặng đã hoàn thành và sắp xếp
+      const completedStops = [...activeTour.stops]
+        .filter(stop => tourCompletedPoiIds.includes(stop.poiId))
+        .sort((a, b) => a.stopOrder - b.stopOrder);
 
-      if (coordinates.length > 1) {
+      // 2. Phân loại các chặng chưa hoàn thành và sắp xếp
+      const unvisitedStops = [...activeTour.stops]
+        .filter(stop => !tourCompletedPoiIds.includes(stop.poiId))
+        .sort((a, b) => a.stopOrder - b.stopOrder);
+
+      // 3. Gom nhóm chặng hoạt động: Bắt đầu từ chặng đã hoàn thành cuối cùng
+      const activeStops = [];
+      if (completedStops.length > 0) {
+        const lastCompleted = completedStops[completedStops.length - 1];
+        activeStops.push(lastCompleted);
+      }
+      activeStops.push(...unvisitedStops);
+
+      if (activeStops.length > 1) {
+        const coordinates = activeStops.map(stop => [stop.latitude, stop.longitude] as L.LatLngTuple);
         const polyline = L.polyline(coordinates, {
           color: '#14b8a6', // turquoise
           weight: 4,
@@ -285,7 +308,7 @@ export default function ExplorePage() {
         map.fitBounds(polyline.getBounds(), { padding: [50, 50] });
       }
     }
-  }, [activeTour]);
+  }, [activeTour, tourCompletedPoiIds]);
 
   // 1. Initialize Leaflet Map Instance
   useEffect(() => {
@@ -309,6 +332,8 @@ export default function ExplorePage() {
         mapRef.current.remove();
         mapRef.current = null;
       }
+      userMarkerRef.current = null;
+      userCircleRef.current = null;
     };
   }, []);
 
@@ -408,17 +433,21 @@ export default function ExplorePage() {
     }
   }, [position]);
 
-  // 1. Geolocation Tracking Engine
+  // 1. Geolocation Tracking Engine (Race-condition safe)
   useEffect(() => {
     if (isTracking && !isSimulatorActive) {
       if (navigator.geolocation) {
         watchIdRef.current = navigator.geolocation.watchPosition(
           (pos) => {
-            setPosition({
-              latitude: pos.coords.latitude,
-              longitude: pos.coords.longitude,
-              accuracy: pos.coords.accuracy,
-            });
+            // Race condition check: ignore real GPS coordinates if simulator is active
+            const latestSimulatorActive = useLocationStore.getState().isSimulatorActive;
+            if (!latestSimulatorActive) {
+              setPosition({
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                accuracy: pos.coords.accuracy,
+              });
+            }
           },
           (err) => {
             console.error('GPS tracking failed:', err);
@@ -441,6 +470,31 @@ export default function ExplorePage() {
     };
   }, [isTracking, isSimulatorActive, setPosition, setTracking]);
 
+  // Tour Completion Watcher
+  useEffect(() => {
+    if (activeTour && activeTour.stops && activeTour.stops.length > 0) {
+      const isTourFinished = activeTour.stops.every(stop => tourCompletedPoiIds.includes(stop.poiId));
+      if (isTourFinished) {
+        const { pointsEarned } = completeTour(activeTour.id);
+        if (pointsEarned > 0) {
+          alert(
+            language === 'vi'
+              ? `🏆 Chúc mừng! Bạn đã hoàn thành hành trình "${activeTour.name}" và nhận thêm +${pointsEarned} điểm XP!`
+              : `🏆 Congratulations! You completed the "${activeTour.name}" walking tour and earned +${pointsEarned} XP!`
+          );
+        }
+        // Clear active tour query parameters to reset map
+        setSearchParams((params) => {
+          params.delete('tour');
+          return params;
+        });
+        setTimeout(() => {
+          setActiveTourId(null);
+        }, 0);
+      }
+    }
+  }, [activeTour, tourCompletedPoiIds, completeTour, language, setSearchParams]);
+
   // 2. Browser Text-to-Speech Player
   const playTextToSpeech = useCallback((text: string) => {
     window.speechSynthesis.cancel();
@@ -459,6 +513,14 @@ export default function ExplorePage() {
   const triggerGeofence = useCallback(async (poiId: number) => {
     // 1. Set Cooldown immediately to prevent double triggers
     setCooldown(poiId, new Date().getTime());
+
+    // Record stop visit for active tour session
+    setTourCompletedPoiIds((prev) => {
+      if (!prev.includes(poiId)) {
+        return [...prev, poiId];
+      }
+      return prev;
+    });
 
     // 2. Perform Gamification Check-in
     const category = pois.find(p => p.id === poiId)?.category || 'restaurant';
@@ -582,6 +644,7 @@ export default function ExplorePage() {
   const toggleTracking = () => {
     if (isTracking) {
       setTracking(false);
+      setPosition(null); // Clear position marker when tracking is disabled
     } else {
       setSimulatorActive(false); // Disable simulator if user wants real GPS
       setTracking(true);
@@ -600,6 +663,70 @@ export default function ExplorePage() {
     <div className="relative w-full h-[calc(100vh-64px)] overflow-hidden bg-zinc-950">
       {/* Leaflet Map Div */}
       <div ref={mapContainerRef} className="w-full h-full z-0" />
+
+      {/* Floating Active Tour Progress Panel */}
+      {activeTour && (
+        <div className="absolute bottom-24 left-4 right-4 z-10 md:left-4 md:right-auto md:max-w-[280px]">
+          <div className="bg-zinc-950/95 border border-emerald-500/30 rounded-2xl shadow-[0_4px_20px_rgba(16,185,129,0.15)] overflow-hidden backdrop-blur-md text-white p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between border-b border-zinc-900 pb-2">
+              <div className="flex items-center gap-1.5">
+                <span className="text-sm">🧭</span>
+                <span className="font-extrabold text-xs tracking-wide text-emerald-400 uppercase">
+                  {language === 'vi' ? 'Đang Đi Tour' : 'Active Tour'}
+                </span>
+              </div>
+              <button
+                onClick={() => {
+                  setSearchParams((params) => {
+                    params.delete('tour');
+                    return params;
+                  });
+                  setActiveTourId(null);
+                }}
+                className="text-[10px] font-bold px-2 py-1 rounded bg-rose-500/10 border border-rose-500/20 text-rose-400 hover:bg-rose-500/20 transition-all"
+              >
+                {language === 'vi' ? 'Hủy' : 'Cancel'}
+              </button>
+            </div>
+            
+            <div>
+              <h3 className="font-bold text-sm text-zinc-100 line-clamp-1">{activeTour.name}</h3>
+              <p className="text-[10px] text-zinc-400 mt-1 leading-relaxed">
+                {language === 'vi' 
+                  ? `Đã qua: ${activeTour.stops.filter(s => tourCompletedPoiIds.includes(s.poiId)).length}/${activeTour.stops.length} điểm dừng`
+                  : `Visited: ${activeTour.stops.filter(s => tourCompletedPoiIds.includes(s.poiId)).length}/${activeTour.stops.length} stops`}
+              </p>
+            </div>
+
+            {/* Simple Progress Bar */}
+            <div className="w-full bg-zinc-900 h-1.5 rounded-full overflow-hidden border border-zinc-800">
+              <div 
+                className="bg-emerald-500 h-full rounded-full transition-all duration-300"
+                style={{ 
+                  width: `${(activeTour.stops.filter(s => tourCompletedPoiIds.includes(s.poiId)).length / activeTour.stops.length) * 100}%` 
+                }}
+              />
+            </div>
+
+            {/* Next Stop Tip */}
+            {activeTour.stops.filter(s => !tourCompletedPoiIds.includes(s.poiId)).length > 0 && (
+              <div className="bg-zinc-900/60 border border-zinc-900 px-3 py-2 rounded-xl text-left">
+                <span className="text-[9px] font-bold text-zinc-500 block uppercase tracking-wide">
+                  {language === 'vi' ? 'Điểm tiếp theo' : 'Next Stop'}
+                </span>
+                <span className="text-xs font-bold text-zinc-200 block mt-0.5">
+                  {activeTour.stops.filter(s => !tourCompletedPoiIds.includes(s.poiId)).sort((a,b) => a.stopOrder - b.stopOrder)[0].poiName}
+                </span>
+                {activeTour.stops.filter(s => !tourCompletedPoiIds.includes(s.poiId)).sort((a,b) => a.stopOrder - b.stopOrder)[0].transitionNote && (
+                  <span className="text-[10px] text-zinc-400 italic block mt-1 leading-relaxed">
+                    🚶‍♂️ {activeTour.stops.filter(s => !tourCompletedPoiIds.includes(s.poiId)).sort((a,b) => a.stopOrder - b.stopOrder)[0].transitionNote}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Floating GPS Controller / Tracking Toggle */}
       <div className="absolute top-4 right-4 flex flex-col gap-2 z-10">
@@ -661,7 +788,10 @@ export default function ExplorePage() {
 
                   {isSimulatorActive && (
                     <button
-                      onClick={() => setSimulatorActive(false)}
+                      onClick={() => {
+                        setSimulatorActive(false);
+                        setPosition(null); // Clear simulated position
+                      }}
                       className="w-full py-1.5 bg-zinc-900 border border-zinc-850 hover:bg-zinc-800 text-xs font-semibold rounded-lg text-zinc-400 hover:text-white transition-colors"
                     >
                       Disable Simulator
