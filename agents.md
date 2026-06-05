@@ -10,9 +10,10 @@ It contains general behavioral guardrails inspired by **Andrej Karpathy's LLM co
 
 Agents must use these exact commands to build, run, and test the project:
 
-- **Build Project**: `dotnet build`
-- **Run Locally**: `dotnet run`
-- **Clean Artifacts**: `dotnet clean`
+- **Build Project**: `dotnet build backend/DoAn-CSharp.sln`
+- **Run Locally**: `dotnet run --project backend/DoAn-CSharp/DoAn-CSharp.csproj`
+- **Clean Artifacts**: `dotnet clean backend/DoAn-CSharp.sln`
+- **Run Tests**: `dotnet test backend/DoAn-CSharp.sln`
 
 ---
 
@@ -26,16 +27,16 @@ This is a standard **ASP.NET Core MVC (Model-View-Controller)** web application 
 - **Root Namespace**: `DoAn_CSharp`
 
 ### Directory Structure:
-- [Program.cs](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/Program.cs): Application entry point, services registration, and middleware configuration.
-- [DoAn-CSharp.csproj](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/DoAn-CSharp.csproj): Project file specifying SDK, target framework, and dependencies.
-- [Controllers/](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/Controllers): Contains ASP.NET MVC Controllers handling user requests and returning Views.
-  - [HomeController.cs](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/Controllers/HomeController.cs): Default controller for home page, privacy page, and error handling.
-- [Models/](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/Models): Data structures and view models.
-- [Views/](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/Views): Razor View (`.cshtml`) pages for UI rendering.
+- [Program.cs](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/backend/DoAn-CSharp/Program.cs): Application entry point, services registration, and middleware configuration.
+- [DoAn-CSharp.csproj](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/backend/DoAn-CSharp/DoAn-CSharp.csproj): Project file specifying SDK, target framework, and dependencies.
+- [Controllers/](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/backend/DoAn-CSharp/Controllers): Contains ASP.NET MVC Controllers handling user requests and returning Views.
+  - [HomeController.cs](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/backend/DoAn-CSharp/Controllers/HomeController.cs): Default controller for home page, privacy page, and error handling.
+- [Models/](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/backend/DoAn-CSharp/Models): Data structures and view models.
+- [Views/](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/backend/DoAn-CSharp/Views): Razor View (`.cshtml`) pages for UI rendering.
   - `Home/`: Views associated with `HomeController`.
   - `Shared/`: Shared layouts (e.g., `_Layout.cshtml`, `_ValidationScriptsPartial.cshtml`).
-- [wwwroot/](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/wwwroot): Static files (CSS, JS, images, lib).
-- [appsettings.json](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/appsettings.json): Configuration file for database connections, logging, and environment settings.
+- [wwwroot/](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/backend/DoAn-CSharp/wwwroot): Static files (CSS, JS, images, lib).
+- [appsettings.json](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/backend/DoAn-CSharp/appsettings.json): Configuration file for database connections, logging, and environment settings.
 
 ---
 
@@ -81,8 +82,8 @@ All agents must strictly adhere to the following four principles to avoid common
 
 All AI agents working on this project MUST strictly follow the Spec-First and TDD workflow defined in [.agent/rules/spec-and-eval-loop.md](file:///c:/Users/NguyenNguyen/Documents/GitHub/DoAn-CSharp/.agent/rules/spec-and-eval-loop.md):
 1. **Spec-First**: Write technical specifications in `.agent/specs/` before writing any codebase implementation.
-2. **Test-First**: Write xUnit tests in `DoAn-CSharp.Tests` first.
-3. **Loop & Self-Correct**: Run `dotnet test` continuously to evaluate changes and self-correct until 100% of tests pass.
+2. **Test-First**: Write xUnit tests in `backend/DoAn-CSharp.Tests` first.
+3. **Loop & Self-Correct**: Run `dotnet test backend/DoAn-CSharp.sln` continuously to evaluate changes and self-correct until 100% of tests pass.
 
 ---
 

@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoAn-CSharp", "DoAn-CSharp.csproj", "{8F5A67C5-F3B0-4A9B-B1D6-8F747F5D1A2B}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoAn-CSharp", "DoAn-CSharp\DoAn-CSharp.csproj", "{8F5A67C5-F3B0-4A9B-B1D6-8F747F5D1A2B}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DoAn-CSharp.Tests", "DoAn-CSharp.Tests\DoAn-CSharp.Tests.csproj", "{E9C5D6F1-3E2A-4FBC-8A8C-8CD1DE5F3E76}"
 EndProject

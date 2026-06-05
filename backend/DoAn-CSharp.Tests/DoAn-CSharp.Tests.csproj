@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\DoAn-CSharp.csproj" />
+    <ProjectReference Include="..\DoAn-CSharp\DoAn-CSharp.csproj" />
   </ItemGroup>
 
 </Project>

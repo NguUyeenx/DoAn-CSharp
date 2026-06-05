@@ -83,35 +83,39 @@ Dự án áp dụng kiến trúc tách biệt hoàn toàn giữa Client (Fronten
 
 ## 📁 Cấu Trúc Mã Nguồn (Folder Structure)
 
-### 1. Backend Web API (`DoAn-CSharp/`)
+Dự án được tổ chức gọn gàng thành hai phân hệ độc lập: `backend` và `frontend`.
+
+### 1. Backend Web API (`backend/`)
 ```text
-DoAn-CSharp/
-├── Controllers/            # API Controllers tiếp nhận và phản hồi HTTP requests
-│   ├── POIController.cs    # Điểm quan tâm, truy vấn tọa độ và khoảng cách Proximity
-│   ├── TourController.cs   # Quản lý Tour du lịch định sẵn và chặng dừng
-│   ├── QRController.cs     # Quản lý và sinh mã QR tự động
-│   ├── AnalyticsController.cs # Tiếp nhận log check-in và trả dữ liệu thống kê
-│   └── AuthController.cs   # Xác thực tài khoản quản trị viên cấp phát JWT
-├── Services/               # Lớp xử lý Logic nghiệp vụ cốt lõi (Business Services)
-│   ├── POIService.cs       # Tính toán Haversine bằng LINQ dịch trực tiếp sang SQL
-│   ├── TourService.cs      # Xử lý logic hoàn thành chặng và phân chia XP
-│   └── ...                 
-├── Data/                   # Kết nối Cơ sở dữ liệu và Dữ liệu mẫu (EF Core)
-│   ├── AppDbContext.cs     # Cấu hình Fluent API, chỉ mục Spatial, quan hệ Cascade
-│   └── SeedData.cs         # Khởi tạo 15 POIs Vĩnh Khánh thực tế, dịch song ngữ, Tours mẫu
-├── Models/                 # Định nghĩa các thực thể dữ liệu & DTOs
-│   ├── Entities/           # POI, POITranslation, Tour, TourStop, VisitLog, AdminUser
-│   └── DTOs/               # Data Transfer Objects chuẩn hóa đầu ra/đầu vào API
-├── Middleware/             # Bộ lọc Custom Middleware (Exception handling toàn cục)
-├── Extensions/             # Đăng ký Dependencies Injection gọn gàng trong Program.cs
-├── DoAn-CSharp.Tests/      # Thư mục chứa 44+ kịch bản kiểm thử tự động xUnit
-├── Program.cs              # Điểm khởi đầu ứng dụng, cấu hình CORS, JWT, Routing Pipeline
-└── appsettings.json        # Chứa Connection String LocalDB và Khóa bí mật JWT
+backend/
+├── DoAn-CSharp.sln         # Giải pháp (.sln) quản lý các dự án .NET
+├── DoAn-CSharp/            # Thư mục dự án Web API chính
+│   ├── Controllers/        # API Controllers tiếp nhận và phản hồi HTTP requests
+│   │   ├── POIController.cs    # Điểm quan tâm, truy vấn tọa độ và khoảng cách Proximity
+│   │   ├── TourController.cs   # Quản lý Tour du lịch định sẵn và chặng dừng
+│   │   ├── QRController.cs     # Quản lý và sinh mã QR tự động
+│   │   ├── AnalyticsController.cs # Tiếp nhận log check-in và trả dữ liệu thống kê
+│   │   └── AuthController.cs   # Xác thực tài khoản quản trị viên cấp phát JWT
+│   ├── Services/           # Lớp xử lý Logic nghiệp vụ cốt lõi (Business Services)
+│   │   ├── POIService.cs       # Tính toán Haversine bằng LINQ dịch trực tiếp sang SQL
+│   │   ├── TourService.cs      # Xử lý logic hoàn thành chặng và phân chia XP
+│   │   └── ...                 
+│   ├── Data/               # Kết nối Cơ sở dữ liệu và Dữ liệu mẫu (EF Core)
+│   │   ├── AppDbContext.cs # Cấu hình Fluent API, chỉ mục Spatial, quan hệ Cascade
+│   │   └── SeedData.cs     # Khởi tạo 15 POIs Vĩnh Khánh thực tế, dịch song ngữ, Tours mẫu
+│   ├── Models/             # Định nghĩa các thực thể dữ liệu & DTOs
+│   │   ├── Entities/       # POI, POITranslation, Tour, TourStop, VisitLog, AdminUser
+│   │   └── DTOs/           # Data Transfer Objects chuẩn hóa đầu ra/đầu vào API
+│   ├── Middleware/         # Bộ lọc Custom Middleware (Exception handling toàn cục)
+│   ├── Extensions/         # Đăng ký Dependencies Injection gọn gàng trong Program.cs
+│   ├── Program.cs          # Điểm khởi đầu ứng dụng, cấu hình CORS, JWT, Routing Pipeline
+│   └── appsettings.json    # Chứa Connection String LocalDB và Khóa bí mật JWT
+└── DoAn-CSharp.Tests/      # Thư mục chứa 44+ kịch bản kiểm thử tự động xUnit
 ```
 
-### 2. Frontend React PWA (`VinhKhanh-Explorer/`)
+### 2. Frontend React PWA (`frontend/`)
 ```text
-VinhKhanh-Explorer/
+frontend/
 ├── src/
 │   ├── components/         # Các thành phần giao diện dùng chung
 │   │   ├── map/            # Bản đồ tương tác (MapView, POIMarker, UserLocation)
@@ -143,7 +147,10 @@ VinhKhanh-Explorer/
 > [!NOTE]
 > Đảm bảo máy tính của bạn đã cài đặt **.NET 9.0 SDK** và **SQL Server LocalDB** (thường đi kèm khi cài Visual Studio).
 
-1. Di chuyển vào thư mục gốc `DoAn-CSharp/`.
+1. Di chuyển vào thư mục backend của dự án:
+   ```bash
+   cd backend/DoAn-CSharp
+   ```
 2. Tạo cơ sở dữ liệu và thực thi Migrations để tự động nạp 15 địa điểm Vĩnh Khánh cùng dữ liệu mẫu:
    ```bash
    dotnet ef database update
@@ -157,7 +164,7 @@ VinhKhanh-Explorer/
    dotnet run
    ```
    API sẽ khởi chạy tại địa chỉ: `https://localhost:5001` hoặc `http://localhost:5000`. Bạn có thể truy cập `https://localhost:5001/swagger` để xem tài liệu Swagger trực quan.
-5. Để chạy bộ kiểm thử tự động xUnit (44 tests pass):
+5. Để chạy bộ kiểm thử tự động xUnit (44 tests pass) từ thư mục backend:
    ```bash
    dotnet test
    ```
@@ -169,13 +176,13 @@ VinhKhanh-Explorer/
 
 1. Di chuyển vào thư mục frontend:
    ```bash
-   cd VinhKhanh-Explorer
+   cd frontend
    ```
 2. Cài đặt các gói thư viện phụ thuộc:
    ```bash
    npm install
    ```
-3. Tạo tệp `.env` tại thư mục `VinhKhanh-Explorer/` và cấu hình địa chỉ API cùng khóa Google Maps:
+3. Tạo tệp `.env` tại thư mục `frontend/` và cấu hình địa chỉ API cùng khóa Google Maps:
    ```env
    VITE_API_BASE_URL=https://localhost:5001/api
    VITE_GOOGLE_MAPS_API_KEY=YOUR_GOOGLE_MAPS_API_KEY
