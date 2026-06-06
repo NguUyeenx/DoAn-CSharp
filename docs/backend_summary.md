@@ -418,3 +418,29 @@ dotnet test
 | File Upload | Kiểm tra MIME type + giới hạn dung lượng |
 | CORS | Chỉ cho phép origin Frontend (`localhost:5173`) |
 | Soft Delete | Dữ liệu không bị xóa cứng khỏi DB |
+
+---
+
+## 9. Nhật Ký Cập Nhật (Gần Nhất)
+
+Trong quá trình Unit Test và E2E Test qua Postman, hệ thống Backend đã được tinh chỉnh và fix các lỗi thực tế (Business Logic & Routing):
+
+### 9.1 Chuẩn Hóa Routing & Authentication
+- Đã chuẩn hóa toàn bộ các API CMS dành cho Admin ở các Controller: `MenuController`, `TranslationController`, `TourController`.
+- Xóa bỏ các tiền tố URL rườm rà như `/api/admin/translations` và thống nhất sử dụng `[Authorize(Roles = "admin")]` ngay trên phương thức, giữ nguyên RESTful URL chuẩn (VD: `POST /api/translations`).
+
+### 9.2 Global Exception Handling
+- `ExceptionMiddleware.cs` được nâng cấp để bắt chi tiết các lỗi logic:
+  - `UnauthorizedAccessException` → Trả về **401 Unauthorized**.
+  - `ArgumentException`, `KeyNotFoundException` → Trả về **400 Bad Request**.
+  - Lỗi DbUpdateException do trùng khóa ngoại/duy nhất được bắt và xử lý gọn gàng.
+
+### 9.3 Xử Lý Business Logic
+- **Đổi mật khẩu:** Đổi tên biến `OldPassword` thành `CurrentPassword` trong `AuthDto` để logic thân thiện và hợp lý hơn, đồng thời update luồng xử lý trong `AuthService`.
+- **QR Code Generator:** Fix lỗi 500 khi Admin sinh mã QR mới do trùng lặp (Duplicate Key) với dữ liệu mẫu. Hệ thống giờ đây tự động nối thêm một mã hash ngẫu nhiên (VD: `VKE-POI-001-A7B8C9`) để đảm bảo tính duy nhất tuyệt đối.
+- **Audio Progress Tracker:** Fix lỗi 500 (Foreign Key Constraint) khi người dùng lưu tiến độ nghe lần đầu. Đồng bộ hóa bằng cách chèn tự động dữ liệu mẫu `AudioFile` vào trong `SeedData`.
+
+### 9.4 Tối Ưu Hóa Trải Nghiệm Dev
+- Tắt bớt log rác của `Microsoft.EntityFrameworkCore.Database.Command` trong `appsettings.Development.json` giúp Terminal sạch sẽ, dễ dàng debug.
+- Export file `database.sql` hoàn chỉnh, chứa toàn bộ Table Schema + Index + Constraints dành cho các thành viên muốn setup CSDL SQL Server bằng tay thay vì dùng EF Core Migrations.
+- Cập nhật chuẩn xác các file test `*.request.yaml` cho Postman (Audio Progress GET/PUT, Analytics Visit) để mapping đúng 100% với DTO của hệ thống.
