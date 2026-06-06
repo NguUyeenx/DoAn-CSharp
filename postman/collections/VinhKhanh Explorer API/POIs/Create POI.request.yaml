@@ -1,0 +1,32 @@
+$kind: http-request
+name: Create POI
+method: POST
+url: "{{baseUrl}}/api/pois"
+order: 6000
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |
+    {
+      "name": "Test POI",
+      "slug": "test-poi",
+      "latitude": 10.762622,
+      "longitude": 106.660172,
+      "triggerRadiusMeters": 30,
+      "category": "restaurant",
+      "categoryId": 1,
+      "priority": 5,
+      "address": "123 Đường Vĩnh Khánh"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 or 201", function () {
+        pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+      });
+    language: text/javascript

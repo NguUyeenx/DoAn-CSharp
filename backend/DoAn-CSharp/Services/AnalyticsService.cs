@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using DoAn_CSharp.Data;
 using DoAn_CSharp.Models.DTOs;
@@ -23,6 +19,7 @@ namespace DoAn_CSharp.Services
             var log = new VisitLog
             {
                 POIId = dto.POIId,
+                UserId = dto.UserId,
                 SessionId = dto.SessionId,
                 TriggerType = dto.TriggerType.ToLowerInvariant(),
                 LanguageCode = dto.LanguageCode.ToLowerInvariant(),
@@ -36,9 +33,15 @@ namespace DoAn_CSharp.Services
         public async Task<AnalyticsSummaryDto> GetSummaryAsync()
         {
             var totalVisits = await _context.VisitLogs.CountAsync();
+            var totalQrScans = await _context.QRCodes.SumAsync(q => q.ScanCount);
+            var totalAudioPlays = await _context.VisitLogs
+                .Where(v => v.TriggerType == "geofence" || v.TriggerType == "qr")
+                .CountAsync();
 
-            // Load dates to group in memory, avoiding SQL dialect translation issues for VisitedAt.Date
+            // Visits over time (last 30 days)
+            var cutoff = DateTime.UtcNow.AddDays(-30);
             var visitedDates = await _context.VisitLogs
+                .Where(v => v.VisitedAt >= cutoff)
                 .Select(v => v.VisitedAt)
                 .ToListAsync();
 
@@ -52,14 +55,12 @@ namespace DoAn_CSharp.Services
                 .OrderBy(v => v.Date)
                 .ToList();
 
+            // Top 10 popular POIs
             var popularGroups = await _context.VisitLogs
                 .GroupBy(v => v.POIId)
-                .Select(g => new
-                {
-                    POIId = g.Key,
-                    Count = g.Count()
-                })
+                .Select(g => new { POIId = g.Key, Count = g.Count() })
                 .OrderByDescending(g => g.Count)
+                .Take(10)
                 .ToListAsync();
 
             var popularPOIs = new List<PopularPOIDto>();
@@ -69,16 +70,30 @@ namespace DoAn_CSharp.Services
                 popularPOIs.Add(new PopularPOIDto
                 {
                     POIId = pg.POIId,
-                    POIName = poi?.Name ?? "Unknown POI",
+                    POIName = poi?.Name ?? "Unknown",
                     Count = pg.Count
                 });
             }
 
+            // Language breakdown
+            var langBreakdown = await _context.VisitLogs
+                .GroupBy(v => v.LanguageCode)
+                .Select(g => new LanguageStatDto
+                {
+                    LanguageCode = g.Key,
+                    Count = g.Count()
+                })
+                .OrderByDescending(l => l.Count)
+                .ToListAsync();
+
             return new AnalyticsSummaryDto
             {
                 TotalVisits = totalVisits,
+                TotalQrScans = totalQrScans,
+                TotalAudioPlays = totalAudioPlays,
                 VisitsOverTime = visitsOverTime,
-                PopularPOIs = popularPOIs
+                PopularPOIs = popularPOIs,
+                LanguageBreakdown = langBreakdown
             };
         }
     }

@@ -1,0 +1,21 @@
+$kind: http-request
+name: Dashboard
+method: GET
+url: '{{baseUrl}}/api/analytics/dashboard'
+order: 2000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{adminToken}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });
+      pm.test("Response has summary data", function () {
+        var jsonData = pm.response.json();
+        pm.expect(jsonData).to.be.an('object');
+      });

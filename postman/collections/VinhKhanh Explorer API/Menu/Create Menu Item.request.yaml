@@ -1,0 +1,35 @@
+$kind: http-request
+name: Create Menu Item
+method: POST
+url: '{{baseUrl}}/api/pois/{{poiId}}/menu'
+order: 2000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{adminToken}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "Pho Bo",
+      "description": "Traditional Vietnamese beef noodle soup",
+      "price": 50000,
+      "category": "Main Course",
+      "imageUrl": "https://example.com/pho.jpg",
+      "available": true
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 201", function () {
+        pm.response.to.have.status(201);
+      });
+      pm.test("Menu item created", function () {
+        var jsonData = pm.response.json();
+        pm.expect(jsonData).to.have.property('id');
+      });

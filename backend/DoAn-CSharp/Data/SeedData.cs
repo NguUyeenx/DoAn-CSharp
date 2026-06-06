@@ -14,16 +14,56 @@ namespace DoAn_CSharp.Data
             await context.Database.MigrateAsync();
 
             // Seed Admin User
-            if (!await context.AdminUsers.AnyAsync())
+            var adminUser = await context.AdminUsers.FirstOrDefaultAsync(u => u.Username == "admin");
+            if (adminUser == null)
             {
-                var adminUser = new AdminUser
+                adminUser = new AdminUser
                 {
                     Username = "admin",
-                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123"),
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@1234"),
                     Role = "admin",
                     CreatedAt = DateTime.UtcNow
                 };
                 await context.AdminUsers.AddAsync(adminUser);
+            }
+            else
+            {
+                // Force update password to "Admin@1234" for this request
+                adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@1234");
+                context.AdminUsers.Update(adminUser);
+            }
+            await context.SaveChangesAsync();
+
+            // Seed Languages
+            if (!await context.Languages.AnyAsync())
+            {
+                var languages = new[]
+                {
+                    new DoAn_CSharp.Models.Entities.Language { Code = "vi", Name = "Vietnamese", NativeName = "Tiếng Việt", IsActive = true, SortOrder = 1 },
+                    new DoAn_CSharp.Models.Entities.Language { Code = "en", Name = "English", NativeName = "English", IsActive = true, SortOrder = 2 },
+                    new DoAn_CSharp.Models.Entities.Language { Code = "ja", Name = "Japanese", NativeName = "日本語", IsActive = true, SortOrder = 3 },
+                    new DoAn_CSharp.Models.Entities.Language { Code = "ko", Name = "Korean", NativeName = "한국어", IsActive = true, SortOrder = 4 },
+                    new DoAn_CSharp.Models.Entities.Language { Code = "zh", Name = "Chinese", NativeName = "中文", IsActive = true, SortOrder = 5 },
+                };
+                await context.Languages.AddRangeAsync(languages);
+                await context.SaveChangesAsync();
+            }
+
+            // Seed POI Categories
+            if (!await context.POICategories.AnyAsync())
+            {
+                var categories = new[]
+                {
+                    new DoAn_CSharp.Models.Entities.POICategory { Slug = "restaurant", Name = "Nhà hàng", Color = "#FF5733", SortOrder = 1 },
+                    new DoAn_CSharp.Models.Entities.POICategory { Slug = "cafe", Name = "Quán cafe", Color = "#8B4513", SortOrder = 2 },
+                    new DoAn_CSharp.Models.Entities.POICategory { Slug = "street_food", Name = "Ẩm thực đường phố", Color = "#FFA500", SortOrder = 3 },
+                    new DoAn_CSharp.Models.Entities.POICategory { Slug = "temple", Name = "Chùa / Đền", Color = "#FFD700", SortOrder = 4 },
+                    new DoAn_CSharp.Models.Entities.POICategory { Slug = "market", Name = "Chợ", Color = "#32CD32", SortOrder = 5 },
+                    new DoAn_CSharp.Models.Entities.POICategory { Slug = "park", Name = "Công viên", Color = "#228B22", SortOrder = 6 },
+                    new DoAn_CSharp.Models.Entities.POICategory { Slug = "landmark", Name = "Địa danh", Color = "#4169E1", SortOrder = 7 },
+                    new DoAn_CSharp.Models.Entities.POICategory { Slug = "street_art", Name = "Nghệ thuật đường phố", Color = "#FF69B4", SortOrder = 8 },
+                };
+                await context.POICategories.AddRangeAsync(categories);
                 await context.SaveChangesAsync();
             }
 
@@ -34,6 +74,7 @@ namespace DoAn_CSharp.Data
                 await context.POIs.AddRangeAsync(pois);
                 await context.SaveChangesAsync();
             }
+
 
             // Seed walking tour
             if (!await context.Tours.AnyAsync())
@@ -111,6 +152,23 @@ namespace DoAn_CSharp.Data
                 };
 
                 await context.QuizQuestions.AddRangeAsync(quiz1, quiz2);
+                await context.SaveChangesAsync();
+            }
+
+            // Seed AudioFiles
+            if (!await context.AudioFiles.AnyAsync())
+            {
+                var audioFile = new AudioFile
+                {
+                    POIId = 1,
+                    LanguageCode = "en",
+                    FilePath = "/audio/sample.mp3",
+                    DurationSeconds = 180,
+                    AudioType = "pre-recorded",
+                    IsDefault = true,
+                    GeneratedAt = DateTime.UtcNow
+                };
+                await context.AudioFiles.AddAsync(audioFile);
                 await context.SaveChangesAsync();
             }
         }

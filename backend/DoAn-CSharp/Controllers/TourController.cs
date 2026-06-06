@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Threading.Tasks;
 using DoAn_CSharp.Services;
 using DoAn_CSharp.Models.DTOs;
@@ -34,14 +35,16 @@ namespace DoAn_CSharp.Controllers
             return Ok(tour);
         }
 
-        [HttpPost("/api/admin/tours")]
+        [Authorize(Roles = "admin")]
+        [HttpPost]
         public async Task<IActionResult> CreateTour([FromBody] TourCreateDto dto)
         {
             var created = await _tourService.CreateTourAsync(dto);
             return CreatedAtAction(nameof(GetTourById), new { id = created.Id }, created);
         }
 
-        [HttpPut("/api/admin/tours/{id:int}")]
+        [Authorize(Roles = "admin")]
+        [HttpPut("{id:int}")]
         public async Task<IActionResult> UpdateTour(int id, [FromBody] TourCreateDto dto)
         {
             var updated = await _tourService.UpdateTourAsync(id, dto);
@@ -52,7 +55,8 @@ namespace DoAn_CSharp.Controllers
             return Ok(updated);
         }
 
-        [HttpDelete("/api/admin/tours/{id:int}")]
+        [Authorize(Roles = "admin")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteTour(int id)
         {
             var success = await _tourService.DeleteTourAsync(id);

@@ -1,0 +1,17 @@
+$kind: http-request
+name: Delete Tour
+method: DELETE
+url: '{{baseUrl}}/api/admin/tours/{{tourId}}'
+order: 5000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{adminToken}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200 or 204", function () {
+        pm.expect(pm.response.code).to.be.oneOf([200, 204]);
+      });

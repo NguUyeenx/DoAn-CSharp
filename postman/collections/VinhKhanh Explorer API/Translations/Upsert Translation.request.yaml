@@ -1,0 +1,25 @@
+$kind: http-request
+name: Upsert Translation
+method: GET
+url: "{{baseUrl}}/api/translations/1/en"
+order: 2000
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: ""
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 or 201", function () {
+        pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+      });
+      pm.test("Translation saved", function () {
+        var jsonData = pm.response.json();
+        pm.expect(jsonData).to.be.an('object');
+      });
+    language: text/javascript

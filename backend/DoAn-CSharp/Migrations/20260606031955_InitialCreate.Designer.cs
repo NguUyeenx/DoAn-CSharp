@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DoAn_CSharp.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260531014337_AddQuizzesAndTours")]
-    partial class AddQuizzesAndTours
+    [Migration("20260606031955_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -75,6 +75,9 @@ namespace DoAn_CSharp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<DateTime?>("GeneratedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
 
@@ -85,11 +88,98 @@ namespace DoAn_CSharp.Migrations
                     b.Property<int>("POIId")
                         .HasColumnType("int");
 
+                    b.Property<string>("TTSProvider")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("VoiceName")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("POIId");
 
                     b.ToTable("AudioFiles");
+                });
+
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.AudioProgress", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AudioFileId")
+                        .HasColumnType("int");
+
+                    b.Property<double>("CurrentSecond")
+                        .HasColumnType("float");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AudioFileId");
+
+                    b.HasIndex("UserId", "AudioFileId")
+                        .IsUnique();
+
+                    b.ToTable("AudioProgresses");
+                });
+
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.Favorite", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("POIId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("POIId");
+
+                    b.HasIndex("UserId", "POIId")
+                        .IsUnique();
+
+                    b.ToTable("Favorites");
+                });
+
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.Language", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NativeName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Code");
+
+                    b.ToTable("Languages");
                 });
 
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.MenuItem", b =>
@@ -166,12 +256,30 @@ namespace DoAn_CSharp.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Address")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Category")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("City")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("District")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FacebookUrl")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("GoogleMapsUrl")
                         .HasColumnType("nvarchar(max)");
@@ -192,6 +300,9 @@ namespace DoAn_CSharp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
@@ -205,9 +316,19 @@ namespace DoAn_CSharp.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Ward")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Website")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Category");
+
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("DeletedAt");
 
                     b.HasIndex("IsActive");
 
@@ -215,6 +336,42 @@ namespace DoAn_CSharp.Migrations
                         .IsUnique();
 
                     b.ToTable("POIs");
+                });
+
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.POICategory", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Color")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("IconUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("POICategories");
                 });
 
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.POITranslation", b =>
@@ -278,8 +435,10 @@ namespace DoAn_CSharp.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("QRImageUrl")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ScanCount")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -442,6 +601,60 @@ namespace DoAn_CSharp.Migrations
                     b.ToTable("TourStops");
                 });
 
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.User", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AvatarUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("DefaultLanguage")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("DisplayName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiry")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("Username")
+                        .IsUnique();
+
+                    b.ToTable("Users");
+                });
+
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.VisitLog", b =>
                 {
                     b.Property<int>("Id")
@@ -458,12 +671,14 @@ namespace DoAn_CSharp.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("SessionId")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TriggerType")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("VisitedAt")
                         .HasColumnType("datetime2");
@@ -471,6 +686,8 @@ namespace DoAn_CSharp.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("POIId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("VisitLogs");
                 });
@@ -484,6 +701,44 @@ namespace DoAn_CSharp.Migrations
                         .IsRequired();
 
                     b.Navigation("POI");
+                });
+
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.AudioProgress", b =>
+                {
+                    b.HasOne("DoAn_CSharp.Models.Entities.AudioFile", "AudioFile")
+                        .WithMany("AudioProgresses")
+                        .HasForeignKey("AudioFileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DoAn_CSharp.Models.Entities.User", "User")
+                        .WithMany("AudioProgresses")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AudioFile");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.Favorite", b =>
+                {
+                    b.HasOne("DoAn_CSharp.Models.Entities.POI", "POI")
+                        .WithMany("Favorites")
+                        .HasForeignKey("POIId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DoAn_CSharp.Models.Entities.User", "User")
+                        .WithMany("Favorites")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("POI");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.MenuItem", b =>
@@ -506,6 +761,16 @@ namespace DoAn_CSharp.Migrations
                         .IsRequired();
 
                     b.Navigation("MenuItem");
+                });
+
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.POI", b =>
+                {
+                    b.HasOne("DoAn_CSharp.Models.Entities.POICategory", "POICategory")
+                        .WithMany("POIs")
+                        .HasForeignKey("CategoryId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("POICategory");
                 });
 
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.POITranslation", b =>
@@ -579,7 +844,19 @@ namespace DoAn_CSharp.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("DoAn_CSharp.Models.Entities.User", "User")
+                        .WithMany("VisitLogs")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.Navigation("POI");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.AudioFile", b =>
+                {
+                    b.Navigation("AudioProgresses");
                 });
 
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.MenuItem", b =>
@@ -591,6 +868,8 @@ namespace DoAn_CSharp.Migrations
                 {
                     b.Navigation("AudioFiles");
 
+                    b.Navigation("Favorites");
+
                     b.Navigation("MenuItems");
 
                     b.Navigation("QRCodes");
@@ -598,6 +877,11 @@ namespace DoAn_CSharp.Migrations
                     b.Navigation("Translations");
 
                     b.Navigation("VisitLogs");
+                });
+
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.POICategory", b =>
+                {
+                    b.Navigation("POIs");
                 });
 
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.QuizQuestion", b =>
@@ -608,6 +892,15 @@ namespace DoAn_CSharp.Migrations
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.Tour", b =>
                 {
                     b.Navigation("Stops");
+                });
+
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.User", b =>
+                {
+                    b.Navigation("AudioProgresses");
+
+                    b.Navigation("Favorites");
+
+                    b.Navigation("VisitLogs");
                 });
 #pragma warning restore 612, 618
         }

@@ -23,7 +23,7 @@ namespace DoAn_CSharp.Services
         {
             var query = _context.POIs
                 .Include(p => p.Translations)
-                .Where(p => p.IsActive);
+                .Where(p => p.IsActive && p.DeletedAt == null);
 
             if (!string.IsNullOrWhiteSpace(category))
             {
@@ -31,9 +31,32 @@ namespace DoAn_CSharp.Services
                 query = query.Where(p => p.Category == lowerCategory);
             }
 
-            var pois = await query.ToListAsync();
-
+            var pois = await query.OrderByDescending(p => p.Priority).ToListAsync();
             return pois.Select(p => MapToPOIListDto(p, lang)).ToList();
+        }
+
+        public async Task<IEnumerable<POIListDto>> SearchAsync(string queryText, string lang)
+        {
+            var lower = queryText.ToLowerInvariant();
+            var pois = await _context.POIs
+                .Include(p => p.Translations)
+                .Where(p => p.IsActive && p.DeletedAt == null &&
+                    (p.Name.ToLower().Contains(lower) ||
+                     p.Translations.Any(t => t.Name.ToLower().Contains(lower) ||
+                                            t.ShortDescription.ToLower().Contains(lower))))
+                .OrderByDescending(p => p.Priority)
+                .ToListAsync();
+            return pois.Select(p => MapToPOIListDto(p, lang)).ToList();
+        }
+
+        public async Task<POIDto?> GetBySlugAsync(string slug, string lang)
+        {
+            var poi = await _context.POIs
+                .Include(p => p.Translations)
+                .Include(p => p.MenuItems)
+                .Include(p => p.QRCodes)
+                .FirstOrDefaultAsync(p => p.Slug == slug && p.IsActive && p.DeletedAt == null);
+            return poi == null ? null : MapToPOIDto(poi, lang);
         }
 
         public async Task<POIDto?> GetByIdAsync(int id, string lang)
@@ -42,24 +65,19 @@ namespace DoAn_CSharp.Services
                 .Include(p => p.Translations)
                 .Include(p => p.MenuItems)
                 .Include(p => p.QRCodes)
-                .FirstOrDefaultAsync(p => p.Id == id && p.IsActive);
+                .FirstOrDefaultAsync(p => p.Id == id && p.IsActive && p.DeletedAt == null);
 
-            if (poi == null)
-            {
-                return null;
-            }
-
-            return MapToPOIDto(poi, lang);
+            return poi == null ? null : MapToPOIDto(poi, lang);
         }
 
         public async Task<IEnumerable<POIListDto>> GetNearbyAsync(double lat, double lng, int radiusMeters, string lang)
         {
             var activePois = await _context.POIs
                 .Include(p => p.Translations)
-                .Where(p => p.IsActive)
+                .Where(p => p.IsActive && p.DeletedAt == null)
                 .ToListAsync();
 
-            var nearbyPois = new List<POIListDto>();
+            var nearbyPois = new List<(POIListDto dto, double dist, int priority)>();
 
             foreach (var poi in activePois)
             {
@@ -67,29 +85,41 @@ namespace DoAn_CSharp.Services
                 if (distance <= radiusMeters)
                 {
                     var dto = MapToPOIListDto(poi, lang);
-                    dto.Distance = distance;
-                    nearbyPois.Add(dto);
+                    dto.DistanceMeters = Math.Round(distance, 1);
+                    nearbyPois.Add((dto, distance, poi.Priority));
                 }
             }
 
-            // Sort by distance ascending, then by Priority descending
             return nearbyPois
-                .OrderBy(n => n.Distance)
-                .ThenByDescending(n => activePois.First(p => p.Id == n.Id).Priority)
+                .OrderBy(n => n.dist)
+                .ThenByDescending(n => n.priority)
+                .Select(n => n.dto)
                 .ToList();
         }
 
         public async Task<POIDto> CreateAsync(POICreateDto dto)
         {
+            var slug = string.IsNullOrWhiteSpace(dto.Slug)
+                ? await GenerateUniqueSlugAsync(dto.Name)
+                : dto.Slug;
+
             var poi = new POI
             {
                 Name = dto.Name,
-                Slug = await GenerateUniqueSlugAsync(dto.Name),
+                Slug = slug,
                 Latitude = dto.Latitude,
                 Longitude = dto.Longitude,
                 TriggerRadiusMeters = dto.TriggerRadiusMeters,
                 Category = dto.Category.ToLowerInvariant(),
+                CategoryId = dto.CategoryId,
                 Priority = dto.Priority,
+                Address = dto.Address,
+                Ward = dto.Ward,
+                District = dto.District,
+                City = dto.City,
+                Phone = dto.Phone,
+                Website = dto.Website,
+                FacebookUrl = dto.FacebookUrl,
                 ImageUrl = dto.ImageUrl,
                 GoogleMapsUrl = dto.GoogleMapsUrl,
                 IsActive = true,
@@ -100,7 +130,7 @@ namespace DoAn_CSharp.Services
             await _context.POIs.AddAsync(poi);
             await _context.SaveChangesAsync();
 
-            return MapToPOIDto(poi, "en"); // Return with default English mapping
+            return MapToPOIDto(poi, "en");
         }
 
         public async Task<POIDto?> UpdateAsync(int id, POIUpdateDto dto)
@@ -109,12 +139,9 @@ namespace DoAn_CSharp.Services
                 .Include(p => p.Translations)
                 .Include(p => p.MenuItems)
                 .Include(p => p.QRCodes)
-                .FirstOrDefaultAsync(p => p.Id == id && p.IsActive);
+                .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null);
 
-            if (poi == null)
-            {
-                return null;
-            }
+            if (poi == null) return null;
 
             if (dto.Name != null && !string.IsNullOrWhiteSpace(dto.Name) && poi.Name != dto.Name)
             {
@@ -126,29 +153,44 @@ namespace DoAn_CSharp.Services
             if (dto.Longitude.HasValue) poi.Longitude = dto.Longitude.Value;
             if (dto.TriggerRadiusMeters.HasValue) poi.TriggerRadiusMeters = dto.TriggerRadiusMeters.Value;
             if (dto.Category != null) poi.Category = dto.Category.ToLowerInvariant();
+            if (dto.CategoryId.HasValue) poi.CategoryId = dto.CategoryId.Value;
             if (dto.Priority.HasValue) poi.Priority = dto.Priority.Value;
+            if (dto.Address != null) poi.Address = dto.Address;
+            if (dto.Ward != null) poi.Ward = dto.Ward;
+            if (dto.District != null) poi.District = dto.District;
+            if (dto.City != null) poi.City = dto.City;
+            if (dto.Phone != null) poi.Phone = dto.Phone;
+            if (dto.Website != null) poi.Website = dto.Website;
+            if (dto.FacebookUrl != null) poi.FacebookUrl = dto.FacebookUrl;
             if (dto.ImageUrl != null) poi.ImageUrl = dto.ImageUrl;
             if (dto.GoogleMapsUrl != null) poi.GoogleMapsUrl = dto.GoogleMapsUrl;
             if (dto.IsActive.HasValue) poi.IsActive = dto.IsActive.Value;
 
             poi.UpdatedAt = DateTime.UtcNow;
-
             await _context.SaveChangesAsync();
-
             return MapToPOIDto(poi, "en");
         }
 
         public async Task<bool> DeleteAsync(int id)
         {
             var poi = await _context.POIs.FindAsync(id);
-            if (poi == null || !poi.IsActive)
-            {
-                return false;
-            }
+            if (poi == null || poi.DeletedAt != null) return false;
 
-            poi.IsActive = false; // Soft delete
+            poi.DeletedAt = DateTime.UtcNow;  // Soft delete
+            poi.IsActive = false;
             poi.UpdatedAt = DateTime.UtcNow;
-            
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> RestoreAsync(int id)
+        {
+            var poi = await _context.POIs.FindAsync(id);
+            if (poi == null || poi.DeletedAt == null) return false;
+
+            poi.DeletedAt = null;
+            poi.IsActive = true;
+            poi.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
             return true;
         }
@@ -167,7 +209,8 @@ namespace DoAn_CSharp.Services
                 Longitude = poi.Longitude,
                 Category = poi.Category,
                 ImageUrl = poi.ImageUrl,
-                Distance = null // Populated in GetNearbyAsync
+                ShortDescription = translation?.ShortDescription ?? string.Empty,
+                DistanceMeters = null // Populated in GetNearbyAsync
             };
         }
 
@@ -179,23 +222,32 @@ namespace DoAn_CSharp.Services
             return new POIDto
             {
                 Id = poi.Id,
-                Name = poi.Name, // Original Vietnamese Name
+                Name = poi.Name,
                 Slug = poi.Slug,
                 Latitude = poi.Latitude,
                 Longitude = poi.Longitude,
                 TriggerRadiusMeters = poi.TriggerRadiusMeters,
                 Category = poi.Category,
+                CategoryId = poi.CategoryId,
                 Priority = poi.Priority,
+                Address = poi.Address,
+                Ward = poi.Ward,
+                District = poi.District,
+                City = poi.City,
+                Phone = poi.Phone,
+                Website = poi.Website,
+                FacebookUrl = poi.FacebookUrl,
                 ImageUrl = poi.ImageUrl,
                 GoogleMapsUrl = poi.GoogleMapsUrl,
-                
+                IsActive = poi.IsActive,
                 LocalizedName = translation?.Name ?? poi.Name,
                 ShortDescription = translation?.ShortDescription ?? string.Empty,
                 FullDescription = translation?.FullDescription ?? string.Empty,
                 AudioText = translation?.AudioText ?? string.Empty,
-                
                 QRCode = activeQrCode,
-                MenuItemCount = poi.MenuItems?.Count ?? 0
+                MenuItemCount = poi.MenuItems?.Count ?? 0,
+                CreatedAt = poi.CreatedAt,
+                UpdatedAt = poi.UpdatedAt
             };
         }
 

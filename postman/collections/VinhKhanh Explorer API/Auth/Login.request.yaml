@@ -1,0 +1,28 @@
+$kind: http-request
+name: Login
+method: POST
+url: '{{baseUrl}}/api/auth/login'
+order: 2000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "testuser",
+      "password": "Test@1234"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });
+      pm.test("Response has accessToken", function () {
+        var jsonData = pm.response.json();
+        pm.expect(jsonData).to.have.property('accessToken');
+        pm.collectionVariables.set("authToken", jsonData.accessToken);
+        pm.collectionVariables.set("refreshToken", jsonData.refreshToken);
+      });

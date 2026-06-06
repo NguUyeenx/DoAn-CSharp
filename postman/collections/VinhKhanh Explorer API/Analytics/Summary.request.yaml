@@ -1,0 +1,17 @@
+$kind: http-request
+name: Summary
+method: GET
+url: '{{baseUrl}}/api/analytics/summary'
+order: 3000
+auth:
+  type: bearer
+  credentials:
+    - key: token
+      value: '{{adminToken}}'
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });

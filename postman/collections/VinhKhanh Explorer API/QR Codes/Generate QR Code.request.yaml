@@ -1,0 +1,26 @@
+$kind: http-request
+name: Generate QR Code
+method: POST
+url: "{{baseUrl}}/api/qr/generate/2"
+order: 3000
+auth:
+  type: bearer
+  credentials:
+    token: "{{adminToken}}"
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: ""
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 201", function () {
+        pm.response.to.have.status(201);
+      });
+      pm.test("QR code generated", function () {
+        var jsonData = pm.response.json();
+        pm.expect(jsonData).to.have.property('code');
+        pm.expect(jsonData).to.have.property('qrImageUrl');
+      });
+    language: text/javascript

@@ -1,0 +1,8 @@
+workspace:
+  id: 0227f10f-ca40-4faa-85f1-f247fa97e31d
+localResources:
+  collections:
+    - ../postman/collections/VinhKhanh Explorer API
+cloudResources:
+  collections:
+    ../postman/collections/VinhKhanh Explorer API: 55529685-96603684-868e-4ee3-a21f-f4a79987ae99

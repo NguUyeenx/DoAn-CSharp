@@ -1,0 +1,22 @@
+$kind: http-request
+name: Get All Tours
+method: GET
+url: '{{baseUrl}}/api/tours'
+order: 1000
+queryParams:
+  - key: lang
+    value: en
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });
+      pm.test("Response is array", function () {
+        var jsonData = pm.response.json();
+        pm.expect(jsonData).to.be.an('array');
+        if (jsonData.length > 0) {
+          pm.collectionVariables.set("tourId", jsonData[0].id);
+        }
+      });

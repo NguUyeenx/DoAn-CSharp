@@ -40,7 +40,9 @@ namespace DoAn_CSharp.Services
                 throw new ArgumentException($"POI with ID {poiId} not found.");
             }
 
-            string code = $"VKE-POI-{poiId:D3}";
+            // Append a short random string or timestamp to ensure uniqueness
+            string uniqueSuffix = Guid.NewGuid().ToString("N").Substring(0, 6).ToUpper();
+            string code = $"VKE-POI-{poiId:D3}-{uniqueSuffix}";
             string relativePath = $"/qrcodes/{code}.png";
 
             // Deactivate previous active QR codes for this POI

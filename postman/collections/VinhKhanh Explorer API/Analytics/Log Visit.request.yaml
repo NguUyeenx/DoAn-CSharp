@@ -1,0 +1,23 @@
+$kind: http-request
+name: Log Visit
+method: POST
+url: "{{baseUrl}}/api/analytics/visit"
+order: 1000
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |
+    {
+      "poiId": 1,
+      "sessionId": "test-session-123",
+      "triggerType": "manual",
+      "languageCode": "en"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test("Status code is 200 or 201", function () {
+        pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+      });
+    language: text/javascript

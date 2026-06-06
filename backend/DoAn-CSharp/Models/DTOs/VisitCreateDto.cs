@@ -7,11 +7,12 @@ namespace DoAn_CSharp.Models.DTOs
         [Required]
         public int POIId { get; set; }
 
-        [Required]
-        public string SessionId { get; set; } = string.Empty;
+        public int? UserId { get; set; }       // null if guest
+
+        public string? SessionId { get; set; } // null if logged in
 
         [Required]
-        [RegularExpression("^(geofence|qr|manual)$", ErrorMessage = "TriggerType must be 'geofence', 'qr', or 'manual'.")]
+        [RegularExpression("^(geofence|qr|manual|search)$", ErrorMessage = "TriggerType must be 'geofence', 'qr', 'manual', or 'search'.")]
         public string TriggerType { get; set; } = string.Empty;
 
         [Required]

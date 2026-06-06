@@ -1,0 +1,21 @@
+$kind: http-request
+name: Search POIs
+method: GET
+url: '{{baseUrl}}/api/pois/search'
+order: 2000
+queryParams:
+  - key: q
+    value: cafe
+  - key: lang
+    value: en
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });
+      pm.test("Response is array", function () {
+        var jsonData = pm.response.json();
+        pm.expect(jsonData).to.be.an('array');
+      });

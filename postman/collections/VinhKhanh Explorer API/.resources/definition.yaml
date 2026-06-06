@@ -1,0 +1,17 @@
+$kind: collection
+name: VinhKhanh Explorer API
+variables:
+  - key: baseUrl
+    value: 'http://localhost:5011'
+  - key: authToken
+    value: ''
+  - key: adminToken
+    value: ''
+  - key: refreshToken
+    value: ''
+  - key: tourId
+    value: ''
+  - key: poiId
+    value: ''
+  - key: poiSlug
+    value: ''

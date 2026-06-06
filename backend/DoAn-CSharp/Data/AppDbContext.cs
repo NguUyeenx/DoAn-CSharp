@@ -9,6 +9,7 @@ namespace DoAn_CSharp.Data
         {
         }
 
+        // Existing
         public DbSet<POI> POIs { get; set; }
         public DbSet<POITranslation> POITranslations { get; set; }
         public DbSet<AudioFile> AudioFiles { get; set; }
@@ -22,115 +23,170 @@ namespace DoAn_CSharp.Data
         public DbSet<QuizQuestion> QuizQuestions { get; set; }
         public DbSet<QuizQuestionTranslation> QuizQuestionTranslations { get; set; }
 
+        // New
+        public DbSet<User> Users { get; set; }
+        public DbSet<Language> Languages { get; set; }
+        public DbSet<POICategory> POICategories { get; set; }
+        public DbSet<Favorite> Favorites { get; set; }
+        public DbSet<AudioProgress> AudioProgresses { get; set; }
+
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
 
-            // POI Unique Slug + Category/IsActive Indexes
+            // ── Language: PK is string Code ──────────────────────────────
+            modelBuilder.Entity<Language>()
+                .HasKey(l => l.Code);
+
+            // ── User ──────────────────────────────────────────────────────
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Username)
+                .IsUnique();
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
+            // ── POICategory ───────────────────────────────────────────────
+            modelBuilder.Entity<POICategory>()
+                .HasIndex(c => c.Slug)
+                .IsUnique();
+
+            // ── POI ───────────────────────────────────────────────────────
             modelBuilder.Entity<POI>()
                 .HasIndex(p => p.Slug)
                 .IsUnique();
-
             modelBuilder.Entity<POI>()
                 .HasIndex(p => p.Category);
-
             modelBuilder.Entity<POI>()
                 .HasIndex(p => p.IsActive);
+            modelBuilder.Entity<POI>()
+                .HasIndex(p => p.DeletedAt);
 
-            // QRCode Unique Code
+            // POI -> POICategory (optional FK)
+            modelBuilder.Entity<POI>()
+                .HasOne(p => p.POICategory)
+                .WithMany(c => c.POIs)
+                .HasForeignKey(p => p.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ── QRCode ────────────────────────────────────────────────────
             modelBuilder.Entity<QRCode>()
                 .HasIndex(q => q.Code)
                 .IsUnique();
 
-            // AdminUser Unique Username
+            // ── AdminUser ─────────────────────────────────────────────────
             modelBuilder.Entity<AdminUser>()
                 .HasIndex(a => a.Username)
                 .IsUnique();
 
-            // POITranslation Composite Unique (POIId, LanguageCode)
+            // ── POITranslation ────────────────────────────────────────────
             modelBuilder.Entity<POITranslation>()
                 .HasIndex(t => new { t.POIId, t.LanguageCode })
                 .IsUnique();
-
-            // MenuItemTranslation Composite Unique (MenuItemId, LanguageCode)
-            modelBuilder.Entity<MenuItemTranslation>()
-                .HasIndex(m => new { m.MenuItemId, m.LanguageCode })
-                .IsUnique();
-
-            // Configure Relationships and Cascade Deletes
-
-            // POI -> POITranslations (Cascade)
             modelBuilder.Entity<POITranslation>()
                 .HasOne(t => t.POI)
                 .WithMany(p => p.Translations)
                 .HasForeignKey(t => t.POIId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // POI -> AudioFiles (Cascade)
+            // ── AudioFile ─────────────────────────────────────────────────
             modelBuilder.Entity<AudioFile>()
                 .HasOne(a => a.POI)
                 .WithMany(p => p.AudioFiles)
                 .HasForeignKey(a => a.POIId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // POI -> MenuItems (Cascade)
+            // ── MenuItem ──────────────────────────────────────────────────
             modelBuilder.Entity<MenuItem>()
                 .HasOne(m => m.POI)
                 .WithMany(p => p.MenuItems)
                 .HasForeignKey(m => m.POIId)
                 .OnDelete(DeleteBehavior.Cascade);
-
             modelBuilder.Entity<MenuItem>()
                 .Property(m => m.Price)
                 .HasColumnType("decimal(18, 2)");
 
-            // MenuItem -> MenuItemTranslations (Cascade)
+            // ── MenuItemTranslation ───────────────────────────────────────
+            modelBuilder.Entity<MenuItemTranslation>()
+                .HasIndex(m => new { m.MenuItemId, m.LanguageCode })
+                .IsUnique();
             modelBuilder.Entity<MenuItemTranslation>()
                 .HasOne(t => t.MenuItem)
                 .WithMany(m => m.Translations)
                 .HasForeignKey(t => t.MenuItemId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // POI -> QRCodes (Cascade)
+            // ── QRCode -> POI ─────────────────────────────────────────────
             modelBuilder.Entity<QRCode>()
                 .HasOne(q => q.POI)
                 .WithMany(p => p.QRCodes)
                 .HasForeignKey(q => q.POIId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // POI -> VisitLogs (Cascade)
+            // ── VisitLog ──────────────────────────────────────────────────
             modelBuilder.Entity<VisitLog>()
                 .HasOne(v => v.POI)
                 .WithMany(p => p.VisitLogs)
                 .HasForeignKey(v => v.POIId)
                 .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<VisitLog>()
+                .HasOne(v => v.User)
+                .WithMany(u => u.VisitLogs)
+                .HasForeignKey(v => v.UserId)
+                .OnDelete(DeleteBehavior.SetNull);
 
-            // Tour -> TourStops (Cascade)
+            // ── TourStop ──────────────────────────────────────────────────
             modelBuilder.Entity<TourStop>()
                 .HasOne(ts => ts.Tour)
                 .WithMany(t => t.Stops)
                 .HasForeignKey(ts => ts.TourId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            // TourStop -> POI (Restrict/NoAction to prevent multiple cascade paths if Tour is deleted)
             modelBuilder.Entity<TourStop>()
                 .HasOne(ts => ts.POI)
                 .WithMany()
                 .HasForeignKey(ts => ts.POIId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // QuizQuestion -> POI (Cascade)
+            // ── QuizQuestion ──────────────────────────────────────────────
             modelBuilder.Entity<QuizQuestion>()
                 .HasOne(q => q.POI)
                 .WithMany()
                 .HasForeignKey(q => q.POIId)
                 .OnDelete(DeleteBehavior.Cascade);
-
-            // QuizQuestion -> QuizQuestionTranslation (Cascade)
             modelBuilder.Entity<QuizQuestionTranslation>()
                 .HasOne(t => t.QuizQuestion)
                 .WithMany(q => q.Translations)
                 .HasForeignKey(t => t.QuizQuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ── Favorite ──────────────────────────────────────────────────
+            modelBuilder.Entity<Favorite>()
+                .HasIndex(f => new { f.UserId, f.POIId })
+                .IsUnique();
+            modelBuilder.Entity<Favorite>()
+                .HasOne(f => f.User)
+                .WithMany(u => u.Favorites)
+                .HasForeignKey(f => f.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Favorite>()
+                .HasOne(f => f.POI)
+                .WithMany(p => p.Favorites)
+                .HasForeignKey(f => f.POIId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ── AudioProgress ─────────────────────────────────────────────
+            modelBuilder.Entity<AudioProgress>()
+                .HasIndex(ap => new { ap.UserId, ap.AudioFileId })
+                .IsUnique();
+            modelBuilder.Entity<AudioProgress>()
+                .HasOne(ap => ap.User)
+                .WithMany(u => u.AudioProgresses)
+                .HasForeignKey(ap => ap.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<AudioProgress>()
+                .HasOne(ap => ap.AudioFile)
+                .WithMany(a => a.AudioProgresses)
+                .HasForeignKey(ap => ap.AudioFileId)
                 .OnDelete(DeleteBehavior.Cascade);
         }
     }

@@ -1,0 +1,27 @@
+$kind: http-request
+name: Admin Login
+method: POST
+url: '{{baseUrl}}/api/auth/admin/login'
+order: 6000
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "admin",
+      "password": "Admin@1234"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      pm.test("Status code is 200", function () {
+        pm.response.to.have.status(200);
+      });
+      pm.test("Response has accessToken", function () {
+        var jsonData = pm.response.json();
+        pm.expect(jsonData).to.have.property('accessToken');
+        pm.collectionVariables.set("adminToken", jsonData.accessToken);
+      });

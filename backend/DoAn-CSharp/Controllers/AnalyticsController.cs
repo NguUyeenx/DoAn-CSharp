@@ -1,5 +1,5 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 using DoAn_CSharp.Services;
 using DoAn_CSharp.Models.DTOs;
 
@@ -16,6 +16,7 @@ namespace DoAn_CSharp.Controllers
             _analyticsService = analyticsService;
         }
 
+        /// <summary>Ghi nhận lượt truy cập (Guest hoặc User)</summary>
         [HttpPost("visit")]
         public async Task<IActionResult> LogVisit([FromBody] VisitCreateDto dto)
         {
@@ -23,10 +24,20 @@ namespace DoAn_CSharp.Controllers
             return Ok(new { success = true, message = "Visit logged successfully." });
         }
 
-        [HttpGet("/api/admin/analytics/summary")]
+        /// <summary>Lấy tổng quan thống kê (Admin only)</summary>
+        [Authorize(Roles = "admin")]
+        [HttpGet("dashboard")]
+        public async Task<IActionResult> GetDashboard()
+        {
+            var summary = await _analyticsService.GetSummaryAsync();
+            return Ok(summary);
+        }
+
+        // Backward compat alias
+        [Authorize(Roles = "admin")]
+        [HttpGet("summary")]
         public async Task<IActionResult> GetSummary()
         {
-            // Note: Authority check placeholder for Phase 5 JWT
             var summary = await _analyticsService.GetSummaryAsync();
             return Ok(summary);
         }
