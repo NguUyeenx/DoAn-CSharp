@@ -1,16 +1,14 @@
 $kind: http-request
 name: Get Progress
 method: GET
-url: '{{baseUrl}}/api/audio-progress/1'
+url: "{{baseUrl}}/api/audio-progress/1"
 order: 1000
 auth:
   type: bearer
   credentials:
-    - key: token
-      value: '{{authToken}}'
+    token: "{{adminToken}}"
 scripts:
   - type: afterResponse
-    language: text/javascript
     code: |-
       pm.test("Status code is 200", function () {
         pm.response.to.have.status(200);
@@ -19,3 +17,4 @@ scripts:
         var jsonData = pm.response.json();
         pm.expect(jsonData).to.be.an('object');
       });
+    language: text/javascript
