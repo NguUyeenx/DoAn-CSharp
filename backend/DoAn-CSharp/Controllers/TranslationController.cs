@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using System.Threading.Tasks;
 using DoAn_CSharp.Services;
 using DoAn_CSharp.Models.DTOs;
@@ -27,10 +28,10 @@ namespace DoAn_CSharp.Controllers
             return Ok(translation);
         }
 
-        [HttpPost("/api/admin/translations")]
+        [Authorize(Roles = "admin")]
+        [HttpPost]
         public async Task<IActionResult> UpsertTranslation([FromBody] TranslationCreateDto dto)
         {
-            // Note: Authority check placeholder for Phase 5 JWT
             var result = await _translationService.UpsertTranslationAsync(dto);
             return Ok(result);
         }

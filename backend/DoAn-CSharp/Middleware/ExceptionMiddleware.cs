@@ -32,12 +32,27 @@ namespace DoAn_CSharp.Middleware
         private async Task HandleExceptionAsync(HttpContext context, Exception exception)
         {
             context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+
+            var statusCode = (int)HttpStatusCode.InternalServerError;
+            var error = "InternalServerError";
+
+            if (exception is UnauthorizedAccessException)
+            {
+                statusCode = (int)HttpStatusCode.Unauthorized;
+                error = "Unauthorized";
+            }
+            else if (exception is ArgumentException || exception is KeyNotFoundException)
+            {
+                statusCode = (int)HttpStatusCode.BadRequest;
+                error = "BadRequest";
+            }
+
+            context.Response.StatusCode = statusCode;
 
             var response = new
             {
-                error = "InternalServerError",
-                message = _env.IsDevelopment() ? exception.Message : "An unexpected error occurred. Please try again later.",
+                error = error,
+                message = _env.IsDevelopment() || statusCode != 500 ? exception.Message : "An unexpected error occurred. Please try again later.",
                 statusCode = context.Response.StatusCode
             };
 

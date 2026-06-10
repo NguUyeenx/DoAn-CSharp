@@ -23,22 +23,23 @@ namespace DoAn_CSharp.Services
             var menuItems = await _context.MenuItems
                 .Include(m => m.Translations)
                 .Where(m => m.POIId == poiId)
-                .OrderBy(m => m.SortOrder)
+                .OrderBy(m => m.DisplayOrder)
                 .ToListAsync();
 
             return menuItems.Select(m => MapToDto(m, lang)).ToList();
         }
 
-        public async Task<MenuItemDto> CreateMenuItemAsync(int poiId, MenuItemCreateDto dto)
+        public async Task<MenuItemDto> CreateMenuItemAsync(MenuItemCreateDto dto)
         {
             var menuItem = new MenuItem
             {
-                POIId = poiId,
+                POIId = dto.POIId,
                 Name = dto.Name,
                 Price = dto.Price,
                 Currency = dto.Currency,
                 ImageUrl = dto.ImageUrl,
-                SortOrder = dto.SortOrder
+                DisplayOrder = dto.DisplayOrder,
+                IsAvailable = dto.IsAvailable
             };
 
             await _context.MenuItems.AddAsync(menuItem);
@@ -62,7 +63,8 @@ namespace DoAn_CSharp.Services
             if (dto.Price.HasValue) menuItem.Price = dto.Price.Value;
             if (dto.Currency != null) menuItem.Currency = dto.Currency;
             if (dto.ImageUrl != null) menuItem.ImageUrl = dto.ImageUrl;
-            if (dto.SortOrder.HasValue) menuItem.SortOrder = dto.SortOrder.Value;
+            if (dto.DisplayOrder.HasValue) menuItem.DisplayOrder = dto.DisplayOrder.Value;
+            if (dto.IsAvailable.HasValue) menuItem.IsAvailable = dto.IsAvailable.Value;
 
             await _context.SaveChangesAsync();
 
@@ -103,7 +105,8 @@ namespace DoAn_CSharp.Services
                 Price = entity.Price,
                 Currency = entity.Currency,
                 ImageUrl = entity.ImageUrl,
-                SortOrder = entity.SortOrder,
+                DisplayOrder = entity.DisplayOrder,
+                IsAvailable = entity.IsAvailable,
                 LocalizedName = translation?.Name ?? entity.Name,
                 LocalizedDescription = translation?.Description ?? string.Empty
             };

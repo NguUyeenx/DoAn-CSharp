@@ -7,8 +7,8 @@ namespace DoAn_CSharp.Models.Entities
         public int Id { get; set; }
         public int POIId { get; set; }
         public POI? POI { get; set; }
-        public string SessionId { get; set; } = string.Empty;
-        public string TriggerType { get; set; } = string.Empty; // geofence, qr, manual
+        public string? SessionId { get; set; }  // null if logged in user
+        public string TriggerType { get; set; } = string.Empty; // geofence, qr, manual, search
         public string LanguageCode { get; set; } = string.Empty;
         public DateTime VisitedAt { get; set; } = DateTime.UtcNow;
     }
