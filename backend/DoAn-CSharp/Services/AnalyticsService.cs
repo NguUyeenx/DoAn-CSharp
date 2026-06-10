@@ -19,7 +19,6 @@ namespace DoAn_CSharp.Services
             var log = new VisitLog
             {
                 POIId = dto.POIId,
-                UserId = dto.UserId,
                 SessionId = dto.SessionId,
                 TriggerType = dto.TriggerType.ToLowerInvariant(),
                 LanguageCode = dto.LanguageCode.ToLowerInvariant(),

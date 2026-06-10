@@ -21,16 +21,16 @@ namespace DoAn_CSharp.Services
             _config = config;
         }
 
-        // ── User Register ──────────────────────────────────────────────
+        // ── Owner Register ──────────────────────────────────────────────
         public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
         {
-            if (await _context.Users.AnyAsync(u => u.Username == dto.Username))
+            if (await _context.Owners.AnyAsync(u => u.Username == dto.Username))
                 throw new InvalidOperationException("Username already exists.");
 
-            if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
+            if (await _context.Owners.AnyAsync(u => u.Email == dto.Email))
                 throw new InvalidOperationException("Email already exists.");
 
-            var user = new User
+            var owner = new Owner
             {
                 Username = dto.Username,
                 Email = dto.Email,
@@ -41,33 +41,33 @@ namespace DoAn_CSharp.Services
             };
 
             var refreshToken = GenerateRefreshToken();
-            user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
+            owner.RefreshToken = refreshToken;
+            owner.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
 
-            await _context.Users.AddAsync(user);
+            await _context.Owners.AddAsync(owner);
             await _context.SaveChangesAsync();
 
-            var accessToken = GenerateUserJwt(user);
-            return BuildAuthResponse(user, accessToken, refreshToken);
+            var accessToken = GenerateUserJwt(owner);
+            return BuildAuthResponse(owner, accessToken, refreshToken);
         }
 
-        // ── User Login ─────────────────────────────────────────────────
+        // ── Owner Login ─────────────────────────────────────────────────
         public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
         {
-            var user = await _context.Users
+            var owner = await _context.Owners
                 .FirstOrDefaultAsync(u => u.Username == dto.Username || u.Email == dto.Username);
 
-            if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+            if (owner == null || !BCrypt.Net.BCrypt.Verify(dto.Password, owner.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid credentials.");
 
             var refreshToken = GenerateRefreshToken();
-            user.RefreshToken = refreshToken;
-            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
-            user.UpdatedAt = DateTime.UtcNow;
+            owner.RefreshToken = refreshToken;
+            owner.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
+            owner.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            var accessToken = GenerateUserJwt(user);
-            return BuildAuthResponse(user, accessToken, refreshToken);
+            var accessToken = GenerateUserJwt(owner);
+            return BuildAuthResponse(owner, accessToken, refreshToken);
         }
 
         // ── Admin Login ────────────────────────────────────────────────
@@ -95,52 +95,52 @@ namespace DoAn_CSharp.Services
         // ── Refresh Token ──────────────────────────────────────────────
         public async Task<AuthResponseDto> RefreshTokenAsync(string refreshToken)
         {
-            var user = await _context.Users
+            var owner = await _context.Owners
                 .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken && u.RefreshTokenExpiry > DateTime.UtcNow);
 
-            if (user == null)
+            if (owner == null)
                 throw new UnauthorizedAccessException("Invalid or expired refresh token.");
 
             var newRefreshToken = GenerateRefreshToken();
-            user.RefreshToken = newRefreshToken;
-            user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
-            user.UpdatedAt = DateTime.UtcNow;
+            owner.RefreshToken = newRefreshToken;
+            owner.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
+            owner.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
-            var accessToken = GenerateUserJwt(user);
-            return BuildAuthResponse(user, accessToken, newRefreshToken);
+            var accessToken = GenerateUserJwt(owner);
+            return BuildAuthResponse(owner, accessToken, newRefreshToken);
         }
 
         // ── Change Password ────────────────────────────────────────────
         public async Task ChangePasswordAsync(int userId, ChangePasswordDto dto)
         {
-            var user = await _context.Users.FindAsync(userId)
-                ?? throw new KeyNotFoundException("User not found.");
+            var owner = await _context.Owners.FindAsync(userId)
+                ?? throw new KeyNotFoundException("Owner not found.");
 
-            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, owner.PasswordHash))
                 throw new UnauthorizedAccessException("Current password is incorrect.");
 
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
-            user.UpdatedAt = DateTime.UtcNow;
+            owner.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            owner.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
         }
 
         // ── Update Profile ─────────────────────────────────────────────
         public async Task UpdateProfileAsync(int userId, UpdateProfileDto dto)
         {
-            var user = await _context.Users.FindAsync(userId)
-                ?? throw new KeyNotFoundException("User not found.");
+            var owner = await _context.Owners.FindAsync(userId)
+                ?? throw new KeyNotFoundException("Owner not found.");
 
-            if (dto.DisplayName != null) user.DisplayName = dto.DisplayName;
-            if (dto.AvatarUrl != null) user.AvatarUrl = dto.AvatarUrl;
-            if (dto.DefaultLanguage != null) user.DefaultLanguage = dto.DefaultLanguage;
-            user.UpdatedAt = DateTime.UtcNow;
+            if (dto.DisplayName != null) owner.DisplayName = dto.DisplayName;
+            if (dto.AvatarUrl != null) owner.AvatarUrl = dto.AvatarUrl;
+            if (dto.DefaultLanguage != null) owner.DefaultLanguage = dto.DefaultLanguage;
+            owner.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
         }
 
         // ── Helpers ────────────────────────────────────────────────────
-        private string GenerateUserJwt(User user)
+        private string GenerateUserJwt(Owner owner)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
                 _config["Jwt:SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured.")));
@@ -149,10 +149,10 @@ namespace DoAn_CSharp.Services
 
             var claims = new[]
             {
-                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new Claim(ClaimTypes.Name, user.Username),
-                new Claim(ClaimTypes.Email, user.Email),
-                new Claim(ClaimTypes.Role, "user")
+                new Claim(ClaimTypes.NameIdentifier, owner.Id.ToString()),
+                new Claim(ClaimTypes.Name, owner.Username),
+                new Claim(ClaimTypes.Email, owner.Email),
+                new Claim(ClaimTypes.Role, "owner")
             };
 
             var token = new JwtSecurityToken(
@@ -194,22 +194,22 @@ namespace DoAn_CSharp.Services
             return Convert.ToBase64String(bytes);
         }
 
-        private static AuthResponseDto BuildAuthResponse(User user, string accessToken, string refreshToken)
+        private static AuthResponseDto BuildAuthResponse(Owner owner, string accessToken, string refreshToken)
         {
             return new AuthResponseDto
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
                 ExpiresAt = DateTime.UtcNow.AddHours(1),
-                User = new UserDto
+                Owner = new OwnerDto
                 {
-                    Id = user.Id,
-                    Username = user.Username,
-                    Email = user.Email,
-                    DisplayName = user.DisplayName,
-                    AvatarUrl = user.AvatarUrl,
-                    DefaultLanguage = user.DefaultLanguage,
-                    CreatedAt = user.CreatedAt
+                    Id = owner.Id,
+                    Username = owner.Username,
+                    Email = owner.Email,
+                    DisplayName = owner.DisplayName,
+                    AvatarUrl = owner.AvatarUrl,
+                    DefaultLanguage = owner.DefaultLanguage,
+                    CreatedAt = owner.CreatedAt
                 }
             };
         }

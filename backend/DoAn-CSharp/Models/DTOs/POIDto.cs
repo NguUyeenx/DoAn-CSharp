@@ -12,6 +12,8 @@ namespace DoAn_CSharp.Models.DTOs
         public string Category { get; set; } = string.Empty;
         public int? CategoryId { get; set; }
         public int Priority { get; set; }
+        public int? OwnerId { get; set; }
+        public string ApprovalStatus { get; set; } = string.Empty;
 
         // Address
         public string? Address { get; set; }
@@ -55,6 +57,8 @@ namespace DoAn_CSharp.Models.DTOs
         public string? ImageUrl { get; set; }
         public string ShortDescription { get; set; } = string.Empty;
         public double? DistanceMeters { get; set; }
+        public int? OwnerId { get; set; }
+        public string ApprovalStatus { get; set; } = string.Empty;
         public bool IsFavorite { get; set; }
     }
 
@@ -100,5 +104,6 @@ namespace DoAn_CSharp.Models.DTOs
         public string? ImageUrl { get; set; }
         public string? GoogleMapsUrl { get; set; }
         public bool? IsActive { get; set; }
+        public string? ApprovalStatus { get; set; }
     }
 }

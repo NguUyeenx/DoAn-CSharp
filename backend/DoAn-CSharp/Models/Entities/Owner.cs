@@ -1,6 +1,8 @@
+using System;
+
 namespace DoAn_CSharp.Models.Entities
 {
-    public class User
+    public class Owner
     {
         public int Id { get; set; }
         public string Username { get; set; } = string.Empty;
@@ -14,9 +16,8 @@ namespace DoAn_CSharp.Models.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navigation properties
-        public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
-        public ICollection<AudioProgress> AudioProgresses { get; set; } = new List<AudioProgress>();
-        public ICollection<VisitLog> VisitLogs { get; set; } = new List<VisitLog>();
+        // Owner properties
+        public string OwnerStatus { get; set; } = "pending"; // pending, approved, rejected
+        public string? AdminNote { get; set; }
     }
 }

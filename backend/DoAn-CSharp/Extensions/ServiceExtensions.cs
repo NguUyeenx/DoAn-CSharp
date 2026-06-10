@@ -30,9 +30,8 @@ namespace DoAn_CSharp.Extensions
             services.AddScoped<IAnalyticsService, AnalyticsService>();
             services.AddScoped<ITourService, TourService>();
             services.AddScoped<IQuizService, QuizService>();
-            services.AddScoped<IFavoriteService, FavoriteService>();
-            services.AddScoped<IAudioProgressService, AudioProgressService>();
             services.AddScoped<IUploadService, UploadService>();
+            services.AddScoped<ITTSService, TTSService>();
 
             // JWT Authentication
             var jwtKey = configuration["Jwt:SecretKey"]

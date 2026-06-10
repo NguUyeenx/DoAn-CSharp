@@ -17,7 +17,7 @@ namespace DoAn_CSharp.Controllers
             _authService = authService;
         }
 
-        // ── User Auth ─────────────────────────────────────────────────
+        // ── Owner Auth ─────────────────────────────────────────────────
 
         /// <summary>Đăng ký tài khoản người dùng</summary>
         [HttpPost("register")]
@@ -48,8 +48,8 @@ namespace DoAn_CSharp.Controllers
         [HttpPut("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
         {
-            var userId = GetCurrentUserId();
-            await _authService.ChangePasswordAsync(userId, dto);
+            var ownerId = GetCurrentOwnerId();
+            await _authService.ChangePasswordAsync(ownerId, dto);
             return Ok(new { message = "Password changed successfully." });
         }
 
@@ -58,8 +58,8 @@ namespace DoAn_CSharp.Controllers
         [HttpPut("profile")]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
         {
-            var userId = GetCurrentUserId();
-            await _authService.UpdateProfileAsync(userId, dto);
+            var ownerId = GetCurrentOwnerId();
+            await _authService.UpdateProfileAsync(ownerId, dto);
             return Ok(new { message = "Profile updated successfully." });
         }
 
@@ -74,10 +74,10 @@ namespace DoAn_CSharp.Controllers
         }
 
         // ── Helpers ───────────────────────────────────────────────────
-        private int GetCurrentUserId()
+        private int GetCurrentOwnerId()
         {
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-                ?? throw new UnauthorizedAccessException("User ID not found in token.");
+                ?? throw new UnauthorizedAccessException("Owner ID not found in token.");
             return int.Parse(idClaim);
         }
     }

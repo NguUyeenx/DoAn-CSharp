@@ -34,12 +34,15 @@ namespace DoAn_CSharp.Models.Entities
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
+        public int? OwnerId { get; set; }
+        public Owner? Owner { get; set; }
+        public string ApprovalStatus { get; set; } = "approved"; // pending, approved, rejected
+
         // Navigation properties
         public ICollection<POITranslation> Translations { get; set; } = new List<POITranslation>();
         public ICollection<AudioFile> AudioFiles { get; set; } = new List<AudioFile>();
         public ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
         public ICollection<QRCode> QRCodes { get; set; } = new List<QRCode>();
         public ICollection<VisitLog> VisitLogs { get; set; } = new List<VisitLog>();
-        public ICollection<Favorite> Favorites { get; set; } = new List<Favorite>();
     }
 }

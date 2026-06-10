@@ -13,8 +13,5 @@ namespace DoAn_CSharp.Models.Entities
         public string? VoiceName { get; set; }
         public DateTime? GeneratedAt { get; set; }
         public bool IsDefault { get; set; } = false;
-
-        // Navigation
-        public ICollection<AudioProgress> AudioProgresses { get; set; } = new List<AudioProgress>();
     }
 }

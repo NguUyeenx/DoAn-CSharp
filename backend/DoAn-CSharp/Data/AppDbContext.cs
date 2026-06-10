@@ -24,11 +24,10 @@ namespace DoAn_CSharp.Data
         public DbSet<QuizQuestionTranslation> QuizQuestionTranslations { get; set; }
 
         // New
-        public DbSet<User> Users { get; set; }
+        public DbSet<Owner> Owners { get; set; }
         public DbSet<Language> Languages { get; set; }
         public DbSet<POICategory> POICategories { get; set; }
-        public DbSet<Favorite> Favorites { get; set; }
-        public DbSet<AudioProgress> AudioProgresses { get; set; }
+        public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -38,11 +37,11 @@ namespace DoAn_CSharp.Data
             modelBuilder.Entity<Language>()
                 .HasKey(l => l.Code);
 
-            // ── User ──────────────────────────────────────────────────────
-            modelBuilder.Entity<User>()
+            // ── Owner ──────────────────────────────────────────────────────
+            modelBuilder.Entity<Owner>()
                 .HasIndex(u => u.Username)
                 .IsUnique();
-            modelBuilder.Entity<User>()
+            modelBuilder.Entity<Owner>()
                 .HasIndex(u => u.Email)
                 .IsUnique();
 
@@ -67,6 +66,13 @@ namespace DoAn_CSharp.Data
                 .HasOne(p => p.POICategory)
                 .WithMany(c => c.POIs)
                 .HasForeignKey(p => p.CategoryId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // POI -> Owner (optional FK)
+            modelBuilder.Entity<POI>()
+                .HasOne(p => p.Owner)
+                .WithMany()
+                .HasForeignKey(p => p.OwnerId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             // ── QRCode ────────────────────────────────────────────────────
@@ -129,11 +135,6 @@ namespace DoAn_CSharp.Data
                 .WithMany(p => p.VisitLogs)
                 .HasForeignKey(v => v.POIId)
                 .OnDelete(DeleteBehavior.Cascade);
-            modelBuilder.Entity<VisitLog>()
-                .HasOne(v => v.User)
-                .WithMany(u => u.VisitLogs)
-                .HasForeignKey(v => v.UserId)
-                .OnDelete(DeleteBehavior.SetNull);
 
             // ── TourStop ──────────────────────────────────────────────────
             modelBuilder.Entity<TourStop>()
@@ -159,35 +160,7 @@ namespace DoAn_CSharp.Data
                 .HasForeignKey(t => t.QuizQuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ── Favorite ──────────────────────────────────────────────────
-            modelBuilder.Entity<Favorite>()
-                .HasIndex(f => new { f.UserId, f.POIId })
-                .IsUnique();
-            modelBuilder.Entity<Favorite>()
-                .HasOne(f => f.User)
-                .WithMany(u => u.Favorites)
-                .HasForeignKey(f => f.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-            modelBuilder.Entity<Favorite>()
-                .HasOne(f => f.POI)
-                .WithMany(p => p.Favorites)
-                .HasForeignKey(f => f.POIId)
-                .OnDelete(DeleteBehavior.Cascade);
 
-            // ── AudioProgress ─────────────────────────────────────────────
-            modelBuilder.Entity<AudioProgress>()
-                .HasIndex(ap => new { ap.UserId, ap.AudioFileId })
-                .IsUnique();
-            modelBuilder.Entity<AudioProgress>()
-                .HasOne(ap => ap.User)
-                .WithMany(u => u.AudioProgresses)
-                .HasForeignKey(ap => ap.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-            modelBuilder.Entity<AudioProgress>()
-                .HasOne(ap => ap.AudioFile)
-                .WithMany(a => a.AudioProgresses)
-                .HasForeignKey(ap => ap.AudioFileId)
-                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

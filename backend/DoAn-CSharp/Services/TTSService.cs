@@ -1,0 +1,75 @@
+using System;
+using System.Diagnostics;
+using System.IO;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
+
+namespace DoAn_CSharp.Services
+{
+    public class TTSService : ITTSService
+    {
+        private readonly IWebHostEnvironment _env;
+        
+        public TTSService(IWebHostEnvironment env)
+        {
+            _env = env;
+        }
+
+        public async Task<string> GenerateAudioAsync(string text, string languageCode, int poiId)
+        {
+            string voice = GetVoiceForLanguage(languageCode);
+            string fileName = $"poi_{poiId}_{languageCode}_{Guid.NewGuid().ToString("N").Substring(0, 8)}.mp3";
+            string uploadDir = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "audio");
+            
+            if (!Directory.Exists(uploadDir))
+            {
+                Directory.CreateDirectory(uploadDir);
+            }
+            
+            string filePath = Path.Combine(uploadDir, fileName);
+
+            var processInfo = new ProcessStartInfo
+            {
+                FileName = "edge-tts",
+                Arguments = $"--voice {voice} --text \"{text.Replace("\"", "\\\"")}\" --write-media \"{filePath}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            try
+            {
+                using var process = Process.Start(processInfo);
+                if (process != null)
+                {
+                    await process.WaitForExitAsync();
+                    if (process.ExitCode != 0)
+                    {
+                        var error = await process.StandardError.ReadToEndAsync();
+                        throw new Exception($"TTS Generation failed: {error}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new Exception($"Could not run edge-tts. Make sure it is installed. Error: {ex.Message}");
+            }
+            
+            return $"/audio/{fileName}";
+        }
+
+        private string GetVoiceForLanguage(string langCode)
+        {
+            return langCode.ToLower() switch
+            {
+                "vi" => "vi-VN-HoaiMyNeural",
+                "en" => "en-US-AriaNeural",
+                "ja" => "ja-JP-NanamiNeural",
+                "ko" => "ko-KR-SunHiNeural",
+                "zh" => "zh-CN-XiaoxiaoNeural",
+                _ => "en-US-AriaNeural"
+            };
+        }
+    }
+}

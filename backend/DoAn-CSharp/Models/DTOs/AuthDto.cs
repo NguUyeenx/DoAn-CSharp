@@ -29,7 +29,7 @@ namespace DoAn_CSharp.Models.DTOs
         public string AccessToken { get; set; } = string.Empty;
         public string RefreshToken { get; set; } = string.Empty;
         public DateTime ExpiresAt { get; set; }
-        public UserDto User { get; set; } = new();
+        public OwnerDto Owner { get; set; } = new();
     }
 
     public class AdminAuthResponseDto
@@ -53,8 +53,8 @@ namespace DoAn_CSharp.Models.DTOs
         public string NewPassword { get; set; } = string.Empty;
     }
 
-    // ── User Profile ──────────────────────────────────────────────────
-    public class UserDto
+    // ── Owner Profile ──────────────────────────────────────────────────
+    public class OwnerDto
     {
         public int Id { get; set; }
         public string Username { get; set; } = string.Empty;

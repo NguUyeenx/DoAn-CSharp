@@ -11,10 +11,12 @@ namespace DoAn_CSharp.Services
     public class TranslationService : ITranslationService
     {
         private readonly AppDbContext _context;
+        private readonly ITTSService _ttsService;
 
-        public TranslationService(AppDbContext context)
+        public TranslationService(AppDbContext context, ITTSService ttsService)
         {
             _context = context;
+            _ttsService = ttsService;
         }
 
         public async Task<TranslationDto?> GetTranslationAsync(int poiId, string lang)
@@ -37,6 +39,9 @@ namespace DoAn_CSharp.Services
             var translation = await _context.POITranslations
                 .FirstOrDefaultAsync(t => t.POIId == dto.POIId && t.LanguageCode.ToLower() == targetLang);
 
+            bool shouldGenerateAudio = false;
+            string textToGenerate = string.Empty;
+
             if (translation == null)
             {
                 // Create new
@@ -50,9 +55,21 @@ namespace DoAn_CSharp.Services
                     AudioText = dto.AudioText
                 };
                 await _context.POITranslations.AddAsync(translation);
+
+                if (!string.IsNullOrWhiteSpace(dto.AudioText))
+                {
+                    shouldGenerateAudio = true;
+                    textToGenerate = dto.AudioText;
+                }
             }
             else
             {
+                if (translation.AudioText != dto.AudioText && !string.IsNullOrWhiteSpace(dto.AudioText))
+                {
+                    shouldGenerateAudio = true;
+                    textToGenerate = dto.AudioText;
+                }
+
                 // Update existing
                 translation.Name = dto.Name;
                 translation.ShortDescription = dto.ShortDescription;
@@ -61,6 +78,40 @@ namespace DoAn_CSharp.Services
             }
 
             await _context.SaveChangesAsync();
+
+            if (shouldGenerateAudio)
+            {
+                try
+                {
+                    var audioUrl = await _ttsService.GenerateAudioAsync(textToGenerate, targetLang, dto.POIId);
+                    
+                    var existingAudio = await _context.AudioFiles.FirstOrDefaultAsync(a => a.POIId == dto.POIId && a.LanguageCode == targetLang && a.AudioType == "tts");
+                    if (existingAudio == null)
+                    {
+                        var audioFile = new AudioFile
+                        {
+                            POIId = dto.POIId,
+                            LanguageCode = targetLang,
+                            FilePath = audioUrl,
+                            AudioType = "tts",
+                            TTSProvider = "edge-tts",
+                            GeneratedAt = DateTime.UtcNow,
+                            IsDefault = true
+                        };
+                        await _context.AudioFiles.AddAsync(audioFile);
+                    }
+                    else
+                    {
+                        existingAudio.FilePath = audioUrl;
+                        existingAudio.GeneratedAt = DateTime.UtcNow;
+                    }
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error generating TTS: {ex.Message}");
+                }
+            }
 
             return MapToDto(translation);
         }

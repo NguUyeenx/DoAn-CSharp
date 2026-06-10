@@ -23,7 +23,7 @@ namespace DoAn_CSharp.Services
         {
             var query = _context.POIs
                 .Include(p => p.Translations)
-                .Where(p => p.IsActive && p.DeletedAt == null);
+                .Where(p => p.IsActive && p.DeletedAt == null && p.ApprovalStatus == "approved");
 
             if (!string.IsNullOrWhiteSpace(category))
             {
@@ -40,7 +40,7 @@ namespace DoAn_CSharp.Services
             var lower = queryText.ToLowerInvariant();
             var pois = await _context.POIs
                 .Include(p => p.Translations)
-                .Where(p => p.IsActive && p.DeletedAt == null &&
+                .Where(p => p.IsActive && p.DeletedAt == null && p.ApprovalStatus == "approved" &&
                     (p.Name.ToLower().Contains(lower) ||
                      p.Translations.Any(t => t.Name.ToLower().Contains(lower) ||
                                             t.ShortDescription.ToLower().Contains(lower))))
@@ -55,7 +55,7 @@ namespace DoAn_CSharp.Services
                 .Include(p => p.Translations)
                 .Include(p => p.MenuItems)
                 .Include(p => p.QRCodes)
-                .FirstOrDefaultAsync(p => p.Slug == slug && p.IsActive && p.DeletedAt == null);
+                .FirstOrDefaultAsync(p => p.Slug == slug && p.IsActive && p.DeletedAt == null && p.ApprovalStatus == "approved");
             return poi == null ? null : MapToPOIDto(poi, lang);
         }
 
@@ -65,7 +65,7 @@ namespace DoAn_CSharp.Services
                 .Include(p => p.Translations)
                 .Include(p => p.MenuItems)
                 .Include(p => p.QRCodes)
-                .FirstOrDefaultAsync(p => p.Id == id && p.IsActive && p.DeletedAt == null);
+                .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null);
 
             return poi == null ? null : MapToPOIDto(poi, lang);
         }
@@ -74,7 +74,7 @@ namespace DoAn_CSharp.Services
         {
             var activePois = await _context.POIs
                 .Include(p => p.Translations)
-                .Where(p => p.IsActive && p.DeletedAt == null)
+                .Where(p => p.IsActive && p.DeletedAt == null && p.ApprovalStatus == "approved")
                 .ToListAsync();
 
             var nearbyPois = new List<(POIListDto dto, double dist, int priority)>();
@@ -97,7 +97,7 @@ namespace DoAn_CSharp.Services
                 .ToList();
         }
 
-        public async Task<POIDto> CreateAsync(POICreateDto dto)
+        public async Task<POIDto> CreateAsync(POICreateDto dto, int? ownerId = null)
         {
             var slug = string.IsNullOrWhiteSpace(dto.Slug)
                 ? await GenerateUniqueSlugAsync(dto.Name)
@@ -123,6 +123,8 @@ namespace DoAn_CSharp.Services
                 ImageUrl = dto.ImageUrl,
                 GoogleMapsUrl = dto.GoogleMapsUrl,
                 IsActive = true,
+                OwnerId = ownerId,
+                ApprovalStatus = ownerId.HasValue ? "pending" : "approved",
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -165,6 +167,7 @@ namespace DoAn_CSharp.Services
             if (dto.ImageUrl != null) poi.ImageUrl = dto.ImageUrl;
             if (dto.GoogleMapsUrl != null) poi.GoogleMapsUrl = dto.GoogleMapsUrl;
             if (dto.IsActive.HasValue) poi.IsActive = dto.IsActive.Value;
+            if (dto.ApprovalStatus != null) poi.ApprovalStatus = dto.ApprovalStatus;
 
             poi.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
@@ -195,7 +198,29 @@ namespace DoAn_CSharp.Services
             return true;
         }
 
+        
+        public async Task<IEnumerable<POIListDto>> GetByOwnerAsync(int ownerId, string lang)
+        {
+            var pois = await _context.POIs
+                .Include(p => p.Translations)
+                .Where(p => p.OwnerId == ownerId && p.DeletedAt == null)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+            return pois.Select(p => MapToPOIListDto(p, lang)).ToList();
+        }
+
+        public async Task<bool> UpdateApprovalStatusAsync(int id, string status)
+        {
+            var poi = await _context.POIs.FindAsync(id);
+            if (poi == null) return false;
+            poi.ApprovalStatus = status.ToLowerInvariant();
+            poi.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
         #region Helpers
+
 
         private static POIListDto MapToPOIListDto(POI poi, string lang)
         {
@@ -210,6 +235,8 @@ namespace DoAn_CSharp.Services
                 Category = poi.Category,
                 ImageUrl = poi.ImageUrl,
                 ShortDescription = translation?.ShortDescription ?? string.Empty,
+                OwnerId = poi.OwnerId,
+                ApprovalStatus = poi.ApprovalStatus,
                 DistanceMeters = null // Populated in GetNearbyAsync
             };
         }
@@ -240,6 +267,8 @@ namespace DoAn_CSharp.Services
                 ImageUrl = poi.ImageUrl,
                 GoogleMapsUrl = poi.GoogleMapsUrl,
                 IsActive = poi.IsActive,
+                OwnerId = poi.OwnerId,
+                ApprovalStatus = poi.ApprovalStatus,
                 LocalizedName = translation?.Name ?? poi.Name,
                 ShortDescription = translation?.ShortDescription ?? string.Empty,
                 FullDescription = translation?.FullDescription ?? string.Empty,
