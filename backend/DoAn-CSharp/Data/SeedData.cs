@@ -46,9 +46,11 @@ namespace DoAn_CSharp.Data
             {
                 var categories = new[]
                 {
-                    new POICategory { Slug = "restaurant", Name = "Nhà hàng", Color = "#FF5733", SortOrder = 1 },
-                    new POICategory { Slug = "cafe", Name = "Quán cafe", Color = "#8B4513", SortOrder = 2 },
-                    new POICategory { Slug = "street_food", Name = "Ẩm thực đường phố", Color = "#FFA500", SortOrder = 3 }
+                    new POICategory { Slug = "seafood", Name = "Hải sản", Color = "#007BFF", SortOrder = 1 },
+                    new POICategory { Slug = "restaurant", Name = "Nhà hàng", Color = "#FF5733", SortOrder = 2 },
+                    new POICategory { Slug = "bbq", Name = "Nướng & Lẩu", Color = "#DC3545", SortOrder = 3 },
+                    new POICategory { Slug = "vietnamese_food", Name = "Món Việt", Color = "#28A745", SortOrder = 4 },
+                    new POICategory { Slug = "cafe", Name = "Cafe & Tráng miệng", Color = "#8B4513", SortOrder = 5 }
                 };
                 await context.POICategories.AddRangeAsync(categories);
                 await context.SaveChangesAsync();
@@ -85,439 +87,545 @@ namespace DoAn_CSharp.Data
         {
             var list = new List<POI>();
 
-            var ocOanh = new POI
+            var poi0 = new POI
             {
                 Name = "Ốc Oanh",
                 Slug = "oc-oanh",
-                Latitude = 10.7610,
+                Latitude = 10.761,
                 Longitude = 106.7045,
-                Address = "534 Vĩnh Khánh, Phường 8, Quận 4, TP.HCM",
+                Address = "Ốc Oanh, Vĩnh Khánh, Quận 4, TP.HCM",
                 TriggerRadiusMeters = 30,
-                Category = "street_food",
+                Category = "seafood",
                 Priority = 10,
-                Rating = 4.8,
-                ReviewCount = 2540,
-                ImageUrl = "https://images.unsplash.com/photo-1599507914619-35d259e8f498?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7610,106.7045",
+                Rating = 4.2,
+                ReviewCount = 500,
+                ImageUrl = "http://localhost:5011/imgs/ocOanh.jpg",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.761,106.7045",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 Images = new List<POIImage>
                 {
-                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1599507914619-35d259e8f498?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
-                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 },
-                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 3 }
-                },
-                MenuItems = new List<MenuItem>
-                {
-                    new MenuItem 
-                    { 
-                        Name = "Ốc hương xào bơ cay", 
-                        Price = 150000, 
-                        ImageUrl = "https://images.unsplash.com/photo-1574781330855-d0db8ce60179?auto=format&fit=crop&q=80&w=400",
-                        Translations = new List<MenuItemTranslation>
-                        {
-                            new MenuItemTranslation { LanguageCode = "vi", Name = "Ốc hương xào bơ cay", Description = "Món ăn best seller với nước sốt đậm đà." },
-                            new MenuItemTranslation { LanguageCode = "en", Name = "Spicy Butter Snails", Description = "Best seller with rich spicy butter sauce." }
-                        }
-                    },
-                    new MenuItem 
-                    { 
-                        Name = "Càng ghẹ rang muối ớt", 
-                        Price = 180000, 
-                        ImageUrl = "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=400",
-                        Translations = new List<MenuItemTranslation>
-                        {
-                            new MenuItemTranslation { LanguageCode = "vi", Name = "Càng ghẹ rang muối", Description = "Càng ghẹ siêu to thịt chắc nịch." },
-                            new MenuItemTranslation { LanguageCode = "en", Name = "Salt and Chili Crab Claws", Description = "Huge crab claws roasted with spicy salt." }
-                        }
-                    },
-                    new MenuItem 
-                    { 
-                        Name = "Sò điệp nướng mỡ hành", 
-                        Price = 120000, 
-                        ImageUrl = "https://images.unsplash.com/photo-1623854767272-b530513e4b78?auto=format&fit=crop&q=80&w=400",
-                        Translations = new List<MenuItemTranslation>
-                        {
-                            new MenuItemTranslation { LanguageCode = "vi", Name = "Sò điệp nướng mỡ hành", Description = "Sò điệp tươi rói nướng phô mai mỡ hành." },
-                            new MenuItemTranslation { LanguageCode = "en", Name = "Grilled Scallops", Description = "Fresh scallops grilled with scallion oil." }
-                        }
-                    }
+                    new POIImage { ImageUrl = "http://localhost:5011/imgs/ocOanh.jpg", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
                 }
             };
-            ocOanh.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Oc Oanh Seafood", ShortDescription = "Most famous snail street food.", FullDescription = "A legendary spot for roasted crab claws and spicy snails.", AudioText = "Welcome to Oc Oanh, the most iconic seafood spot on Vinh Khanh street. We are famous for roasted crab claws and spicy snails." });
-            ocOanh.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Oanh", ShortDescription = "Quán ốc nổi tiếng nhất Vĩnh Khánh.", FullDescription = "Địa điểm huyền thoại với món càng ghẹ rang muối và ốc hương xào bơ cay.", AudioText = "Chào mừng bạn đến với Ốc Oanh, quán hải sản biểu tượng nhất trên con đường Vĩnh Khánh. Quán chúng tôi nổi danh với món càng ghẹ rang muối và ốc xào bơ tỏi thần thánh." });
-            list.Add(ocOanh);
+            poi0.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Ốc Oanh", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Ốc Oanh. A must-visit destination for food lovers.", AudioText = "Welcome to Ốc Oanh. We are delighted to serve you our best signature dishes." });
+            poi0.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Oanh", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Ốc Oanh. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Ốc Oanh. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi0);
 
-            var ocDao = new POI
+            var poi1 = new POI
             {
                 Name = "Ốc Đào",
                 Slug = "oc-dao",
                 Latitude = 10.7585,
                 Longitude = 106.7021,
-                Address = "212B/C79 Nguyễn Trãi (Chi nhánh gốc) & Vĩnh Khánh, Quận 4, TP.HCM",
+                Address = "Ốc Đào, Vĩnh Khánh, Quận 4, TP.HCM",
                 TriggerRadiusMeters = 30,
-                Category = "restaurant",
+                Category = "seafood",
                 Priority = 9,
-                Rating = 4.7,
-                ReviewCount = 1890,
-                ImageUrl = "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=800",
+                Rating = 4.3,
+                ReviewCount = 550,
+                ImageUrl = "http://localhost:5011/imgs/ocDao.jpg",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7585,106.7021",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 Images = new List<POIImage>
                 {
-                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
-                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1559742811-822873691fc8?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
-                },
-                MenuItems = new List<MenuItem>
-                {
-                    new MenuItem 
-                    { 
-                        Name = "Ốc tỏi xào me", 
-                        Price = 110000, 
-                        ImageUrl = "https://images.unsplash.com/photo-1615887023516-9b24476aeb11?auto=format&fit=crop&q=80&w=400",
-                        Translations = new List<MenuItemTranslation>
-                        {
-                            new MenuItemTranslation { LanguageCode = "vi", Name = "Ốc tỏi xào me", Description = "Ốc tỏi giòn sần sật với sốt me chua ngọt." },
-                            new MenuItemTranslation { LanguageCode = "en", Name = "Tamarind Garlic Snails", Description = "Crunchy snails in sweet and sour tamarind sauce." }
-                        }
-                    },
-                    new MenuItem 
-                    { 
-                        Name = "Bánh mì chấm sốt bơ tỏi", 
-                        Price = 20000, 
-                        ImageUrl = "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=400",
-                        Translations = new List<MenuItemTranslation>
-                        {
-                            new MenuItemTranslation { LanguageCode = "vi", Name = "Bánh mì chấm sốt", Description = "Bánh mì nóng giòn đặc ruột." },
-                            new MenuItemTranslation { LanguageCode = "en", Name = "Baguette with Sauce", Description = "Crispy warm baguette perfect for dipping." }
-                        }
-                    }
+                    new POIImage { ImageUrl = "http://localhost:5011/imgs/ocDao.jpg", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
                 }
             };
-            ocDao.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Oc Dao", ShortDescription = "Legendary garlic butter snails.", FullDescription = "Famous for garlic butter sauce snails and fresh scallops.", AudioText = "Enjoy the legendary garlic butter snails at Oc Dao. A must-try destination for seafood lovers." });
-            ocDao.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Đào", ShortDescription = "Huyền thoại ốc xào bơ tỏi.", FullDescription = "Nổi tiếng với nước sốt bơ tỏi béo ngậy chấm bánh mì và sò điệp nướng mỡ hành tươi rói.", AudioText = "Thưởng thức món ốc xào bơ tỏi huyền thoại tại Ốc Đào. Nước sốt béo ngậy ăn kèm bánh mì nóng giòn chắc chắn sẽ làm bạn xiêu lòng." });
-            list.Add(ocDao);
+            poi1.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Ốc Đào", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Ốc Đào. A must-visit destination for food lovers.", AudioText = "Welcome to Ốc Đào. We are delighted to serve you our best signature dishes." });
+            poi1.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Đào", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Ốc Đào. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Ốc Đào. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi1);
 
-            var chili = new POI
+            var poi2 = new POI
             {
-                Name = "Chili - Lẩu nướng tự chọn",
-                Slug = "chili-lau-nuong",
-                Latitude = 10.7621,
-                Longitude = 106.7055,
-                Address = "139 Vĩnh Khánh, Phường 8, Quận 4, TP.HCM",
+                Name = "Ốc Sáu Nở",
+                Slug = "oc-sau-no",
+                Latitude = 10.762,
+                Longitude = 106.705,
+                Address = "Ốc Sáu Nở, Vĩnh Khánh, Quận 4, TP.HCM",
                 TriggerRadiusMeters = 30,
-                Category = "restaurant",
+                Category = "seafood",
                 Priority = 8,
-                Rating = 4.5,
-                ReviewCount = 850,
-                ImageUrl = "https://images.unsplash.com/photo-1544025162-8111142154ea?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7621,106.7055",
+                Rating = 4.4,
+                ReviewCount = 600,
+                ImageUrl = "http://localhost:5011/imgs/ocSauNo.jpg",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.762,106.705",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 Images = new List<POIImage>
                 {
-                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1544025162-8111142154ea?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
-                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
-                },
-                MenuItems = new List<MenuItem>
-                {
-                    new MenuItem 
-                    { 
-                        Name = "Buffet Lẩu Nướng", 
-                        Price = 250000, 
-                        ImageUrl = "https://images.unsplash.com/photo-1627012351222-1d54e4eb1f02?auto=format&fit=crop&q=80&w=400",
-                        Translations = new List<MenuItemTranslation>
-                        {
-                            new MenuItemTranslation { LanguageCode = "vi", Name = "Buffet Lẩu Nướng", Description = "Hơn 50 món nướng và lẩu hải sản thả ga." },
-                            new MenuItemTranslation { LanguageCode = "en", Name = "BBQ & Hotpot Buffet", Description = "Over 50 types of BBQ and seafood hotpot." }
-                        }
-                    }
+                    new POIImage { ImageUrl = "http://localhost:5011/imgs/ocSauNo.jpg", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1555939594-58d7cb561ad1?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
                 }
             };
-            chili.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Chili BBQ & Hotpot", ShortDescription = "Interactive DIY BBQ and Hotpot.", FullDescription = "Grill your own meats or enjoy a bubbling hotpot with friends.", AudioText = "Grill your favorite meats at Chili BBQ and enjoy a fun night with friends." });
-            chili.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Chili Lẩu Nướng", ShortDescription = "Lẩu nướng tự chọn phong cách trẻ.", FullDescription = "Tự tay nướng những tảng thịt ướp đậm vị và xì xụp bên nồi lẩu nóng hổi cùng bạn bè.", AudioText = "Trải nghiệm nướng thịt trên than hồng và thưởng thức lẩu hai ngăn cực đã tại Chili. Không gian mở rất thích hợp cho những buổi tụ tập đông người." });
-            list.Add(chili);
+            poi2.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Ốc Sáu Nở", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Ốc Sáu Nở. A must-visit destination for food lovers.", AudioText = "Welcome to Ốc Sáu Nở. We are delighted to serve you our best signature dishes." });
+            poi2.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Sáu Nở", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Ốc Sáu Nở. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Ốc Sáu Nở. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi2);
 
-            var anAn = new POI
-            {
-                Name = "An An Quán",
-                Slug = "an-an-quan",
-                Latitude = 10.7611,
-                Longitude = 106.7042,
-                Address = "531 Vĩnh Khánh, Phường 8, Quận 4, TP.HCM",
-                TriggerRadiusMeters = 30,
-                Category = "restaurant",
-                Priority = 8,
-                Rating = 4.3,
-                ReviewCount = 420,
-                ImageUrl = "https://images.unsplash.com/photo-1555126634-ae231a4a8c14?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7611,106.7042",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            anAn.Translations.Add(new POITranslation { LanguageCode = "en", Name = "An An Hotpot", ShortDescription = "Casual atmosphere with hotpots.", FullDescription = "Known for its casual atmosphere and range of grilled dishes.", AudioText = "Welcome to An An Quan." });
-            anAn.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "An An Quán", ShortDescription = "Không gian ấm cúng.", FullDescription = "Lẩu gia đình hương vị đậm đà.", AudioText = "An An Quán mang đến hương vị lẩu gia đình truyền thống." });
-            list.Add(anAn);
-
-            var langQuan = new POI
-            {
-                Name = "Làng Quán",
-                Slug = "lang-quan",
-                Latitude = 10.7625,
-                Longitude = 106.7061,
-                Address = "118 Vĩnh Khánh, Phường 8, Quận 4, TP.HCM",
-                TriggerRadiusMeters = 30,
-                Category = "street_food",
-                Priority = 7,
-                Rating = 4.4,
-                ReviewCount = 530,
-                ImageUrl = "https://images.unsplash.com/photo-1582878826629-29b7ad1cb461?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7625,106.7061",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            langQuan.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Lang Quan", ShortDescription = "Street snacks and local favorites.", FullDescription = "Explore smaller street snacks and traditional local dishes.", AudioText = "Try some authentic street snacks at Lang Quan." });
-            langQuan.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Làng Quán", ShortDescription = "Món nhậu bình dân.", FullDescription = "Các món nhậu bắt mồi, giá cả sinh viên.", AudioText = "Ghé thăm Làng Quán để trải nghiệm đặc sản nhậu bình dân." });
-            list.Add(langQuan);
-
-            var hoaQuan = new POI
-            {
-                Name = "Hoa Quán",
-                Slug = "hoa-quan",
-                Latitude = 10.7635,
-                Longitude = 106.7072,
-                Address = "39 Vĩnh Khánh, Phường 8, Quận 4, TP.HCM",
-                TriggerRadiusMeters = 30,
-                Category = "street_food",
-                Priority = 7,
-                Rating = 4.6,
-                ReviewCount = 610,
-                ImageUrl = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7635,106.7072",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            hoaQuan.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Hoa Restaurant", ShortDescription = "Highly-regarded spot for BBQ.", FullDescription = "A vibrant spot for group gatherings and local BBQ.", AudioText = "Welcome to Hoa Restaurant." });
-            hoaQuan.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Hoa Quán", ShortDescription = "Nướng ngói đặc sắc.", FullDescription = "Thịt nướng trên ngói giữ độ ngọt tự nhiên.", AudioText = "Thưởng thức thịt nướng ngói đặc sắc tại Hoa Quán." });
-            list.Add(hoaQuan);
-
-            var ocVu = new POI
+            var poi3 = new POI
             {
                 Name = "Ốc Vũ",
                 Slug = "oc-vu",
-                Latitude = 10.7630,
+                Latitude = 10.763,
                 Longitude = 106.7065,
-                Address = "37 Vĩnh Khánh, Phường 8, Quận 4, TP.HCM",
+                Address = "Ốc Vũ, Vĩnh Khánh, Quận 4, TP.HCM",
                 TriggerRadiusMeters = 30,
-                Category = "street_food",
-                Priority = 8,
+                Category = "seafood",
+                Priority = 10,
                 Rating = 4.5,
-                ReviewCount = 1200,
-                ImageUrl = "https://images.unsplash.com/photo-1574781330855-d0db8ce60179?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7630,106.7065",
+                ReviewCount = 650,
+                ImageUrl = "http://localhost:5011/imgs/ocVu.jpg",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.763,106.7065",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 Images = new List<POIImage>
                 {
-                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1574781330855-d0db8ce60179?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
-                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                    new POIImage { ImageUrl = "http://localhost:5011/imgs/ocVu.jpg", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
                 }
             };
-            ocVu.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Oc Vu", ShortDescription = "A popular spot for fresh seafood.", FullDescription = "A vibrant seafood joint known for its affordable prices and fresh ingredients.", AudioText = "Welcome to Oc Vu, famous for its lively atmosphere and fresh catches of the day." });
-            ocVu.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Vũ", ShortDescription = "Ốc bình dân tấp nập.", FullDescription = "Hải sản tươi sống giá sinh viên, không gian vỉa hè thoáng mát.", AudioText = "Chào mừng bạn đến với Ốc Vũ, một điểm hẹn lý tưởng cho những ai thích hải sản tươi ngon với giá bình dân." });
-            list.Add(ocVu);
+            poi3.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Ốc Vũ", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Ốc Vũ. A must-visit destination for food lovers.", AudioText = "Welcome to Ốc Vũ. We are delighted to serve you our best signature dishes." });
+            poi3.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Vũ", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Ốc Vũ. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Ốc Vũ. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi3);
 
-            var ocThao = new POI
+            var poi4 = new POI
             {
                 Name = "Ốc Thảo",
                 Slug = "oc-thao",
-                Latitude = 10.7640,
-                Longitude = 106.7080,
-                Address = "237/8 Hoàng Diệu (Hẻm Vĩnh Khánh), Quận 4, TP.HCM",
+                Latitude = 10.764,
+                Longitude = 106.708,
+                Address = "Ốc Thảo, Vĩnh Khánh, Quận 4, TP.HCM",
                 TriggerRadiusMeters = 30,
-                Category = "street_food",
-                Priority = 8,
+                Category = "seafood",
+                Priority = 9,
                 Rating = 4.6,
-                ReviewCount = 1500,
-                ImageUrl = "https://images.unsplash.com/photo-1623854767272-b530513e4b78?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7640,106.7080",
+                ReviewCount = 700,
+                ImageUrl = "http://localhost:5011/imgs/ocThao.jpg",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.764,106.708",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 Images = new List<POIImage>
                 {
-                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1623854767272-b530513e4b78?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 }
+                    new POIImage { ImageUrl = "http://localhost:5011/imgs/ocThao.jpg", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1627012351222-1d54e4eb1f02?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
                 }
             };
-            ocThao.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Oc Thao", ShortDescription = "Cozy snail eatery hidden in an alley.", FullDescription = "Discover a local secret with the best coconut snails in town.", AudioText = "Welcome to Oc Thao, a hidden gem offering exquisite seafood flavors." });
-            ocThao.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Thảo", ShortDescription = "Đỉnh cao ốc len xào dừa.", FullDescription = "Quán ốc núp hẻm nhưng luôn đông đúc vì nước sốt đặc trưng.", AudioText = "Ốc Thảo là một viên ngọc ẩn giấu, mang đến hương vị ốc len xào dừa béo ngậy khó quên." });
-            list.Add(ocThao);
+            poi4.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Ốc Thảo", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Ốc Thảo. A must-visit destination for food lovers.", AudioText = "Welcome to Ốc Thảo. We are delighted to serve you our best signature dishes." });
+            poi4.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Thảo", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Ốc Thảo. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Ốc Thảo. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi4);
 
-            var bbqNgoi = new POI
+            var poi5 = new POI
             {
-                Name = "Quán Nướng Ngói",
-                Slug = "quan-nuong-ngoi",
-                Latitude = 10.7650,
-                Longitude = 106.7090,
-                Address = "11 Vĩnh Khánh, Phường 8, Quận 4, TP.HCM",
-                TriggerRadiusMeters = 30,
-                Category = "restaurant",
-                Priority = 7,
-                Rating = 4.4,
-                ReviewCount = 800,
-                ImageUrl = "https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7650,106.7090",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            bbqNgoi.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Tile BBQ", ShortDescription = "Traditional tile-grilled meat.", FullDescription = "Experience cooking your own meat on a hot clay tile.", AudioText = "Tile BBQ is a unique experience where meats are grilled perfectly on traditional clay tiles." });
-            bbqNgoi.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Quán Nướng Ngói", ShortDescription = "Bò nướng ngói thơm lừng.", FullDescription = "Nướng thịt trên ngói đất sét giúp giữ trọn vẹn nước ngọt của thịt.", AudioText = "Trải nghiệm phong cách nướng ngói độc đáo, mang đến những miếng thịt mềm và mọng nước." });
-            list.Add(bbqNgoi);
-
-            var traSuaMix = new POI
-            {
-                Name = "Trà Sữa Mix",
-                Slug = "tra-sua-mix",
-                Latitude = 10.7600,
-                Longitude = 106.7030,
-                Address = "120 Vĩnh Khánh, Phường 8, Quận 4, TP.HCM",
-                TriggerRadiusMeters = 30,
-                Category = "cafe",
-                Priority = 6,
-                Rating = 4.3,
-                ReviewCount = 500,
-                ImageUrl = "https://images.unsplash.com/photo-1558857563-b37102e9ea15?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7600,106.7030",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            traSuaMix.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Mix Milk Tea", ShortDescription = "Refreshing drinks and desserts.", FullDescription = "The perfect place to cool down after a spicy seafood meal.", AudioText = "Cool down at Mix Milk Tea with a refreshing selection of bubble teas and desserts." });
-            traSuaMix.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Trà Sữa Mix", ShortDescription = "Trà sữa trân châu nhà làm.", FullDescription = "Trạm dừng chân lý tưởng để tráng miệng sau bữa tiệc hải sản cay nồng.", AudioText = "Hạ nhiệt với Trà Sữa Mix, nơi cung cấp những ly trà mát lạnh và trân châu dai ngon." });
-            list.Add(traSuaMix);
-
-            var lauBoKhuBa = new POI
-            {
-                Name = "Lẩu Bò Khu Ba",
-                Slug = "lau-bo-khu-ba",
-                Latitude = 10.7595,
-                Longitude = 106.7025,
-                Address = "Khu Ba, Vĩnh Khánh, Phường 8, Quận 4, TP.HCM",
-                TriggerRadiusMeters = 30,
-                Category = "restaurant",
-                Priority = 7,
-                Rating = 4.4,
-                ReviewCount = 950,
-                ImageUrl = "https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7595,106.7025",
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                Images = new List<POIImage>
-                {
-                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 }
-                }
-            };
-            lauBoKhuBa.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Khu Ba Beef Hotpot", ShortDescription = "Hearty and rich beef hotpot.", FullDescription = "A local favorite for late-night beef hotpot packed with flavors and fresh vegetables.", AudioText = "Warm up your evening with a hearty beef hotpot at Khu Ba." });
-            lauBoKhuBa.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Lẩu Bò Khu Ba", ShortDescription = "Lẩu bò bình dân đậm vị.", FullDescription = "Điểm đến quen thuộc cho những tín đồ mê lẩu bò ngon bổ rẻ.", AudioText = "Hòa mình vào không khí nhộn nhịp và thưởng thức nồi lẩu bò nghi ngút khói tại Khu Ba." });
-            list.Add(lauBoKhuBa);
-
-            var supCua = new POI
-            {
-                Name = "Súp Cua Cô Lan",
-                Slug = "sup-cua-co-lan",
+                Name = "Ốc Phát",
+                Slug = "oc-phat",
                 Latitude = 10.7615,
-                Longitude = 106.7050,
-                Address = "Vỉa hè Vĩnh Khánh, Phường 8, Quận 4, TP.HCM",
+                Longitude = 106.7048,
+                Address = "Ốc Phát, Vĩnh Khánh, Quận 4, TP.HCM",
                 TriggerRadiusMeters = 30,
-                Category = "street_food",
-                Priority = 6,
+                Category = "seafood",
+                Priority = 8,
                 Rating = 4.7,
-                ReviewCount = 600,
-                ImageUrl = "https://images.unsplash.com/photo-1548943487-a2e4b43b4850?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7615,106.7050",
+                ReviewCount = 750,
+                ImageUrl = "http://localhost:5011/imgs/ocPhat.jpg",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.7615,106.7048",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "http://localhost:5011/imgs/ocPhat.jpg", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1564671165093-20688ff1fffa?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
             };
-            supCua.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Co Lan Crab Soup", ShortDescription = "Thick and savory crab soup.", FullDescription = "A perfect appetizer street food with crab meat, quail eggs, and herbs.", AudioText = "Grab a quick and delicious bowl of crab soup at Co Lan's street stall." });
-            supCua.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Súp Cua Cô Lan", ShortDescription = "Súp cua óc heo đặc biệt.", FullDescription = "Chén súp nóng hổi đầy đặn thịt cua, óc heo béo ngậy và trứng cút.", AudioText = "Mở đầu bữa tiệc ẩm thực bằng một chén súp cua óc heo nóng hổi và đầy dinh dưỡng." });
-            list.Add(supCua);
+            poi5.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Ốc Phát", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Ốc Phát. A must-visit destination for food lovers.", AudioText = "Welcome to Ốc Phát. We are delighted to serve you our best signature dishes." });
+            poi5.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Phát", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Ốc Phát. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Ốc Phát. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi5);
 
-            var cheThai = new POI
+            var poi6 = new POI
             {
-                Name = "Chè Thái Ý Phương (Chi nhánh Quận 4)",
-                Slug = "che-thai-y-phuong",
-                Latitude = 10.7580,
-                Longitude = 106.7015,
-                Address = "Gần ngã ba Vĩnh Khánh - Hoàng Diệu, Quận 4, TP.HCM",
+                Name = "Ốc Tô",
+                Slug = "oc-to",
+                Latitude = 10.759,
+                Longitude = 106.703,
+                Address = "Ốc Tô, Vĩnh Khánh, Quận 4, TP.HCM",
                 TriggerRadiusMeters = 30,
-                Category = "cafe",
-                Priority = 7,
+                Category = "seafood",
+                Priority = 10,
+                Rating = 4.2,
+                ReviewCount = 800,
+                ImageUrl = "http://localhost:5011/imgs/ocTo.jpg",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.759,106.703",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "http://localhost:5011/imgs/ocTo.jpg", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1594220302187-548d88e0e37a?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
+            };
+            poi6.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Ốc Tô", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Ốc Tô. A must-visit destination for food lovers.", AudioText = "Welcome to Ốc Tô. We are delighted to serve you our best signature dishes." });
+            poi6.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Tô", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Ốc Tô. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Ốc Tô. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi6);
+
+            var poi7 = new POI
+            {
+                Name = "Ốc Cúc",
+                Slug = "oc-cuc",
+                Latitude = 10.76,
+                Longitude = 106.704,
+                Address = "Ốc Cúc, Vĩnh Khánh, Quận 4, TP.HCM",
+                TriggerRadiusMeters = 30,
+                Category = "seafood",
+                Priority = 9,
+                Rating = 4.3,
+                ReviewCount = 850,
+                ImageUrl = "https://images.unsplash.com/photo-1560717845-968823efbee1?auto=format&fit=crop&q=80&w=800",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.76,106.704",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1560717845-968823efbee1?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1565557623262-b51c2513a641?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
+            };
+            poi7.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Ốc Cúc", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Ốc Cúc. A must-visit destination for food lovers.", AudioText = "Welcome to Ốc Cúc. We are delighted to serve you our best signature dishes." });
+            poi7.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Cúc", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Ốc Cúc. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Ốc Cúc. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi7);
+
+            var poi8 = new POI
+            {
+                Name = "Hải Sản Biển Ngọc",
+                Slug = "hai-san-bien-ngoc",
+                Latitude = 10.7635,
+                Longitude = 106.7075,
+                Address = "Hải Sản Biển Ngọc, Vĩnh Khánh, Quận 4, TP.HCM",
+                TriggerRadiusMeters = 30,
+                Category = "seafood",
+                Priority = 8,
+                Rating = 4.4,
+                ReviewCount = 900,
+                ImageUrl = "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&q=80&w=800",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.7635,106.7075",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1579684947550-22e945225d9a?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
+            };
+            poi8.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Hải Sản Biển Ngọc", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Hải Sản Biển Ngọc. A must-visit destination for food lovers.", AudioText = "Welcome to Hải Sản Biển Ngọc. We are delighted to serve you our best signature dishes." });
+            poi8.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Hải Sản Biển Ngọc", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Hải Sản Biển Ngọc. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Hải Sản Biển Ngọc. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi8);
+
+            var poi9 = new POI
+            {
+                Name = "Ốc Đêm Vĩnh Khánh",
+                Slug = "oc-dem-vinh-khanh",
+                Latitude = 10.7625,
+                Longitude = 106.706,
+                Address = "Ốc Đêm Vĩnh Khánh, Vĩnh Khánh, Quận 4, TP.HCM",
+                TriggerRadiusMeters = 30,
+                Category = "seafood",
+                Priority = 10,
                 Rating = 4.5,
-                ReviewCount = 2100,
-                ImageUrl = "https://images.unsplash.com/photo-1563805042-7684c8a9e9cb?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7580,106.7015",
+                ReviewCount = 950,
+                ImageUrl = "http://localhost:5011/imgs/ocDemVinhKhanh.jpg",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.7625,106.706",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "http://localhost:5011/imgs/ocDemVinhKhanh.jpg", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1569058242253-92a9c755a0ec?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
             };
-            cheThai.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Y Phuong Thai Sweet Soup", ShortDescription = "Famous Thai sweet soup dessert.", FullDescription = "Indulge in a bowl of sweet, creamy, and fruity Thai dessert.", AudioText = "Treat yourself to the famous Y Phuong Thai sweet soup, a perfect blend of fruits and coconut milk." });
-            cheThai.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Chè Thái Ý Phương", ShortDescription = "Chè Thái sầu riêng trứ danh.", FullDescription = "Ly chè Thái đẫm sầu riêng, thạch trái cây giòn sần sật béo ngậy.", AudioText = "Giải khát cực đã với ly chè Thái sầu riêng trứ danh, đậm đà vị cốt dừa và thạch trái cây." });
-            list.Add(cheThai);
+            poi9.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Ốc Đêm Vĩnh Khánh", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Ốc Đêm Vĩnh Khánh. A must-visit destination for food lovers.", AudioText = "Welcome to Ốc Đêm Vĩnh Khánh. We are delighted to serve you our best signature dishes." });
+            poi9.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Ốc Đêm Vĩnh Khánh", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Ốc Đêm Vĩnh Khánh. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Ốc Đêm Vĩnh Khánh. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi9);
 
-            var banhTrang = new POI
+            var poi10 = new POI
             {
-                Name = "Bánh Tráng Nướng Đà Lạt",
-                Slug = "banh-trang-nuong-da-lat",
-                Latitude = 10.7628,
-                Longitude = 106.7060,
-                Address = "Dọc đường Vĩnh Khánh, Quận 4, TP.HCM",
+                Name = "Lãng Restaurant",
+                Slug = "lang-restaurant",
+                Latitude = 10.7605,
+                Longitude = 106.7042,
+                Address = "Lãng Restaurant, Vĩnh Khánh, Quận 4, TP.HCM",
                 TriggerRadiusMeters = 30,
-                Category = "street_food",
-                Priority = 6,
+                Category = "restaurant",
+                Priority = 9,
                 Rating = 4.6,
-                ReviewCount = 450,
-                ImageUrl = "https://images.unsplash.com/photo-1626804475297-41609ea004eb?auto=format&fit=crop&q=80&w=800",
-                GoogleMapsUrl = "https://maps.google.com/?q=10.7628,106.7060",
+                ReviewCount = 1000,
+                ImageUrl = "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&q=80&w=800",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.7605,106.7042",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1550966871-3ed3cdb5ed0c?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
             };
-            banhTrang.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Da Lat Pizza", ShortDescription = "Crispy Vietnamese rice paper pizza.", FullDescription = "Grilled rice paper topped with egg, sausage, dried shrimp, and cheese.", AudioText = "Snack on a crispy Vietnamese pizza straight from the charcoal grill." });
-            banhTrang.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Bánh Tráng Nướng", ShortDescription = "Pizza Việt Nam giòn rụm.", FullDescription = "Bánh tráng nướng than hoa thơm lức với trứng cút, xúc xích và phô mai.", AudioText = "Đừng bỏ qua món bánh tráng nướng giòn rụm thơm lừng mùi bơ và hành phi nhé." });
-            list.Add(banhTrang);
+            poi10.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Lãng Restaurant", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Lãng Restaurant. A must-visit destination for food lovers.", AudioText = "Welcome to Lãng Restaurant. We are delighted to serve you our best signature dishes." });
+            poi10.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Lãng Restaurant", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Lãng Restaurant. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Lãng Restaurant. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi10);
 
-            var quanNhau = new POI
+            var poi11 = new POI
             {
                 Name = "Quán Nhậu Tự Do",
                 Slug = "quan-nhau-tu-do",
                 Latitude = 10.7645,
                 Longitude = 106.7085,
-                Address = "Đầu đường Vĩnh Khánh, Phường 8, Quận 4, TP.HCM",
+                Address = "Quán Nhậu Tự Do, Vĩnh Khánh, Quận 4, TP.HCM",
                 TriggerRadiusMeters = 30,
                 Category = "restaurant",
                 Priority = 8,
-                Rating = 4.3,
-                ReviewCount = 720,
+                Rating = 4.7,
+                ReviewCount = 1050,
                 ImageUrl = "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?auto=format&fit=crop&q=80&w=800",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7645,106.7085",
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1538332576228-eb5b4c4de6f5?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
             };
-            quanNhau.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Tu Do Beer Club", ShortDescription = "Lively drinking spot with great food.", FullDescription = "Enjoy cold beers and excellent finger foods in a highly energetic environment.", AudioText = "End your night at Tu Do with cold beers and a vibrant local atmosphere." });
-            quanNhau.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Quán Nhậu Tự Do", ShortDescription = "Không gian bia tươi cực chill.", FullDescription = "Tụ tập bạn bè, uống bia lạnh và nhắm mồi cực cuốn trong không gian mở.", AudioText = "Cùng nâng ly và tận hưởng buổi tối sôi động cùng bạn bè tại Quán Nhậu Tự Do." });
-            list.Add(quanNhau);
+            poi11.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Quán Nhậu Tự Do", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Quán Nhậu Tự Do. A must-visit destination for food lovers.", AudioText = "Welcome to Quán Nhậu Tự Do. We are delighted to serve you our best signature dishes." });
+            poi11.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Quán Nhậu Tự Do", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Quán Nhậu Tự Do. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Quán Nhậu Tự Do. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi11);
+
+            var poi12 = new POI
+            {
+                Name = "Thuận Việt BBQ & Hotpot",
+                Slug = "thuan-viet-bbq",
+                Latitude = 10.7618,
+                Longitude = 106.7052,
+                Address = "Thuận Việt BBQ & Hotpot, Vĩnh Khánh, Quận 4, TP.HCM",
+                TriggerRadiusMeters = 30,
+                Category = "bbq",
+                Priority = 10,
+                Rating = 4.2,
+                ReviewCount = 1100,
+                ImageUrl = "http://localhost:5011/imgs/thuanVietBBQ.jpg",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.7618,106.7052",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "http://localhost:5011/imgs/thuanVietBBQ.jpg", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1549488344-1f9b8d2bd1f3?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
+            };
+            poi12.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Thuận Việt BBQ & Hotpot", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Thuận Việt BBQ & Hotpot. A must-visit destination for food lovers.", AudioText = "Welcome to Thuận Việt BBQ & Hotpot. We are delighted to serve you our best signature dishes." });
+            poi12.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Thuận Việt BBQ & Hotpot", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Thuận Việt BBQ & Hotpot. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Thuận Việt BBQ & Hotpot. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi12);
+
+            var poi13 = new POI
+            {
+                Name = "Thế Giới Bò",
+                Slug = "the-gioi-bo",
+                Latitude = 10.7592,
+                Longitude = 106.7028,
+                Address = "Thế Giới Bò, Vĩnh Khánh, Quận 4, TP.HCM",
+                TriggerRadiusMeters = 30,
+                Category = "bbq",
+                Priority = 9,
+                Rating = 4.3,
+                ReviewCount = 1150,
+                ImageUrl = "https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&q=80&w=800",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.7592,106.7028",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1600891964092-4316c288032e?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
+            };
+            poi13.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Thế Giới Bò", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Thế Giới Bò. A must-visit destination for food lovers.", AudioText = "Welcome to Thế Giới Bò. We are delighted to serve you our best signature dishes." });
+            poi13.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Thế Giới Bò", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Thế Giới Bò. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Thế Giới Bò. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi13);
+
+            var poi14 = new POI
+            {
+                Name = "Bò Nướng Vĩnh Khánh",
+                Slug = "bo-nuong-vinh-khanh",
+                Latitude = 10.7632,
+                Longitude = 106.7068,
+                Address = "Bò Nướng Vĩnh Khánh, Vĩnh Khánh, Quận 4, TP.HCM",
+                TriggerRadiusMeters = 30,
+                Category = "bbq",
+                Priority = 8,
+                Rating = 4.4,
+                ReviewCount = 1200,
+                ImageUrl = "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&q=80&w=800",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.7632,106.7068",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1529193591184-b1d58069ecdd?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
+            };
+            poi14.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Bò Nướng Vĩnh Khánh", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Bò Nướng Vĩnh Khánh. A must-visit destination for food lovers.", AudioText = "Welcome to Bò Nướng Vĩnh Khánh. We are delighted to serve you our best signature dishes." });
+            poi14.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Bò Nướng Vĩnh Khánh", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Bò Nướng Vĩnh Khánh. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Bò Nướng Vĩnh Khánh. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi14);
+
+            var poi15 = new POI
+            {
+                Name = "Nem Nướng Quê Nhà",
+                Slug = "nem-nuong-que-nha",
+                Latitude = 10.7602,
+                Longitude = 106.7035,
+                Address = "Nem Nướng Quê Nhà, Vĩnh Khánh, Quận 4, TP.HCM",
+                TriggerRadiusMeters = 30,
+                Category = "vietnamese_food",
+                Priority = 10,
+                Rating = 4.5,
+                ReviewCount = 1250,
+                ImageUrl = "http://localhost:5011/imgs/nemNuong.jpg",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.7602,106.7035",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "http://localhost:5011/imgs/nemNuong.jpg", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1556694795-b6423e3e44f1?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
+            };
+            poi15.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Nem Nướng Quê Nhà", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Nem Nướng Quê Nhà. A must-visit destination for food lovers.", AudioText = "Welcome to Nem Nướng Quê Nhà. We are delighted to serve you our best signature dishes." });
+            poi15.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Nem Nướng Quê Nhà", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Nem Nướng Quê Nhà. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Nem Nướng Quê Nhà. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi15);
+
+            var poi16 = new POI
+            {
+                Name = "Bánh Xèo Miền Tây",
+                Slug = "banh-xeo-mien-tay",
+                Latitude = 10.7642,
+                Longitude = 106.7082,
+                Address = "Bánh Xèo Miền Tây, Vĩnh Khánh, Quận 4, TP.HCM",
+                TriggerRadiusMeters = 30,
+                Category = "vietnamese_food",
+                Priority = 9,
+                Rating = 4.6,
+                ReviewCount = 1300,
+                ImageUrl = "https://images.unsplash.com/photo-1564834724105-918b73d1b9e0?auto=format&fit=crop&q=80&w=800",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.7642,106.7082",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1564834724105-918b73d1b9e0?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1626804475297-41609ea004eb?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
+            };
+            poi16.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Bánh Xèo Miền Tây", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Bánh Xèo Miền Tây. A must-visit destination for food lovers.", AudioText = "Welcome to Bánh Xèo Miền Tây. We are delighted to serve you our best signature dishes." });
+            poi16.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Bánh Xèo Miền Tây", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Bánh Xèo Miền Tây. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Bánh Xèo Miền Tây. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi16);
+
+            var poi17 = new POI
+            {
+                Name = "Bún Thái Hải Sản Vĩnh Khánh",
+                Slug = "bun-thai-hai-san",
+                Latitude = 10.7612,
+                Longitude = 106.704,
+                Address = "Bún Thái Hải Sản Vĩnh Khánh, Vĩnh Khánh, Quận 4, TP.HCM",
+                TriggerRadiusMeters = 30,
+                Category = "vietnamese_food",
+                Priority = 8,
+                Rating = 4.7,
+                ReviewCount = 1350,
+                ImageUrl = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.7612,106.704",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
+            };
+            poi17.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Bún Thái Hải Sản Vĩnh Khánh", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Bún Thái Hải Sản Vĩnh Khánh. A must-visit destination for food lovers.", AudioText = "Welcome to Bún Thái Hải Sản Vĩnh Khánh. We are delighted to serve you our best signature dishes." });
+            poi17.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Bún Thái Hải Sản Vĩnh Khánh", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Bún Thái Hải Sản Vĩnh Khánh. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Bún Thái Hải Sản Vĩnh Khánh. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi17);
+
+            var poi18 = new POI
+            {
+                Name = "Cafe Vĩnh Khánh Corner",
+                Slug = "cafe-vinh-khanh-corner",
+                Latitude = 10.7588,
+                Longitude = 106.7018,
+                Address = "Cafe Vĩnh Khánh Corner, Vĩnh Khánh, Quận 4, TP.HCM",
+                TriggerRadiusMeters = 30,
+                Category = "cafe",
+                Priority = 10,
+                Rating = 4.2,
+                ReviewCount = 1400,
+                ImageUrl = "http://localhost:5011/imgs/cafeVinhKhanh.jpg",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.7588,106.7018",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "http://localhost:5011/imgs/cafeVinhKhanh.jpg", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1497935586351-b67a49e012bf?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
+            };
+            poi18.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Cafe Vĩnh Khánh Corner", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Cafe Vĩnh Khánh Corner. A must-visit destination for food lovers.", AudioText = "Welcome to Cafe Vĩnh Khánh Corner. We are delighted to serve you our best signature dishes." });
+            poi18.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Cafe Vĩnh Khánh Corner", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Cafe Vĩnh Khánh Corner. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Cafe Vĩnh Khánh Corner. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi18);
+
+            var poi19 = new POI
+            {
+                Name = "Riverside Coffee Q4",
+                Slug = "riverside-coffee-q4",
+                Latitude = 10.7655,
+                Longitude = 106.7095,
+                Address = "Riverside Coffee Q4, Vĩnh Khánh, Quận 4, TP.HCM",
+                TriggerRadiusMeters = 30,
+                Category = "cafe",
+                Priority = 9,
+                Rating = 4.3,
+                ReviewCount = 1450,
+                ImageUrl = "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800",
+                GoogleMapsUrl = "https://maps.google.com/?q=10.7655,106.7095",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
+                Images = new List<POIImage>
+                {
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800", IsCover = true, DisplayOrder = 1 },
+                    new POIImage { ImageUrl = "https://images.unsplash.com/photo-1445116572660-236099ec97a0?auto=format&fit=crop&q=80&w=800", IsCover = false, DisplayOrder = 2 }
+                }
+            };
+            poi19.Translations.Add(new POITranslation { LanguageCode = "en", Name = "Riverside Coffee Q4", ShortDescription = "A great place on Vinh Khanh street.", FullDescription = "Experience the vibrant atmosphere and delicious flavors at Riverside Coffee Q4. A must-visit destination for food lovers.", AudioText = "Welcome to Riverside Coffee Q4. We are delighted to serve you our best signature dishes." });
+            poi19.Translations.Add(new POITranslation { LanguageCode = "vi", Name = "Riverside Coffee Q4", ShortDescription = "Địa điểm nổi bật tại khu Vĩnh Khánh.", FullDescription = "Trải nghiệm không khí sôi động và thưởng thức những hương vị tuyệt vời tại Riverside Coffee Q4. Một điểm đến không thể bỏ qua.", AudioText = "Chào mừng bạn đến với Riverside Coffee Q4. Nơi đây hứa hẹn mang lại những trải nghiệm ẩm thực đáng nhớ nhất." });
+            list.Add(poi19);
 
             return list;
         }
