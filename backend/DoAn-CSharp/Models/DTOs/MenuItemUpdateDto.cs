@@ -13,6 +13,7 @@ namespace DoAn_CSharp.Models.DTOs
 
         public string? ImageUrl { get; set; }
 
-        public int? SortOrder { get; set; }
+        public int? DisplayOrder { get; set; }
+        public bool? IsAvailable { get; set; }
     }
 }

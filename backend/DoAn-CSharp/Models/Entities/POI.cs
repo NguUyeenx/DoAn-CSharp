@@ -36,7 +36,9 @@ namespace DoAn_CSharp.Models.Entities
 
         public int? OwnerId { get; set; }
         public Owner? Owner { get; set; }
-        public string ApprovalStatus { get; set; } = "approved"; // pending, approved, rejected
+        public string ApprovalStatus { get; set; } = "approved";
+        public double Rating { get; set; } = 4.5;
+        public int ReviewCount { get; set; } = 120; // pending, approved, rejected
 
         // Navigation properties
         public ICollection<POITranslation> Translations { get; set; } = new List<POITranslation>();
@@ -44,5 +46,7 @@ namespace DoAn_CSharp.Models.Entities
         public ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
         public ICollection<QRCode> QRCodes { get; set; } = new List<QRCode>();
         public ICollection<VisitLog> VisitLogs { get; set; } = new List<VisitLog>();
+        public ICollection<POIImage> Images { get; set; } = new List<POIImage>();
     }
 }
+

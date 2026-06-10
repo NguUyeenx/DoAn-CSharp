@@ -15,6 +15,8 @@ namespace DoAn_CSharp.Models.Entities
         public DateTime? RefreshTokenExpiry { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime? LastLoginAt { get; set; }
+        public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
         // Owner properties
         public string OwnerStatus { get; set; } = "pending"; // pending, approved, rejected

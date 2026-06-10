@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Map, Search, QrCode, User, Settings } from 'lucide-react';
+import { Map, Search, QrCode, Settings, User } from 'lucide-react';
 
 export default function BottomNav() {
   const tabs = [
@@ -34,3 +34,5 @@ export default function BottomNav() {
     </nav>
   );
 }
+
+

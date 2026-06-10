@@ -26,3 +26,4 @@ export const useLocationStore = create<LocationState>((set) => ({
   setTracking: (isTracking: boolean) => set({ isTracking }),
   setSimulatorActive: (isSimulatorActive: boolean) => set({ isSimulatorActive }),
 }));
+

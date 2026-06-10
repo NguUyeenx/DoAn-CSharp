@@ -33,6 +33,9 @@ namespace DoAn_CSharp.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -130,12 +133,53 @@ namespace DoAn_CSharp.Migrations
                     b.ToTable("AudioFiles");
                 });
 
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.AuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("EntityId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("EntityName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserRole")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AuditLogs");
+                });
+
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.Language", b =>
                 {
                     b.Property<string>("Code")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
 
                     b.Property<string>("Name")
@@ -166,8 +210,14 @@ namespace DoAn_CSharp.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
                     b.Property<string>("ImageUrl")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -178,9 +228,6 @@ namespace DoAn_CSharp.Migrations
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18, 2)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -220,6 +267,38 @@ namespace DoAn_CSharp.Migrations
                     b.ToTable("MenuItemTranslations");
                 });
 
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.Notification", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsRead")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("OwnerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("Notifications");
+                });
+
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.Owner", b =>
                 {
                     b.Property<int>("Id")
@@ -248,6 +327,9 @@ namespace DoAn_CSharp.Migrations
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("OwnerStatus")
                         .IsRequired()
@@ -346,6 +428,12 @@ namespace DoAn_CSharp.Migrations
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
+                    b.Property<double>("Rating")
+                        .HasColumnType("float");
+
+                    b.Property<int>("ReviewCount")
+                        .HasColumnType("int");
+
                     b.Property<string>("Slug")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -414,6 +502,37 @@ namespace DoAn_CSharp.Migrations
                         .IsUnique();
 
                     b.ToTable("POICategories");
+                });
+
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.POIImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsCover")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("POIId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("POIId");
+
+                    b.ToTable("POIImages");
                 });
 
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.POITranslation", b =>
@@ -708,6 +827,17 @@ namespace DoAn_CSharp.Migrations
                     b.Navigation("MenuItem");
                 });
 
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.Notification", b =>
+                {
+                    b.HasOne("DoAn_CSharp.Models.Entities.Owner", "Owner")
+                        .WithMany("Notifications")
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Owner");
+                });
+
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.POI", b =>
                 {
                     b.HasOne("DoAn_CSharp.Models.Entities.POICategory", "POICategory")
@@ -723,6 +853,17 @@ namespace DoAn_CSharp.Migrations
                     b.Navigation("Owner");
 
                     b.Navigation("POICategory");
+                });
+
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.POIImage", b =>
+                {
+                    b.HasOne("DoAn_CSharp.Models.Entities.POI", "POI")
+                        .WithMany("Images")
+                        .HasForeignKey("POIId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("POI");
                 });
 
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.POITranslation", b =>
@@ -804,9 +945,16 @@ namespace DoAn_CSharp.Migrations
                     b.Navigation("Translations");
                 });
 
+            modelBuilder.Entity("DoAn_CSharp.Models.Entities.Owner", b =>
+                {
+                    b.Navigation("Notifications");
+                });
+
             modelBuilder.Entity("DoAn_CSharp.Models.Entities.POI", b =>
                 {
                     b.Navigation("AudioFiles");
+
+                    b.Navigation("Images");
 
                     b.Navigation("MenuItems");
 

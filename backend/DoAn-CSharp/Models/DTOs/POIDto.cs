@@ -29,6 +29,8 @@ namespace DoAn_CSharp.Models.DTOs
         public string? ImageUrl { get; set; }
         public string? GoogleMapsUrl { get; set; }
         public bool IsActive { get; set; }
+        public double Rating { get; set; }
+        public int ReviewCount { get; set; }
 
         // Localized strings (filled based on lang param)
         public string LocalizedName { get; set; } = string.Empty;
@@ -41,8 +43,17 @@ namespace DoAn_CSharp.Models.DTOs
         public double? DistanceMeters { get; set; } // for nearby queries
         public bool IsFavorite { get; set; }        // for authenticated user
 
+        public ICollection<POIImageDto> Images { get; set; } = new List<POIImageDto>();
+
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+    }
+
+    public class POIImageDto
+    {
+        public int Id { get; set; }
+        public string ImageUrl { get; set; } = string.Empty;
+        public bool IsCover { get; set; }
     }
 
     // ── List item (lighter) ───────────────────────────────────────────
@@ -60,6 +71,8 @@ namespace DoAn_CSharp.Models.DTOs
         public int? OwnerId { get; set; }
         public string ApprovalStatus { get; set; } = string.Empty;
         public bool IsFavorite { get; set; }
+        public double Rating { get; set; }
+        public int ReviewCount { get; set; }
     }
 
     // ── Create / Update ───────────────────────────────────────────────
@@ -107,3 +120,4 @@ namespace DoAn_CSharp.Models.DTOs
         public string? ApprovalStatus { get; set; }
     }
 }
+

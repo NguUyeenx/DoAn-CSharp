@@ -29,7 +29,7 @@ namespace DoAn_CSharp.Controllers
         }
 
         /// <summary>Quét QR Code - trả về thông tin POI và ghi log</summary>
-        [HttpPost("scan/{code}")]
+        [HttpGet("{code}")]
         public async Task<IActionResult> ScanQR(
             string code,
             [FromQuery] string lang = "en",
@@ -63,24 +63,9 @@ namespace DoAn_CSharp.Controllers
             return Ok(poi);
         }
 
-        /// <summary>Tìm kiếm thông tin QR code theo code (backward compat)</summary>
-        [HttpGet("{code}")]
-        public async Task<IActionResult> LookupQR(string code, [FromQuery] string lang = "en")
-        {
-            var qr = await _qrCodeService.GetByCodeAsync(code);
-            if (qr == null)
-                return NotFound(new { error = "NotFound", message = $"QR Code '{code}' was not found." });
-
-            var poi = await _poiService.GetByIdAsync(qr.POIId, lang);
-            if (poi == null)
-                return NotFound(new { error = "NotFound", message = $"POI not found." });
-
-            return Ok(poi);
-        }
-
         /// <summary>Tạo mã QR cho POI (Admin only)</summary>
         [Authorize(Roles = "admin")]
-        [HttpPost("generate/{poiId:int}")]
+        [HttpPost("~/api/admin/pois/{poiId:int}/generate-qr")]
         public async Task<IActionResult> GenerateQR(int poiId)
         {
             try
@@ -96,11 +81,30 @@ namespace DoAn_CSharp.Controllers
 
         /// <summary>Lấy danh sách QR codes của một POI (Admin only)</summary>
         [Authorize(Roles = "admin")]
-        [HttpGet("poi/{poiId:int}")]
+        [HttpGet("~/api/admin/pois/{poiId:int}/qr")]
         public async Task<IActionResult> GetByPoi(int poiId)
         {
             var qrCodes = await _context.QRCodes
                 .Where(q => q.POIId == poiId)
+                .Select(q => new QRCodeDto
+                {
+                    Id = q.Id,
+                    POIId = q.POIId,
+                    Code = q.Code,
+                    QRImageUrl = q.QRImageUrl,
+                    ScanCount = q.ScanCount,
+                    IsActive = q.IsActive
+                })
+                .ToListAsync();
+            return Ok(qrCodes);
+        }
+
+        /// <summary>Lấy danh sách tất cả QR codes (Admin only)</summary>
+        [Authorize(Roles = "admin")]
+        [HttpGet("~/api/admin/qr")]
+        public async Task<IActionResult> GetAllQRCodes()
+        {
+            var qrCodes = await _context.QRCodes
                 .Select(q => new QRCodeDto
                 {
                     Id = q.Id,

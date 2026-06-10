@@ -16,7 +16,7 @@ namespace DoAn_CSharp.Controllers
             _quizService = quizService;
         }
 
-        [HttpGet("{poiId:int}")]
+        [HttpGet("~/api/pois/{poiId:int}/quiz")]
         public async Task<IActionResult> GetQuizByPoiId(int poiId, [FromQuery] string lang = "en")
         {
             var quiz = await _quizService.GetQuizByPoiIdAsync(poiId, lang);
@@ -27,7 +27,7 @@ namespace DoAn_CSharp.Controllers
             return Ok(quiz);
         }
 
-        [HttpPost("submit")]
+        [HttpPost("~/api/quiz/submit")]
         public async Task<IActionResult> SubmitAnswer([FromBody] QuizSubmissionDto submission, [FromQuery] string lang = "en")
         {
             var result = await _quizService.SubmitAnswerAsync(submission, lang);

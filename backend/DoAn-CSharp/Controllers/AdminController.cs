@@ -104,6 +104,90 @@ namespace DoAn_CSharp.Controllers
 
             return Ok(new { message = $"POI status updated to {dto.Status}." });
         }
+
+        // ── Quiz Management ─────────────────────────────────────────────
+
+        [HttpPost("quiz")]
+        public async Task<IActionResult> CreateQuiz([FromBody] QuizAdminDto dto)
+        {
+            var quiz = new DoAn_CSharp.Models.Entities.QuizQuestion
+            {
+                POIId = dto.POIId,
+                QuestionText = dto.QuestionText,
+                AnswerA = dto.AnswerA,
+                AnswerB = dto.AnswerB,
+                AnswerC = dto.AnswerC,
+                AnswerD = dto.AnswerD,
+                CorrectOption = dto.CorrectOption,
+                ExplanationText = dto.ExplanationText
+            };
+            _context.QuizQuestions.Add(quiz);
+            await _context.SaveChangesAsync();
+            return Ok(quiz);
+        }
+
+        [HttpPut("quiz/{id:int}")]
+        public async Task<IActionResult> UpdateQuiz(int id, [FromBody] QuizAdminDto dto)
+        {
+            var quiz = await _context.QuizQuestions.FindAsync(id);
+            if (quiz == null) return NotFound("Quiz not found.");
+
+            quiz.QuestionText = dto.QuestionText;
+            quiz.AnswerA = dto.AnswerA;
+            quiz.AnswerB = dto.AnswerB;
+            quiz.AnswerC = dto.AnswerC;
+            quiz.AnswerD = dto.AnswerD;
+            quiz.CorrectOption = dto.CorrectOption;
+            quiz.ExplanationText = dto.ExplanationText;
+
+            await _context.SaveChangesAsync();
+            return Ok(quiz);
+        }
+
+        [HttpDelete("quiz/{id:int}")]
+        public async Task<IActionResult> DeleteQuiz(int id)
+        {
+            var quiz = await _context.QuizQuestions.FindAsync(id);
+            if (quiz == null) return NotFound("Quiz not found.");
+
+            _context.QuizQuestions.Remove(quiz);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+        // ── Phase 4: Analytics & Logging ──────────────────────────────
+
+        [HttpGet("audit-logs")]
+        public async Task<IActionResult> GetAuditLogs()
+        {
+            var logs = await _context.AuditLogs.OrderByDescending(x => x.CreatedAt).Take(100).ToListAsync();
+            return Ok(logs);
+        }
+
+        [HttpGet("audio")]
+        public async Task<IActionResult> GetAudioFiles()
+        {
+            var audios = await _context.AudioFiles.OrderByDescending(x => x.Id).ToListAsync();
+            return Ok(audios);
+        }
+
+        [HttpDelete("audio/{id:int}")]
+        public async Task<IActionResult> DeleteAudio(int id)
+        {
+            var audio = await _context.AudioFiles.FindAsync(id);
+            if (audio == null) return NotFound();
+            _context.AudioFiles.Remove(audio);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        [HttpPost("audio/{id:int}/regenerate")]
+        public async Task<IActionResult> RegenerateAudio(int id)
+        {
+            var audio = await _context.AudioFiles.FindAsync(id);
+            if (audio == null) return NotFound("Audio not found");
+            // Placeholder: Call TTSService to regenerate this specific audio
+            return Ok(new { message = $"Audio regeneration triggered for ID {id}." });
+        }
     }
 
     public class RejectDto
@@ -114,5 +198,17 @@ namespace DoAn_CSharp.Controllers
     public class UpdateStatusDto
     {
         public string Status { get; set; } = string.Empty; // approved, rejected, pending
+    }
+
+    public class QuizAdminDto
+    {
+        public int POIId { get; set; }
+        public string QuestionText { get; set; } = string.Empty;
+        public string AnswerA { get; set; } = string.Empty;
+        public string AnswerB { get; set; } = string.Empty;
+        public string AnswerC { get; set; } = string.Empty;
+        public string AnswerD { get; set; } = string.Empty;
+        public char CorrectOption { get; set; }
+        public string ExplanationText { get; set; } = string.Empty;
     }
 }

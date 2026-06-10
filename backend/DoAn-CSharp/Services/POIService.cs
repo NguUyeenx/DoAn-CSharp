@@ -55,6 +55,7 @@ namespace DoAn_CSharp.Services
                 .Include(p => p.Translations)
                 .Include(p => p.MenuItems)
                 .Include(p => p.QRCodes)
+                .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Slug == slug && p.IsActive && p.DeletedAt == null && p.ApprovalStatus == "approved");
             return poi == null ? null : MapToPOIDto(poi, lang);
         }
@@ -65,6 +66,7 @@ namespace DoAn_CSharp.Services
                 .Include(p => p.Translations)
                 .Include(p => p.MenuItems)
                 .Include(p => p.QRCodes)
+                .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null);
 
             return poi == null ? null : MapToPOIDto(poi, lang);
@@ -276,7 +278,13 @@ namespace DoAn_CSharp.Services
                 QRCode = activeQrCode,
                 MenuItemCount = poi.MenuItems?.Count ?? 0,
                 CreatedAt = poi.CreatedAt,
-                UpdatedAt = poi.UpdatedAt
+                UpdatedAt = poi.UpdatedAt,
+                Images = poi.Images?.Select(i => new POIImageDto 
+                { 
+                    Id = i.Id, 
+                    ImageUrl = i.ImageUrl, 
+                    IsCover = i.IsCover 
+                }).ToList() ?? new List<POIImageDto>()
             };
         }
 

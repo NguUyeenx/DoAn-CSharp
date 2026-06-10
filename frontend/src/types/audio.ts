@@ -21,3 +21,4 @@ export interface AudioQueueConfig {
   fadeOutDurationMs: number;
   gapBetweenItemsMs: number;
 }
+

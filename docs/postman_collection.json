@@ -1,7 +1,7 @@
 {
   "info": {
     "name": "VinhKhanh Explorer API",
-    "description": "Postman Collection for VinhKhanh Explorer Backend (.NET 10). Tests Owner, Admin, TTS, and POI functionality.",
+    "description": "Postman Collection for VinhKhanh Explorer Backend (.NET 10). Tests Owner, Admin, TTS, POI, Menu, QR, and Quiz functionality.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -72,6 +72,31 @@
             "url": {"raw": "{{baseUrl}}/api/admin/pois/1/status", "host": ["{{baseUrl}}"], "path": ["api", "admin", "pois", "1", "status"]},
             "body": {"mode": "raw", "raw": "{\n  \"status\": \"approved\"\n}"}
           }
+        },
+        {
+          "name": "Generate QR",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/pois/1/generate-qr", "host": ["{{baseUrl}}"], "path": ["api", "admin", "pois", "1", "generate-qr"]}
+          }
+        },
+        {
+          "name": "Create Quiz",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/quiz", "host": ["{{baseUrl}}"], "path": ["api", "admin", "quiz"]},
+            "body": {"mode": "raw", "raw": "{\n  \"poiId\": 1,\n  \"questionText\": \"Món ăn nào nổi tiếng nhất ở Vĩnh Khánh?\",\n  \"answerA\": \"Ốc\",\n  \"answerB\": \"Phở\",\n  \"answerC\": \"Cơm Tấm\",\n  \"answerD\": \"Bún Chả\",\n  \"correctOption\": \"A\",\n  \"explanationText\": \"Ốc là đặc sản nổi tiếng khu vực quận 4.\"\n}"}
+          }
+        },
+        {
+          "name": "Get Audit Logs",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/audit-logs", "host": ["{{baseUrl}}"], "path": ["api", "admin", "audit-logs"]}
+          }
         }
       ]
     },
@@ -94,17 +119,81 @@
             "url": {"raw": "{{baseUrl}}/api/owner/pois", "host": ["{{baseUrl}}"], "path": ["api", "owner", "pois"]},
             "body": {"mode": "raw", "raw": "{\n  \"name\": \"Quán Ốc Test\",\n  \"latitude\": 10.760123,\n  \"longitude\": 106.702345,\n  \"category\": \"restaurant\"\n}"}
           }
+        },
+        {
+          "name": "Add Menu Item",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{ownerToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/owner/menu-items", "host": ["{{baseUrl}}"], "path": ["api", "owner", "menu-items"]},
+            "body": {"mode": "raw", "raw": "{\n  \"poiId\": 1,\n  \"name\": \"Bún Bò Huế\",\n  \"price\": 45000,\n  \"currency\": \"VND\",\n  \"imageUrl\": \"https://example.com/bun-bo.jpg\",\n  \"displayOrder\": 1,\n  \"isAvailable\": true\n}"}
+          }
+        },
+        {
+          "name": "Add Images",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{ownerToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/owner/pois/1/images", "host": ["{{baseUrl}}"], "path": ["api", "owner", "pois", "1", "images"]},
+            "body": {"mode": "raw", "raw": "[\n  \"https://example.com/image1.jpg\",\n  \"https://example.com/image2.jpg\"\n]"}
+          }
+        },
+        {
+          "name": "Get Dashboard Charts",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{ownerToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/owner/dashboard/charts", "host": ["{{baseUrl}}"], "path": ["api", "owner", "dashboard", "charts"]}
+          }
+        },
+        {
+          "name": "Get Notifications",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{ownerToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/notifications", "host": ["{{baseUrl}}"], "path": ["api", "notifications"]}
+          }
         }
       ]
     },
     {
-      "name": "4. Public POI & TTS",
+      "name": "4. Public POI & TTS & QR",
       "item": [
         {
           "name": "Get Approved POIs",
           "request": {
             "method": "GET",
             "url": {"raw": "{{baseUrl}}/api/pois", "host": ["{{baseUrl}}"], "path": ["api", "pois"]}
+          }
+        },
+        {
+          "name": "Get POI Menu",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/pois/1/menu", "host": ["{{baseUrl}}"], "path": ["api", "pois", "1", "menu"]}
+          }
+        },
+        {
+          "name": "Get POI Quiz",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/pois/1/quiz", "host": ["{{baseUrl}}"], "path": ["api", "pois", "1", "quiz"]}
+          }
+        },
+        {
+          "name": "Submit Quiz",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/quiz/submit", "host": ["{{baseUrl}}"], "path": ["api", "quiz", "submit"]},
+            "body": {"mode": "raw", "raw": "{\n  \"quizQuestionId\": 1,\n  \"selectedOption\": \"A\"\n}"}
+          }
+        },
+        {
+          "name": "Scan QR",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/qr/MACodeTest", "host": ["{{baseUrl}}"], "path": ["api", "qr", "MACodeTest"]}
           }
         },
         {

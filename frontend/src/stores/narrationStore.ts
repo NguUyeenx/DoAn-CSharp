@@ -39,3 +39,4 @@ export const useNarrationStore = create<NarrationState>((set) => ({
     })),
   clearCooldowns: () => set({ cooldownMap: {} }),
 }));
+

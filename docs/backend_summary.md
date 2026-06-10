@@ -1,4 +1,4 @@
-# Tài Liệu Backend — VinhKhanh Explorer API (Updated)
+# Tài Liệu Backend — VinhKhanh Explorer API (Updated with 10 New Features)
 
 > **Framework:** ASP.NET Core 10.0 Web API | **Database:** SQL Server (EF Core 9) | **Auth:** JWT Bearer
 
@@ -22,144 +22,67 @@ SQL Server (LocalDB / Full)
 - `Models/Entities/` — Định nghĩa các bảng dữ liệu
 - `Models/DTOs/` — Data Transfer Objects (Input/Output API)
 - `Data/` — DbContext, SeedData
-- `Middleware/` — Global Exception Handler
-- `Extensions/` — ServiceExtensions (DI Registration)
 
 ---
 
-## 2. Database Schema (Mới Cập Nhật)
+## 2. Database Schema (Mới Cập Nhật Phase 1-4)
 
-| Bảng | Mô tả |
-|------|-------|
-| `Owners` | Tài khoản chủ quán (Đã thay thế bảng Users) |
-| `AdminUsers` | Tài khoản quản trị viên CMS |
-| `Languages` | Danh sách ngôn ngữ hỗ trợ (vi, en, ja, ko, zh) |
-| `POICategories` | Danh mục địa điểm (restaurant, cafe, temple...) |
-| `POIs` | Điểm quan tâm, liên kết với Owner (`OwnerId`) |
-| `POITranslations` | Nội dung đa ngôn ngữ của từng POI |
-| `AudioFiles` | Tệp âm thanh thuyết minh (sinh tự động qua TTS) |
-| `MenuItems` | Món ăn trong thực đơn của từng POI |
-| `MenuItemTranslations` | Tên/mô tả món ăn đa ngôn ngữ |
-| `Tours` | Hành trình tham quan định sẵn |
-| `TourStops` | Các điểm dừng trong từng Tour |
-| `QRCodes` | Mã QR của từng địa điểm |
-| `QuizQuestions` | Câu hỏi đố vui theo địa điểm |
-| `QuizQuestionTranslations` | Câu hỏi đa ngôn ngữ |
-| `VisitLogs` | Lịch sử lượt truy cập địa điểm (ẩn danh) |
-| `AnalyticsEvents` | Ghi nhận sự kiện hệ thống chung |
-
-*(Đã gỡ bỏ: `Users`, `Favorites`, `AudioProgress` do không áp dụng mô hình tài khoản người dùng cuối).*
+| Bảng | Mô tả | Mới cập nhật |
+|------|-------|--------------|
+| `Owners` | Tài khoản chủ quán | Thêm `LastLoginAt` |
+| `AdminUsers` | Tài khoản quản trị viên CMS | Thêm `LastLoginAt` |
+| `Languages` | Danh sách ngôn ngữ hỗ trợ | Thêm `IsDefault`, `IsActive` |
+| `POIs` | Điểm quan tâm, liên kết với Owner | |
+| `POIImages` | Chứa nhiều hình ảnh của 1 POI | **MỚI** |
+| `MenuItems` | Món ăn trong thực đơn | Thêm `IsAvailable`, `DisplayOrder` |
+| `Notifications` | Thông báo gửi tới Owner | **MỚI** |
+| `AuditLogs` | Lưu nhật ký thay đổi hệ thống | **MỚI** |
+| `Tours` & `TourStops` | Hành trình tham quan | Đã có API |
+| `QRCodes` | Mã QR của từng địa điểm | Đã có API Scan |
+| `QuizQuestions` | Câu hỏi đố vui theo địa điểm | Đã có API |
+| `VisitLogs` | Lịch sử lượt truy cập địa điểm | Đã có API Charts |
+| `AudioFiles` | Tệp âm thanh TTS | Đã có API Admin |
 
 ---
 
-## 3. Entities (Models) Nổi Bật
+## 3. API Endpoints Mới Thêm (10 Tính Năng)
 
-### 3.1 Owner
-```
-Id, Username, Email, PasswordHash, DisplayName,
-AvatarUrl, DefaultLanguage,
-OwnerStatus (pending, approved, rejected), AdminNote,
-RefreshToken, RefreshTokenExpiry,
-CreatedAt, UpdatedAt
-```
+> 🔓 = Public  |  🏠 = Owner JWT  |  🛡️ = Admin JWT
 
-### 3.2 POI (Điểm Quan Tâm)
-```
-Id, Name, Slug, Latitude, Longitude, TriggerRadiusMeters,
-Category, CategoryId (FK), Priority,
-OwnerId (FK), ApprovalStatus (pending, approved, rejected),
-Address, Ward, District, City, Phone, Website, FacebookUrl,
-ImageUrl, GoogleMapsUrl,
-IsActive, DeletedAt (Soft Delete),
-CreatedAt, UpdatedAt
-```
+### 3.1 Owner Core APIs (`/api/owner`)
+- `POST /api/owner/menu-items` 🏠: Thêm món ăn mới cho quán (Cần POIId trong DTO).
+- `PUT /api/owner/menu-items/{id}` 🏠: Cập nhật món ăn.
+- `DELETE /api/owner/menu-items/{id}` 🏠: Xoá món ăn.
+- `POST /api/owner/pois/{id}/images` 🏠: Upload danh sách URL ảnh cho quán.
+- `PUT /api/owner/pois/{id}/cover-image` 🏠: Chọn ảnh làm cover (IsCover = true).
+- `PUT /api/owner/pois/{id}/images/reorder` 🏠: Sắp xếp lại thứ tự ảnh.
+- `DELETE /api/owner/pois/{id}/images/{imageId}` 🏠: Xoá 1 ảnh của quán.
+- `PUT /api/owner/menu-items/{id}/availability` 🏠: Bật/tắt trạng thái hiển thị (Còn/Hết) của món ăn.
+- `GET /api/owner/dashboard/charts` 🏠: Biểu đồ thống kê lượt Scan/Visit theo ngày của Owner.
 
-### 3.3 AudioFile & VisitLog
-- **AudioFile**: `Id, POIId, LanguageCode, FilePath, AudioType (tts|pre-recorded), TTSProvider, GeneratedAt`
-- **VisitLog**: `Id, POIId, SessionId, TriggerType (geofence|qr|manual), LanguageCode, VisitedAt`
+### 3.2 Notification API (`/api/notifications`)
+- `GET /api/notifications` 🏠: Xem danh sách thông báo.
+- `PUT /api/notifications/{id}/read` 🏠: Đánh dấu đã đọc.
 
----
+### 3.3 Public Features
+- `GET /api/pois/{id}/menu` 🔓: Lấy menu món ăn của quán.
+- `GET /api/pois/{id}/quiz` 🔓: Lấy danh sách câu hỏi Quiz của quán.
+- `POST /api/quiz/submit` 🔓: Gửi đáp án trả lời Quiz.
+- `GET /api/tours` 🔓: Lấy danh sách Tour.
+- `GET /api/tours/{id}` 🔓: Lấy chi tiết Tour và điểm đến.
+- `GET /api/qr/{code}` 🔓: Quét QR Code để mở POI và ghi log VisitLog.
 
-## 4. API Endpoints Chính
-
-> 🔓 = Public (không cần JWT)  
-> 🏠 = Owner JWT  
-> 🛡️ = Admin JWT
-
-### 4.1 Authentication & Profile
-- `POST /api/auth/register` 🔓: Đăng ký Owner
-- `POST /api/auth/login` 🔓: Đăng nhập Owner
-- `POST /api/auth/admin/login` 🔓: Đăng nhập Admin
-- `PUT /api/auth/profile` 🏠: Cập nhật hồ sơ Owner
-
-### 4.2 Owner Management (`/api/owner`)
-- `GET /api/owner/pois` 🏠: Xem danh sách POI của chính mình
-- `POST /api/owner/pois` 🏠: Đăng ký POI mới (Trạng thái mặc định: pending)
-- `PUT /api/owner/pois/{id}` 🏠: Cập nhật thông tin POI
-- `GET /api/owner/dashboard` 🏠: Xem thống kê Analytics thu gọn
-
-### 4.3 Admin CMS (`/api/admin`)
-- `GET /api/admin/owners/pending` 🛡️: Lấy danh sách Owner chờ duyệt
-- `PUT /api/admin/owners/{id}/approve` 🛡️: Duyệt Owner
-- `PUT /api/admin/owners/{id}/reject` 🛡️: Từ chối Owner
-- `GET /api/admin/pois/pending` 🛡️: Lấy danh sách POI chờ duyệt
-- `PUT /api/admin/pois/{id}/status` 🛡️: Phê duyệt / Từ chối POI
-
-### 4.4 Public POIs (`/api/pois`)
-- `GET /api/pois` 🔓: Lấy danh sách POI (Tự động lọc `ApprovalStatus == "approved"`)
-- `GET /api/pois/search?q=` 🔓: Tìm kiếm POI
-- `GET /api/pois/nearby?lat=&lng=&r=` 🔓: Lấy POI theo GPS (Công thức Haversine)
-- `GET /api/pois/slug/{slug}` 🔓: Lấy chi tiết POI
-
-### 4.5 Translation & TTS Auto-Gen
-- `POST /api/translations` 🛡️/🏠: Thêm / Cập nhật bản dịch.
-  *Đặc biệt: Nếu truyền `AudioText`, `TTSService` sẽ tự động gọi CLI `edge-tts` ngầm để sinh ra file MP3 lưu vào `wwwroot/audio/` và cập nhật Db.*
-
----
-
-## 5. Tính Năng Kỹ Thuật Nổi Bật
-
-### 5.1 Auto TTS Generation (edge-tts)
-Tích hợp `ProcessStartInfo` gọi trực tiếp `edge-tts` bằng Python CLI. Hỗ trợ đa ngôn ngữ với các giọng neural của Azure:
-- Tiếng Việt: `vi-VN-HoaiMyNeural`
-- Tiếng Anh: `en-US-AriaNeural`
-- Tiếng Nhật: `ja-JP-NanamiNeural`
-- Tiếng Hàn: `ko-KR-SunHiNeural`
-- Tiếng Trung: `zh-CN-XiaoxiaoNeural`
-
-### 5.2 Approval Workflow
-Luồng duyệt 2 cấp độ:
-1. **Duyệt Owner**: Owner đăng ký sẽ ở trạng thái `pending`. Không có quyền đăng POI cho tới khi Admin gọi API `/approve`.
-2. **Duyệt POI**: POI do Owner tạo sẽ ở trạng thái `pending`. Người dùng (App) không thể thấy POI này cho đến khi Admin duyệt. Admin tạo POI thì mặc định `approved`.
-
-### 5.3 Anonymous Analytics Tracking
-Sử dụng SessionId để ẩn danh người dùng khi tham quan thay vì UserId. Các triggers:
-- Geofence Trigger (Đi ngang qua)
-- QR Code Scan
-- Search Manual
-
-### 5.4 Seed Data Tự Động
-- 15 địa điểm thực tế của Phố Ẩm Thực Vĩnh Khánh (Quận 4).
-- Tài khoản Admin mặc định: `admin` / `Admin@123`.
-
----
-
-## 6. Cấu Trúc Dự Án Hiện Tại
-
-```
-backend/
-├── DoAn-CSharp/
-│   ├── Controllers/
-│   │   ├── AuthController.cs, AdminController.cs, OwnerController.cs
-│   │   ├── POIController.cs, TranslationController.cs...
-│   ├── Services/
-│   │   ├── ITTSService / TTSService (MỚI)
-│   │   ├── POIService (Cập nhật Approval Status filter)
-│   │   └── AnalyticsService...
-│   ├── Models/
-│   ├── Extensions/, Middleware/
-│   ├── wwwroot/
-│   │   ├── audio/ (Chứa file MP3 được sinh ra)
-│   │   └── images/
-│   └── appsettings.json
-```
+### 3.4 Admin Operations (`/api/admin`)
+- `GET /api/admin/languages` 🛡️: Lấy danh sách ngôn ngữ.
+- `PUT /api/admin/languages/{code}/status` 🛡️: Bật/tắt ngôn ngữ.
+- `PUT /api/admin/languages/{code}/default` 🛡️: Set ngôn ngữ mặc định.
+- `POST /api/admin/tours`, `PUT`, `DELETE` 🛡️: Quản lý Tour.
+- `POST /api/admin/tours/{id}/stops`, `DELETE` 🛡️: Quản lý điểm đến (TourStops) trong Tour.
+- `GET /api/admin/qr` 🛡️: Lấy danh sách tất cả mã QR trên hệ thống.
+- `POST /api/admin/pois/{id}/generate-qr` 🛡️: Sinh mã QR tự động.
+- `GET /api/admin/pois/{id}/qr` 🛡️: Xem danh sách QR của 1 POI.
+- `POST /api/admin/quiz`, `PUT`, `DELETE` 🛡️: Quản lý ngân hàng câu hỏi Quiz.
+- `GET /api/admin/audit-logs` 🛡️: Lấy lịch sử chỉnh sửa hệ thống.
+- `GET /api/admin/audio` 🛡️: Quản lý file âm thanh TTS.
+- `POST /api/admin/audio/{id}/regenerate` 🛡️: Sinh lại file âm thanh lỗi theo ID.
+- `DELETE /api/admin/audio/{id}` 🛡️: Xoá audio.

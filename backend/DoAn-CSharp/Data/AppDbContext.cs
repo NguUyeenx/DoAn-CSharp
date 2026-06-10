@@ -28,9 +28,26 @@ namespace DoAn_CSharp.Data
         public DbSet<Language> Languages { get; set; }
         public DbSet<POICategory> POICategories { get; set; }
         public DbSet<AnalyticsEvent> AnalyticsEvents { get; set; }
+        public DbSet<POIImage> POIImages { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            // ── POIImage ──────────────────────────────────────────────────
+            modelBuilder.Entity<POIImage>()
+                .HasOne(i => i.POI)
+                .WithMany(p => p.Images)
+                .HasForeignKey(i => i.POIId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ── Notification ──────────────────────────────────────────────
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.Owner)
+                .WithMany(o => o.Notifications)
+                .HasForeignKey(n => n.OwnerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             base.OnModelCreating(modelBuilder);
 
             // ── Language: PK is string Code ──────────────────────────────
