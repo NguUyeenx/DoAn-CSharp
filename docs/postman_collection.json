@@ -1,0 +1,136 @@
+{
+  "info": {
+    "name": "VinhKhanh Explorer API",
+    "description": "Postman Collection for VinhKhanh Explorer Backend (.NET 10). Tests Owner, Admin, TTS, and POI functionality.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "item": [
+        {
+          "name": "Register Owner",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/auth/register", "host": ["{{baseUrl}}"], "path": ["api", "auth", "register"]},
+            "body": {"mode": "raw", "raw": "{\n  \"username\": \"chuquan01\",\n  \"email\": \"chuquan01@test.com\",\n  \"password\": \"Password123!\",\n  \"displayName\": \"Chủ Quán 01\"\n}"}
+          }
+        },
+        {
+          "name": "Login Owner",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/auth/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "login"]},
+            "body": {"mode": "raw", "raw": "{\n  \"username\": \"chuquan01\",\n  \"password\": \"Password123!\"\n}"}
+          }
+        },
+        {
+          "name": "Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{baseUrl}}/api/auth/admin/login", "host": ["{{baseUrl}}"], "path": ["api", "auth", "admin", "login"]},
+            "body": {"mode": "raw", "raw": "{\n  \"username\": \"admin\",\n  \"password\": \"Admin@123\"\n}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Admin CMS",
+      "item": [
+        {
+          "name": "Get Pending Owners",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/owners/pending", "host": ["{{baseUrl}}"], "path": ["api", "admin", "owners", "pending"]}
+          }
+        },
+        {
+          "name": "Approve Owner",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/owners/1/approve", "host": ["{{baseUrl}}"], "path": ["api", "admin", "owners", "1", "approve"]}
+          }
+        },
+        {
+          "name": "Get Pending POIs",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/pois/pending", "host": ["{{baseUrl}}"], "path": ["api", "admin", "pois", "pending"]}
+          }
+        },
+        {
+          "name": "Approve POI",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/admin/pois/1/status", "host": ["{{baseUrl}}"], "path": ["api", "admin", "pois", "1", "status"]},
+            "body": {"mode": "raw", "raw": "{\n  \"status\": \"approved\"\n}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Owner Features",
+      "item": [
+        {
+          "name": "Get My POIs",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{ownerToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/owner/pois", "host": ["{{baseUrl}}"], "path": ["api", "owner", "pois"]}
+          }
+        },
+        {
+          "name": "Create POI",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{ownerToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/owner/pois", "host": ["{{baseUrl}}"], "path": ["api", "owner", "pois"]},
+            "body": {"mode": "raw", "raw": "{\n  \"name\": \"Quán Ốc Test\",\n  \"latitude\": 10.760123,\n  \"longitude\": 106.702345,\n  \"category\": \"restaurant\"\n}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Public POI & TTS",
+      "item": [
+        {
+          "name": "Get Approved POIs",
+          "request": {
+            "method": "GET",
+            "url": {"raw": "{{baseUrl}}/api/pois", "host": ["{{baseUrl}}"], "path": ["api", "pois"]}
+          }
+        },
+        {
+          "name": "Add Translation (Triggers TTS)",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}, {"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {"raw": "{{baseUrl}}/api/translations", "host": ["{{baseUrl}}"], "path": ["api", "translations"]},
+            "body": {"mode": "raw", "raw": "{\n  \"poiId\": 1,\n  \"languageCode\": \"vi\",\n  \"name\": \"Ốc Oanh\",\n  \"shortDescription\": \"Quán ốc ngon.\",\n  \"fullDescription\": \"Quán ốc lâu đời nhất nhì Vĩnh Khánh.\",\n  \"audioText\": \"Chào mừng bạn đến với Ốc Oanh, quán ốc ngon nhất nhì khu phố ẩm thực Vĩnh Khánh. Hãy thưởng thức các món ốc đa dạng tại đây nhé!\"\n}"}
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://localhost:5001"
+    },
+    {
+      "key": "ownerToken",
+      "value": "YOUR_OWNER_JWT_HERE"
+    },
+    {
+      "key": "adminToken",
+      "value": "YOUR_ADMIN_JWT_HERE"
+    }
+  ]
+}
