@@ -85,12 +85,13 @@ namespace DoAn_CSharp.Services
                 {
                     var audioUrl = await _ttsService.GenerateAudioAsync(textToGenerate, targetLang, dto.POIId);
                     
-                    var existingAudio = await _context.AudioFiles.FirstOrDefaultAsync(a => a.POIId == dto.POIId && a.LanguageCode == targetLang && a.AudioType == "tts");
+                    var existingAudio = await _context.AudioFiles.FirstOrDefaultAsync(a => a.TranslationType == TranslationType.POI && a.TranslationId == translation.Id && a.LanguageCode == targetLang && a.AudioType == "tts");
                     if (existingAudio == null)
                     {
                         var audioFile = new AudioFile
                         {
-                            POIId = dto.POIId,
+                            TranslationType = TranslationType.POI,
+                            TranslationId = translation.Id,
                             LanguageCode = targetLang,
                             FilePath = audioUrl,
                             AudioType = "tts",

@@ -10,5 +10,7 @@ namespace DoAn_CSharp.Models.Entities
         public string ShortDescription { get; set; } = string.Empty;
         public string FullDescription { get; set; } = string.Empty;
         public string AudioText { get; set; } = string.Empty;
+        public string OriginalTextHash { get; set; } = string.Empty;
+        public string TranslatedTextHash { get; set; } = string.Empty;
     }
 }
