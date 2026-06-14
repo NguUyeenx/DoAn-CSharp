@@ -13,5 +13,7 @@ namespace DoAn_CSharp.Models.Entities
         public string AnswerC { get; set; } = string.Empty;
         public string AnswerD { get; set; } = string.Empty;
         public string ExplanationText { get; set; } = string.Empty;
+        public string OriginalTextHash { get; set; } = string.Empty;
+        public string TranslatedTextHash { get; set; } = string.Empty;
     }
 }

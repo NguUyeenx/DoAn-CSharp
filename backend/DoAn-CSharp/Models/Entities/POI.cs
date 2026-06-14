@@ -42,11 +42,9 @@ namespace DoAn_CSharp.Models.Entities
 
         // Navigation properties
         public ICollection<POITranslation> Translations { get; set; } = new List<POITranslation>();
-        public ICollection<AudioFile> AudioFiles { get; set; } = new List<AudioFile>();
         public ICollection<MenuItem> MenuItems { get; set; } = new List<MenuItem>();
         public ICollection<QRCode> QRCodes { get; set; } = new List<QRCode>();
         public ICollection<VisitLog> VisitLogs { get; set; } = new List<VisitLog>();
         public ICollection<POIImage> Images { get; set; } = new List<POIImage>();
     }
 }
-

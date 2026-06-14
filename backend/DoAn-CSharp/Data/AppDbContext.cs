@@ -31,6 +31,9 @@ namespace DoAn_CSharp.Data
         public DbSet<POIImage> POIImages { get; set; }
         public DbSet<Notification> Notifications { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        // New refactored entities
+        public DbSet<AudioPlayLog> AudioPlayLogs { get; set; }
+        public DbSet<TranslationJobTracker> TranslationJobTrackers { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -112,12 +115,9 @@ namespace DoAn_CSharp.Data
                 .HasForeignKey(t => t.POIId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ── AudioFile ─────────────────────────────────────────────────
+            // ── AudioFile (Polymorphic) ───────────────────────────────────
             modelBuilder.Entity<AudioFile>()
-                .HasOne(a => a.POI)
-                .WithMany(p => p.AudioFiles)
-                .HasForeignKey(a => a.POIId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .HasIndex(a => new { a.TranslationType, a.TranslationId, a.LanguageCode });
 
             // ── MenuItem ──────────────────────────────────────────────────
             modelBuilder.Entity<MenuItem>()

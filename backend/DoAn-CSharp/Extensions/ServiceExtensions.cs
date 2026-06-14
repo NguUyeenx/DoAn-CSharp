@@ -13,9 +13,18 @@ namespace DoAn_CSharp.Extensions
     {
         public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
         {
-            // Register AppDbContext with SQL Server
-            services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+            // Register AppDbContext. Prefer SQLite if the connection string contains "Data Source" (local file), otherwise use SQL Server.
+            var conn = configuration.GetConnectionString("DefaultConnection");
+            if (!string.IsNullOrWhiteSpace(conn) && conn.Contains("Data Source", StringComparison.OrdinalIgnoreCase))
+            {
+                services.AddDbContext<AppDbContext>(options =>
+                    options.UseSqlite(conn));
+            }
+            else
+            {
+                services.AddDbContext<AppDbContext>(options =>
+                    options.UseSqlServer(conn));
+            }
 
             // Register FluentValidation
             services.AddFluentValidationAutoValidation();
