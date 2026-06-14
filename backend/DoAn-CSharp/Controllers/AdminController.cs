@@ -92,6 +92,40 @@ namespace DoAn_CSharp.Controllers
             return Ok(pois);
         }
 
+        /// <summary>Lấy danh sách tất cả các POI (bao gồm cả chờ duyệt, bị từ chối, đã xóa) cho Admin quản lý</summary>
+        [HttpGet("pois")]
+        public async Task<IActionResult> GetAllPOIs([FromQuery] string lang = "en")
+        {
+            var pois = await _context.POIs
+                .Include(p => p.Translations)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+
+            var result = pois.Select(p => {
+                var translation = p.Translations?.FirstOrDefault(t => t.LanguageCode.ToLowerInvariant() == lang.ToLowerInvariant()) 
+                    ?? p.Translations?.FirstOrDefault(t => t.LanguageCode.ToLowerInvariant() == "en")
+                    ?? p.Translations?.FirstOrDefault();
+
+                return new
+                {
+                    Id = p.Id,
+                    Name = translation?.Name ?? p.Name,
+                    Slug = p.Slug,
+                    Latitude = p.Latitude,
+                    Longitude = p.Longitude,
+                    Category = p.Category,
+                    ImageUrl = p.ImageUrl,
+                    ShortDescription = translation?.ShortDescription ?? string.Empty,
+                    OwnerId = p.OwnerId,
+                    ApprovalStatus = p.DeletedAt != null ? "deleted" : p.ApprovalStatus,
+                    IsActive = p.IsActive,
+                    CreatedAt = p.CreatedAt
+                };
+            }).ToList();
+
+            return Ok(result);
+        }
+
         /// <summary>Duyệt/Từ chối POI</summary>
         [HttpPut("pois/{id:int}/status")]
         public async Task<IActionResult> UpdatePOIStatus(int id, [FromBody] UpdateStatusDto dto)

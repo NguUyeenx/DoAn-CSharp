@@ -1,17 +1,14 @@
 using FluentValidation;
 using DoAn_CSharp.Models.DTOs;
 using System.Collections.Generic;
+using DoAn_CSharp.Data;
+using System.Linq;
 
 namespace DoAn_CSharp.Validators
 {
     public class POICreateValidator : AbstractValidator<POICreateDto>
     {
-        private static readonly HashSet<string> AllowedCategories = new()
-        {
-            "restaurant", "cafe", "temple", "market", "park", "landmark", "street_art", "street_food"
-        };
-
-        public POICreateValidator()
+        public POICreateValidator(AppDbContext context)
         {
             RuleFor(x => x.Name)
                 .NotEmpty().WithMessage("Name is required.")
@@ -31,8 +28,8 @@ namespace DoAn_CSharp.Validators
 
             RuleFor(x => x.Category)
                 .NotEmpty().WithMessage("Category is required.")
-                .Must(cat => AllowedCategories.Contains(cat.ToLower()))
-                .WithMessage($"Category must be one of the following: {string.Join(", ", AllowedCategories)}");
+                .Must(cat => cat != null && context.POICategories.Any(c => c.Slug == cat.ToLower()))
+                .WithMessage("Category must match one of the active categories in database.");
         }
     }
 }
