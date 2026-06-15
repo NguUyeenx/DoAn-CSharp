@@ -47,6 +47,17 @@ namespace DoAn_CSharp.Services
             await _context.Owners.AddAsync(owner);
             await _context.SaveChangesAsync();
 
+            // Send Admin notification for new owner registration
+            _context.Notifications.Add(new Notification
+            {
+                OwnerId = null,
+                Message = $"Tài khoản đối tác mới '{owner.DisplayName}' ({owner.Username}) đã đăng ký và đang chờ duyệt.",
+                Type = "OwnerPending",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+
             var accessToken = GenerateUserJwt(owner);
             return BuildAuthResponse(owner, accessToken, refreshToken);
         }
@@ -54,15 +65,43 @@ namespace DoAn_CSharp.Services
         // ── Owner Login ─────────────────────────────────────────────────
         public async Task<AuthResponseDto> LoginAsync(LoginDto dto)
         {
+            // 1. Check if user is Admin
+            var admin = await _context.AdminUsers
+                .FirstOrDefaultAsync(a => a.Username == dto.Username);
+
+            if (admin != null && BCrypt.Net.BCrypt.Verify(dto.Password, admin.PasswordHash))
+            {
+                admin.LastLoginAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                var adminToken = GenerateAdminJwt(admin);
+                var adminRefreshToken = GenerateRefreshToken();
+                var expiryMinutes = _config.GetValue<int>("Jwt:ExpiryMinutes", 60);
+
+                return new AuthResponseDto
+                {
+                    AccessToken = adminToken,
+                    RefreshToken = adminRefreshToken,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes),
+                    Role = "admin",
+                    Owner = null
+                };
+            }
+
+            // 2. Fallback to Owner
             var owner = await _context.Owners
                 .FirstOrDefaultAsync(u => u.Username == dto.Username || u.Email == dto.Username);
 
             if (owner == null || !BCrypt.Net.BCrypt.Verify(dto.Password, owner.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid credentials.");
 
+            if (owner.OwnerStatus != "approved")
+                throw new UnauthorizedAccessException($"Account status is '{owner.OwnerStatus}'. Access denied.");
+
             var refreshToken = GenerateRefreshToken();
             owner.RefreshToken = refreshToken;
             owner.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
+            owner.LastLoginAt = DateTime.UtcNow;
             owner.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
@@ -201,6 +240,7 @@ namespace DoAn_CSharp.Services
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
                 ExpiresAt = DateTime.UtcNow.AddHours(1),
+                Role = "owner",
                 Owner = new OwnerDto
                 {
                     Id = owner.Id,

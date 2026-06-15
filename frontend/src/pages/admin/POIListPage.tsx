@@ -4,8 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { poisApi } from '@/api/pois';
 import { adminApi } from '@/api/admin';
 import type { POIListItem } from '@/types/poi';
-import { Plus, Edit3, Trash2, RotateCcw, Loader2, Image } from 'lucide-react';
+import { Plus, Edit3, Trash2, RotateCcw, Loader2, Image, User, Users } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+import Modal from '@/components/ui/Modal';
 
 export default function POIListPage() {
   const navigate = useNavigate();
@@ -13,7 +14,15 @@ export default function POIListPage() {
   const { success, error: toastError } = useToast();
 
   const [pois, setPois] = useState<POIListItem[]>([]);
+  const [owners, setOwners] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Reassign Modal State
+  const [isReassignModalOpen, setIsReassignModalOpen] = useState(false);
+  const [reassignPoiId, setReassignPoiId] = useState<number | null>(null);
+  const [reassignPoiName, setReassignPoiName] = useState('');
+  const [selectedOwnerId, setSelectedOwnerId] = useState<string>('null');
+  const [reassignSaving, setReassignSaving] = useState(false);
 
   const loadPOIs = async () => {
     setLoading(true);
@@ -28,8 +37,19 @@ export default function POIListPage() {
     }
   };
 
+  const loadOwners = async () => {
+    try {
+      const { data } = await adminApi.getAllOwners();
+      // Only approved owners are eligible to own POIs
+      setOwners(data.filter((o: any) => o.ownerStatus === 'approved'));
+    } catch (err) {
+      console.error('Failed to load owners directory:', err);
+    }
+  };
+
   useEffect(() => {
     loadPOIs();
+    loadOwners();
   }, [i18n.language]);
 
   const handleDelete = async (id: number) => {
@@ -55,6 +75,32 @@ export default function POIListPage() {
     }
   };
 
+  const handleOpenReassign = (poiId: number, name: string, currentOwnerId: number | null) => {
+    setReassignPoiId(poiId);
+    setReassignPoiName(name);
+    setSelectedOwnerId(currentOwnerId ? currentOwnerId.toString() : 'null');
+    setIsReassignModalOpen(true);
+  };
+
+  const handleReassignSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reassignPoiId) return;
+
+    setReassignSaving(true);
+    try {
+      const ownerId = selectedOwnerId === 'null' ? null : parseInt(selectedOwnerId, 10);
+      await adminApi.updatePOIOwner(reassignPoiId, { ownerId });
+      success('Chuyển quyền sở hữu địa điểm thành công!');
+      setIsReassignModalOpen(false);
+      loadPOIs();
+    } catch (err) {
+      console.error('Failed to reassign POI owner:', err);
+      toastError('Chuyển quyền sở hữu thất bại.');
+    } finally {
+      setReassignSaving(false);
+    }
+  };
+
   if (loading && pois.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-12 text-text-secondary gap-3">
@@ -70,10 +116,10 @@ export default function POIListPage() {
       <div className="flex items-center justify-between gap-4">
         <div>
           <h2 className="font-display font-extrabold text-xl tracking-tight text-text-primary">
-            Manage Food Spots (POIs)
+            Quản Lý Địa Điểm (POIs)
           </h2>
           <p className="text-xs text-text-secondary">
-            Create, update, soft-delete, or restore points of interest in Vinh Khanh
+            Thêm mới, sửa đổi thông tin, gán chủ sở hữu hoặc khôi phục các địa điểm đã xóa mềm
           </p>
         </div>
 
@@ -82,7 +128,7 @@ export default function POIListPage() {
           className="h-10 px-4 rounded-xl bg-primary text-white font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-primary-hover active:scale-95 transition-all shadow-md outline-none shrink-0"
         >
           <Plus size={16} />
-          <span>Add Food Spot</span>
+          <span>Thêm địa điểm</span>
         </Link>
       </div>
 
@@ -91,7 +137,7 @@ export default function POIListPage() {
           <div className="w-12 h-12 rounded-full bg-surface-alt border border-border flex items-center justify-center text-text-muted">
             <Plus size={20} />
           </div>
-          <h3 className="font-display font-extrabold text-base text-text-primary">No spots found</h3>
+          <h3 className="font-display font-extrabold text-base text-text-primary">Không tìm thấy địa điểm nào</h3>
         </div>
       ) : (
         <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
@@ -99,12 +145,12 @@ export default function POIListPage() {
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-surface-alt border-b border-border text-text-secondary font-bold uppercase tracking-wider">
-                  <th className="p-4">Cover</th>
-                  <th className="p-4">Name</th>
-                  <th className="p-4">Category</th>
-                  <th className="p-4">Owner ID</th>
-                  <th className="p-4">Approval Status</th>
-                  <th className="p-4 text-right">Actions</th>
+                  <th className="p-4">Ảnh bìa</th>
+                  <th className="p-4">Tên địa điểm</th>
+                  <th className="p-4">Danh mục</th>
+                  <th className="p-4">Chủ sở hữu (Owner)</th>
+                  <th className="p-4">Trạng thái</th>
+                  <th className="p-4 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/60">
@@ -125,11 +171,24 @@ export default function POIListPage() {
                         {poi.category}
                       </span>
                     </td>
-                    <td className="p-4 font-mono">{poi.ownerId ?? 'System / Admin'}</td>
+                    <td className="p-4">
+                      <button
+                        onClick={() => handleOpenReassign(poi.id, poi.name, poi.ownerId ?? null)}
+                        className="font-semibold text-primary hover:underline cursor-pointer outline-none bg-transparent border-0 p-0 text-left text-xs flex items-center gap-1 group"
+                        title="Click để đổi quyền sở hữu"
+                      >
+                        <User size={12} className="text-text-muted group-hover:text-primary transition-colors" />
+                        <span>
+                          {poi.ownerId
+                            ? (owners.find((o) => o.id === poi.ownerId)?.displayName || `Đối tác #${poi.ownerId}`)
+                            : 'Quản trị viên / Hệ thống'}
+                        </span>
+                      </button>
+                    </td>
                     <td className="p-4">
                       <span
                         className={`
-                          px-2.5 py-0.5 rounded-full text-[10px] font-semibold border uppercase tracking-wider
+                          px-2.5 py-0.5 rounded-full text-[9px] font-semibold border uppercase tracking-wider
                           ${
                             poi.approvalStatus === 'approved'
                               ? 'bg-accent/10 border-accent/20 text-accent'
@@ -139,7 +198,7 @@ export default function POIListPage() {
                           }
                         `}
                       >
-                        {poi.approvalStatus}
+                        {poi.approvalStatus === 'approved' ? 'Hoạt động' : poi.approvalStatus === 'pending' ? 'Chờ duyệt' : poi.approvalStatus}
                       </span>
                     </td>
                     <td className="p-4 text-right flex items-center justify-end gap-2.5">
@@ -147,7 +206,7 @@ export default function POIListPage() {
                       <button
                         onClick={() => navigate(`/admin/pois/${poi.id}/edit`)}
                         className="p-2 border border-border bg-card text-text-secondary hover:text-text-primary hover:border-border-hover rounded-lg transition-colors cursor-pointer outline-none"
-                        title="Edit Details"
+                        title="Chỉnh sửa thông tin"
                       >
                         <Edit3 size={14} />
                       </button>
@@ -157,7 +216,7 @@ export default function POIListPage() {
                         <button
                           onClick={() => handleRestore(poi.id)}
                           className="p-2 border border-border bg-card text-accent hover:border-accent/40 hover:bg-accent/5 rounded-lg transition-colors cursor-pointer outline-none"
-                          title="Restore"
+                          title="Khôi phục địa điểm"
                         >
                           <RotateCcw size={14} />
                         </button>
@@ -165,7 +224,7 @@ export default function POIListPage() {
                         <button
                           onClick={() => handleDelete(poi.id)}
                           className="p-2 border border-border bg-card text-danger hover:border-danger/40 hover:bg-danger/5 rounded-lg transition-colors cursor-pointer outline-none"
-                          title="Delete"
+                          title="Xóa địa điểm"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -178,6 +237,53 @@ export default function POIListPage() {
           </div>
         </div>
       )}
+
+      {/* REASSIGN POI OWNER MODAL */}
+      <Modal
+        isOpen={isReassignModalOpen}
+        onClose={() => setIsReassignModalOpen(false)}
+        title={`Chuyển quyền sở hữu: ${reassignPoiName}`}
+        size="sm"
+      >
+        <form onSubmit={handleReassignSave} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+              Chọn chủ sở hữu mới *
+            </label>
+            <select
+              disabled={reassignSaving}
+              value={selectedOwnerId}
+              onChange={(e) => setSelectedOwnerId(e.target.value)}
+              className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none cursor-pointer"
+            >
+              <option value="null">Quản trị viên / Hệ thống (Không gán đối tác)</option>
+              {owners.map((owner) => (
+                <option key={owner.id} value={owner.id.toString()}>
+                  {owner.displayName} ({owner.username})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4 border-t border-border/40 pt-4">
+            <button
+              type="button"
+              onClick={() => setIsReassignModalOpen(false)}
+              className="px-4 py-2 border border-border text-text-secondary rounded-xl hover:bg-surface-alt font-semibold text-xs transition-colors cursor-pointer"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={reassignSaving}
+              className="px-4 py-2 bg-primary text-white font-semibold text-xs rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+            >
+              {reassignSaving ? <Loader2 className="animate-spin" size={14} /> : <Users size={14} />}
+              <span>Lưu thay đổi</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -44,6 +44,18 @@ namespace DoAn_CSharp.Controllers
         {
             var ownerId = GetCurrentOwnerId();
             var result = await _poiService.CreateAsync(dto, ownerId);
+
+            // Send Admin notification
+            _context.Notifications.Add(new DoAn_CSharp.Models.Entities.Notification
+            {
+                OwnerId = null,
+                Message = $"Có yêu cầu đăng ký địa điểm mới '{result.Name}' đang chờ duyệt.",
+                Type = "POIPending",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+
             return CreatedAtAction(nameof(GetMyPOIById), new { id = result.Id }, result);
         }
 
@@ -72,8 +84,63 @@ namespace DoAn_CSharp.Controllers
             if (poi.OwnerId != GetCurrentOwnerId())
                 return Forbid();
 
+            // Force pending review for owner updates
+            dto.ApprovalStatus = "pending";
+
             var result = await _poiService.UpdateAsync(id, dto);
+
+            // Send Admin notification
+            _context.Notifications.Add(new DoAn_CSharp.Models.Entities.Notification
+            {
+                OwnerId = null,
+                Message = $"Địa điểm '{poi.Name}' đã được cập nhật bởi chủ quán và đang chờ duyệt lại.",
+                Type = "POIUpdated",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+
             return Ok(result);
+        }
+
+        /// <summary>Upload audio thuyết minh riêng cho POI</summary>
+        [HttpPost("pois/{id:int}/custom-audio")]
+        public async Task<IActionResult> UploadCustomAudio(int id, [FromBody] CustomAudioUploadDto dto)
+        {
+            var poi = await _poiService.GetByIdAsync(id, "en");
+            if (poi == null) return NotFound();
+            if (poi.OwnerId != GetCurrentOwnerId()) return Forbid();
+
+            var existingAudio = await _context.AudioFiles
+                .FirstOrDefaultAsync(a => a.TranslationType == Models.Entities.TranslationType.POI
+                                       && a.TranslationId == id
+                                       && a.LanguageCode.ToLower() == dto.LanguageCode.ToLower()
+                                       && a.AudioType == "custom");
+
+            if (existingAudio != null)
+            {
+                existingAudio.FilePath = dto.FilePath;
+                existingAudio.DurationSeconds = dto.DurationSeconds;
+                existingAudio.GeneratedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                var audioFile = new Models.Entities.AudioFile
+                {
+                    TranslationType = Models.Entities.TranslationType.POI,
+                    TranslationId = id,
+                    LanguageCode = dto.LanguageCode,
+                    FilePath = dto.FilePath,
+                    DurationSeconds = dto.DurationSeconds,
+                    AudioType = "custom",
+                    IsDefault = true,
+                    GeneratedAt = DateTime.UtcNow
+                };
+                await _context.AudioFiles.AddAsync(audioFile);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Custom audio saved successfully." });
         }
 
         // ── Menu Management ───────────────────────────────────────────
@@ -214,5 +281,12 @@ namespace DoAn_CSharp.Controllers
                 ?? throw new UnauthorizedAccessException("Owner ID not found in token.");
             return int.Parse(idClaim);
         }
+    }
+
+    public class CustomAudioUploadDto
+    {
+        public string LanguageCode { get; set; } = "en";
+        public string FilePath { get; set; } = string.Empty;
+        public int DurationSeconds { get; set; }
     }
 }

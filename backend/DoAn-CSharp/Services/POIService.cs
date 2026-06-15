@@ -127,6 +127,7 @@ namespace DoAn_CSharp.Services
                 IsActive = true,
                 OwnerId = ownerId,
                 ApprovalStatus = ownerId.HasValue ? "pending" : "approved",
+                OperatingHours = dto.OperatingHours,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -170,6 +171,7 @@ namespace DoAn_CSharp.Services
             if (dto.GoogleMapsUrl != null) poi.GoogleMapsUrl = dto.GoogleMapsUrl;
             if (dto.IsActive.HasValue) poi.IsActive = dto.IsActive.Value;
             if (dto.ApprovalStatus != null) poi.ApprovalStatus = dto.ApprovalStatus;
+            if (dto.OperatingHours != null) poi.OperatingHours = dto.OperatingHours;
 
             poi.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
@@ -277,6 +279,7 @@ namespace DoAn_CSharp.Services
                 AudioText = translation?.AudioText ?? string.Empty,
                 QRCode = activeQrCode,
                 MenuItemCount = poi.MenuItems?.Count ?? 0,
+                OperatingHours = poi.OperatingHours,
                 CreatedAt = poi.CreatedAt,
                 UpdatedAt = poi.UpdatedAt,
                 Images = poi.Images?.Select(i => new POIImageDto 

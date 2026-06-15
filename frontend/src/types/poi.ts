@@ -31,6 +31,7 @@ export interface POI {
   distanceMeters?: number;
   isFavorite: boolean;
   images: POIImage[];
+  operatingHours?: string;
   createdAt: string;
   updatedAt: string;
 }

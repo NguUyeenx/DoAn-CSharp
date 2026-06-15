@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/api/admin';
-import { Loader2, Check, X, ShieldAlert } from 'lucide-react';
+import { Loader2, Check, X, ShieldAlert, Lock, Unlock, KeyRound } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
 
@@ -13,17 +13,39 @@ interface OwnerPending {
   createdAt: string;
 }
 
+interface OwnerListItem {
+  id: number;
+  username: string;
+  email: string;
+  displayName: string;
+  ownerStatus: string;
+  createdAt: string;
+  lastLoginAt?: string;
+  adminNote?: string;
+  poiCount: number;
+}
+
 export default function OwnerApprovalPage() {
   const { success, error: toastError } = useToast();
 
+  const [activeTab, setActiveTab] = useState<'pending' | 'all'>('pending');
   const [owners, setOwners] = useState<OwnerPending[]>([]);
+  const [allOwners, setAllOwners] = useState<OwnerListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [allOwnersLoading, setAllOwnersLoading] = useState(false);
 
   // Reject Modal state
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
   const [rejectId, setRejectId] = useState<number | null>(null);
   const [rejectReason, setRejectReason] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Reset Password Modal state
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
+  const [resetPasswordOwnerId, setResetPasswordOwnerId] = useState<number | null>(null);
+  const [resetPasswordDisplayName, setResetPasswordDisplayName] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [resetPasswordSubmitting, setResetPasswordSubmitting] = useState(false);
 
   const loadOwners = async () => {
     setLoading(true);
@@ -32,36 +54,39 @@ export default function OwnerApprovalPage() {
       setOwners(data);
     } catch (err: any) {
       console.error('Failed to load pending owners:', err);
-      // Fallback mocks for UI/UX testing
-      setOwners([
-        {
-          id: 1,
-          username: 'oc_oanh',
-          email: 'oanh@example.com',
-          displayName: 'Quan Oc Oanh',
-          status: 'pending',
-          createdAt: new Date().toISOString(),
-        },
-      ]);
     } finally {
       setLoading(false);
     }
   };
 
+  const loadAllOwners = async () => {
+    setAllOwnersLoading(true);
+    try {
+      const { data } = await adminApi.getAllOwners();
+      setAllOwners(data);
+    } catch (err: any) {
+      console.error('Failed to load all owners:', err);
+    } finally {
+      setAllOwnersLoading(false);
+    }
+  };
+
   useEffect(() => {
     loadOwners();
+    loadAllOwners();
   }, []);
 
   const handleApprove = async (id: number) => {
-    if (!window.confirm('Approve this owner account? They will be allowed to log in and register food spots.')) return;
+    if (!window.confirm('Duyệt tài khoản đối tác này? Họ sẽ được phép đăng nhập và đăng ký địa điểm.')) return;
 
     try {
       await adminApi.approveOwner(id);
-      success('Owner account approved successfully!');
+      success('Duyệt tài khoản đối tác thành công!');
       setOwners((prev) => prev.filter((o) => o.id !== id));
+      loadAllOwners(); // refresh directory
     } catch (err) {
       console.error('Failed to approve owner:', err);
-      toastError('Approval request failed.');
+      toastError('Thao tác duyệt thất bại.');
     }
   };
 
@@ -75,120 +100,282 @@ export default function OwnerApprovalPage() {
     e.preventDefault();
     if (!rejectId) return;
     if (!rejectReason.trim()) {
-      toastError('Please enter a rejection reason.');
+      toastError('Vui lòng nhập lý do từ chối.');
       return;
     }
 
     setSubmitting(true);
     try {
       await adminApi.rejectOwner(rejectId, rejectReason);
-      success('Owner signup request rejected.');
+      success('Đã từ chối đăng ký của đối tác.');
       setOwners((prev) => prev.filter((o) => o.id !== rejectId));
       setIsRejectModalOpen(false);
+      loadAllOwners(); // refresh directory
     } catch (err) {
       console.error('Failed to reject owner:', err);
-      toastError('Rejection request failed.');
+      toastError('Từ chối đăng ký thất bại.');
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading && owners.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 text-text-secondary gap-3">
-        <Loader2 className="animate-spin text-primary" size={28} />
-        <span className="text-xs font-semibold">Loading pending owner signups...</span>
-      </div>
-    );
-  }
+  const handleToggleLock = async (id: number, currentStatus: string) => {
+    const isLocked = currentStatus === 'suspended';
+    const confirmMsg = isLocked
+      ? 'Mở khóa tài khoản đối tác này?'
+      : 'Tạm khóa tài khoản đối tác này? Họ sẽ bị ngắt kết nối và không thể đăng nhập.';
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      if (isLocked) {
+        await adminApi.unlockOwner(id);
+        success('Mở khóa tài khoản đối tác thành công!');
+      } else {
+        await adminApi.lockOwner(id);
+        success('Đã khóa tài khoản đối tác!');
+      }
+      loadAllOwners();
+    } catch (err) {
+      console.error('Failed to toggle lock status:', err);
+      toastError('Thao tác thất bại.');
+    }
+  };
+
+  const handleOpenResetPassword = (id: number, displayName: string) => {
+    setResetPasswordOwnerId(id);
+    setResetPasswordDisplayName(displayName);
+    setNewPassword('');
+    setIsResetPasswordModalOpen(true);
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!resetPasswordOwnerId) return;
+    if (!newPassword.trim() || newPassword.length < 6) {
+      toastError('Mật khẩu mới phải từ 6 ký tự trở lên.');
+      return;
+    }
+
+    setResetPasswordSubmitting(true);
+    try {
+      await adminApi.resetOwnerPassword(resetPasswordOwnerId, { newPassword });
+      success(`Đã đặt lại mật khẩu cho đối tác '${resetPasswordDisplayName}' thành công!`);
+      setIsResetPasswordModalOpen(false);
+    } catch (err) {
+      console.error('Failed to reset owner password:', err);
+      toastError('Đặt lại mật khẩu thất bại.');
+    } finally {
+      setResetPasswordSubmitting(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
       {/* Title */}
       <div>
         <h2 className="font-display font-extrabold text-xl tracking-tight text-text-primary">
-          Owner Signups Approvals
+          Quản Lý Đối Tác (Owners)
         </h2>
         <p className="text-xs text-text-secondary">
-          Approve or reject pending store owner registrations to allow them store listings access
+          Duyệt đăng ký đối tác mới, quản lý trạng thái hoạt động và đặt lại mật khẩu
         </p>
       </div>
 
-      {owners.length === 0 ? (
-        <div className="bg-card border border-border rounded-2xl p-12 text-center flex flex-col items-center gap-4">
-          <div className="w-12 h-12 rounded-full bg-surface-alt border border-border flex items-center justify-center text-text-muted">
-            <ShieldAlert size={20} />
+      {/* Tabs */}
+      <div className="flex border-b border-border gap-6">
+        <button
+          onClick={() => setActiveTab('pending')}
+          className={`pb-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer outline-none ${
+            activeTab === 'pending'
+              ? 'border-primary text-primary font-extrabold'
+              : 'border-transparent text-text-secondary hover:text-text-primary'
+          }`}
+        >
+          Yêu cầu chờ duyệt ({owners.length})
+        </button>
+        <button
+          onClick={() => setActiveTab('all')}
+          className={`pb-3 text-xs sm:text-sm font-bold border-b-2 transition-all cursor-pointer outline-none ${
+            activeTab === 'all'
+              ? 'border-primary text-primary font-extrabold'
+              : 'border-transparent text-text-secondary hover:text-text-primary'
+          }`}
+        >
+          Tất cả đối tác ({allOwners.length})
+        </button>
+      </div>
+
+      {activeTab === 'pending' ? (
+        /* PENDING OWNERS VIEW */
+        loading && owners.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-12 text-text-secondary gap-3">
+            <Loader2 className="animate-spin text-primary" size={28} />
+            <span className="text-xs font-semibold">Đang tải danh sách chờ duyệt...</span>
           </div>
-          <div className="flex flex-col gap-1">
-            <h3 className="font-display font-extrabold text-base text-text-primary">
-              No pending registrations
-            </h3>
-            <p className="text-xs text-text-secondary max-w-xs leading-relaxed">
-              All store owners registration requests have been processed.
-            </p>
+        ) : owners.length === 0 ? (
+          <div className="bg-card border border-border rounded-2xl p-12 text-center flex flex-col items-center gap-4">
+            <div className="w-12 h-12 rounded-full bg-surface-alt border border-border flex items-center justify-center text-text-muted">
+              <ShieldAlert size={20} />
+            </div>
+            <div className="flex flex-col gap-1">
+              <h3 className="font-display font-extrabold text-base text-text-primary">
+                Không có yêu cầu chờ duyệt
+              </h3>
+              <p className="text-xs text-text-secondary max-w-xs leading-relaxed">
+                Tất cả các yêu cầu đăng ký đối tác mới đã được xử lý hoàn tất.
+              </p>
+            </div>
           </div>
-        </div>
-      ) : (
-        <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-surface-alt border-b border-border text-text-secondary font-bold uppercase tracking-wider">
-                  <th className="p-4">Tên hiển thị / Tên quán</th>
-                  <th className="p-4">Tài khoản</th>
-                  <th className="p-4">Email</th>
-                  <th className="p-4">Ngày đăng ký</th>
-                  <th className="p-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/60">
-                {owners.map((owner) => (
-                  <tr key={owner.id} className="hover:bg-surface-alt/40 transition-colors">
-                    <td className="p-4 font-bold text-text-primary">{owner.displayName}</td>
-                    <td className="p-4 font-mono">{owner.username}</td>
-                    <td className="p-4 text-text-secondary">{owner.email}</td>
-                    <td className="p-4 text-text-muted">{new Date(owner.createdAt).toLocaleDateString()}</td>
-                    <td className="p-4 text-right flex items-center justify-end gap-2.5">
-                      <button
-                        onClick={() => handleApprove(owner.id)}
-                        className="h-8 px-2.5 rounded-lg bg-accent text-white font-semibold flex items-center gap-1 hover:opacity-90 active:scale-95 transition-all outline-none cursor-pointer"
-                      >
-                        <Check size={14} className="stroke-[2.5px]" />
-                        <span>Approve</span>
-                      </button>
-                      <button
-                        onClick={() => handleOpenReject(owner.id)}
-                        className="h-8 px-2.5 rounded-lg border border-border bg-card text-danger font-semibold flex items-center gap-1 hover:bg-danger/5 active:scale-95 transition-all outline-none cursor-pointer"
-                      >
-                        <X size={14} className="stroke-[2.5px]" />
-                        <span>Reject</span>
-                      </button>
-                    </td>
+        ) : (
+          <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm animate-fade-in">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-surface-alt border-b border-border text-text-secondary font-bold uppercase tracking-wider">
+                    <th className="p-4">Tên đối tác / Tên quán</th>
+                    <th className="p-4">Tài khoản</th>
+                    <th className="p-4">Email</th>
+                    <th className="p-4">Ngày đăng ký</th>
+                    <th className="p-4 text-right">Thao tác</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {owners.map((owner) => (
+                    <tr key={owner.id} className="hover:bg-surface-alt/40 transition-colors">
+                      <td className="p-4 font-bold text-text-primary">{owner.displayName}</td>
+                      <td className="p-4 font-mono">{owner.username}</td>
+                      <td className="p-4 text-text-secondary">{owner.email}</td>
+                      <td className="p-4 text-text-muted">{new Date(owner.createdAt).toLocaleDateString()}</td>
+                      <td className="p-4 text-right flex items-center justify-end gap-2.5">
+                        <button
+                          onClick={() => handleApprove(owner.id)}
+                          className="h-8 px-3 rounded-lg bg-accent text-white font-semibold flex items-center gap-1 hover:opacity-90 active:scale-95 transition-all outline-none cursor-pointer text-[10px]"
+                        >
+                          <Check size={12} className="stroke-[2.5px]" />
+                          <span>Duyệt</span>
+                        </button>
+                        <button
+                          onClick={() => handleOpenReject(owner.id)}
+                          className="h-8 px-3 rounded-lg border border-border bg-card text-danger font-semibold flex items-center gap-1 hover:bg-danger/5 active:scale-95 transition-all outline-none cursor-pointer text-[10px]"
+                        >
+                          <X size={12} className="stroke-[2.5px]" />
+                          <span>Từ chối</span>
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+        )
+      ) : (
+        /* ALL OWNERS DIRECTORY VIEW */
+        allOwnersLoading && allOwners.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-12 text-text-secondary gap-3">
+            <Loader2 className="animate-spin text-primary" size={28} />
+            <span className="text-xs font-semibold">Đang tải danh sách đối tác...</span>
+          </div>
+        ) : allOwners.length === 0 ? (
+          <div className="bg-card border border-border rounded-2xl p-12 text-center flex flex-col items-center gap-4">
+            <h3 className="font-display font-extrabold text-base text-text-primary">Không có đối tác nào</h3>
+          </div>
+        ) : (
+          <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm animate-fade-in">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="bg-surface-alt border-b border-border text-text-secondary font-bold uppercase tracking-wider">
+                    <th className="p-4">Tên hiển thị</th>
+                    <th className="p-4">Tài khoản</th>
+                    <th className="p-4">Email</th>
+                    <th className="p-4">Địa điểm sở hữu</th>
+                    <th className="p-4">Trạng thái</th>
+                    <th className="p-4">Đăng ký ngày</th>
+                    <th className="p-4 text-right">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/60">
+                  {allOwners.map((owner) => (
+                    <tr key={owner.id} className="hover:bg-surface-alt/40 transition-colors">
+                      <td className="p-4 font-bold text-text-primary">{owner.displayName}</td>
+                      <td className="p-4 font-mono">{owner.username}</td>
+                      <td className="p-4 text-text-secondary">{owner.email}</td>
+                      <td className="p-4 font-bold text-center sm:text-left text-primary">{owner.poiCount} POI</td>
+                      <td className="p-4">
+                        <span
+                          className={`
+                            px-2 py-0.5 rounded-full text-[9px] font-bold border uppercase tracking-wider
+                            ${
+                              owner.ownerStatus === 'approved'
+                                ? 'bg-accent/10 border-accent/20 text-accent'
+                                : owner.ownerStatus === 'suspended'
+                                ? 'bg-danger/10 border-danger/20 text-danger'
+                                : owner.ownerStatus === 'pending'
+                                ? 'bg-secondary/10 border-secondary/20 text-secondary-light'
+                                : 'bg-surface-alt border-border text-text-muted'
+                            }
+                          `}
+                        >
+                          {owner.ownerStatus === 'approved' ? 'Hoạt động' : owner.ownerStatus === 'suspended' ? 'Khóa' : owner.ownerStatus}
+                        </span>
+                      </td>
+                      <td className="p-4 text-text-muted">{new Date(owner.createdAt).toLocaleDateString()}</td>
+                      <td className="p-4 text-right flex items-center justify-end gap-2">
+                        {/* Lock / Unlock */}
+                        {owner.ownerStatus === 'approved' ? (
+                          <button
+                            onClick={() => handleToggleLock(owner.id, owner.ownerStatus)}
+                            className="p-1.5 border border-border bg-card text-danger hover:bg-danger/5 hover:border-danger/20 rounded-lg transition-colors cursor-pointer outline-none"
+                            title="Khóa tài khoản đối tác"
+                          >
+                            <Lock size={13} />
+                          </button>
+                        ) : owner.ownerStatus === 'suspended' ? (
+                          <button
+                            onClick={() => handleToggleLock(owner.id, owner.ownerStatus)}
+                            className="p-1.5 border border-border bg-card text-accent hover:bg-accent/5 hover:border-accent/20 rounded-lg transition-colors cursor-pointer outline-none"
+                            title="Mở khóa tài khoản đối tác"
+                          >
+                            <Unlock size={13} />
+                          </button>
+                        ) : null}
+
+                        {/* Reset Password */}
+                        <button
+                          onClick={() => handleOpenResetPassword(owner.id, owner.displayName)}
+                          className="p-1.5 border border-border bg-card text-text-secondary hover:text-text-primary hover:border-border-hover rounded-lg transition-colors cursor-pointer outline-none"
+                          title="Đặt lại mật khẩu"
+                        >
+                          <KeyRound size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       )}
 
       {/* REJECT DIALOG MODAL */}
       <Modal
         isOpen={isRejectModalOpen}
         onClose={() => setIsRejectModalOpen(false)}
-        title="Reject Registration"
+        title="Từ Chối Đăng Ký Đối Tác"
         size="sm"
       >
         <form onSubmit={handleReject} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
-              Reason for rejection *
+              Lý do từ chối *
             </label>
             <textarea
               disabled={submitting}
               value={rejectReason}
               onChange={(e) => setRejectReason(e.target.value)}
-              placeholder="e.g. Invalid credentials, not a culinary store on Vinh Khanh street..."
+              placeholder="e.g. Không cung cấp đủ giấy tờ chứng minh, quán không nằm trên trục đường Vĩnh Khánh..."
               rows={3}
               className="w-full p-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none resize-none"
               required
@@ -201,7 +388,7 @@ export default function OwnerApprovalPage() {
               onClick={() => setIsRejectModalOpen(false)}
               className="px-4 py-2 border border-border text-text-secondary rounded-xl hover:bg-surface-alt font-semibold text-xs transition-colors cursor-pointer"
             >
-              Cancel
+              Hủy
             </button>
             <button
               type="submit"
@@ -209,7 +396,50 @@ export default function OwnerApprovalPage() {
               className="px-4 py-2 bg-danger text-white font-semibold text-xs rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-xs cursor-pointer flex items-center gap-1"
             >
               {submitting ? <Loader2 className="animate-spin" size={14} /> : <X size={14} />}
-              <span>Reject Owner</span>
+              <span>Xác nhận từ chối</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* RESET PASSWORD MODAL */}
+      <Modal
+        isOpen={isResetPasswordModalOpen}
+        onClose={() => setIsResetPasswordModalOpen(false)}
+        title={`Đặt lại mật khẩu: ${resetPasswordDisplayName}`}
+        size="sm"
+      >
+        <form onSubmit={handleResetPasswordSubmit} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+              Mật khẩu mới *
+            </label>
+            <input
+              type="password"
+              disabled={resetPasswordSubmitting}
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Nhập mật khẩu mới từ 6 ký tự..."
+              className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none"
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4 border-t border-border/40 pt-4">
+            <button
+              type="button"
+              onClick={() => setIsResetPasswordModalOpen(false)}
+              className="px-4 py-2 border border-border text-text-secondary rounded-xl hover:bg-surface-alt font-semibold text-xs transition-colors cursor-pointer"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={resetPasswordSubmitting}
+              className="px-4 py-2 bg-primary text-white font-semibold text-xs rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+            >
+              {resetPasswordSubmitting ? <Loader2 className="animate-spin" size={14} /> : <KeyRound size={14} />}
+              <span>Cập nhật mật khẩu</span>
             </button>
           </div>
         </form>

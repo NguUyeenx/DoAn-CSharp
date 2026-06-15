@@ -1,11 +1,15 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/Toast';
-import { Loader2, Lock, User, ArrowLeft } from 'lucide-react';
+import { Loader2, Lock, User, X } from 'lucide-react';
 
-export default function LoginPage() {
+interface LoginModalProps {
+  onClose: () => void;
+}
+
+export default function LoginModal({ onClose }: LoginModalProps) {
   const { login } = useAuth();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -26,6 +30,7 @@ export default function LoginPage() {
     try {
       const role = await login(username, password);
       success(t('auth.loginSuccess', 'Đăng nhập thành công!'));
+      onClose(); // Close modal on success
       if (role === 'admin') {
         navigate('/admin');
       } else {
@@ -41,17 +46,21 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-4 text-text-primary">
-      {/* Return to Map Button */}
-      <Link
-        to="/"
-        className="absolute top-4 left-4 flex items-center gap-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary transition-colors"
-      >
-        <ArrowLeft size={16} />
-        <span>{t('auth.backToMap', 'Về bản đồ')}</span>
-      </Link>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-[fade-in_0.2s_ease-out]">
+      {/* Click outside backdrop to close */}
+      <div className="absolute inset-0 cursor-default" onClick={onClose} />
 
-      <div className="w-full max-w-md bg-card border border-border rounded-2xl shadow-xl p-6 sm:p-8 flex flex-col gap-6">
+      <div className="relative w-full max-w-md bg-card border border-border rounded-2xl shadow-2xl p-6 sm:p-8 flex flex-col gap-6 z-10 animate-[scale-in_0.3s_ease-out]">
+        {/* Close Button */}
+        <button
+          type="button"
+          onClick={onClose}
+          className="absolute top-4 right-4 p-1.5 rounded-full border border-border bg-card text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-all cursor-pointer shadow-xs outline-none"
+          aria-label={t('common.close', 'Close')}
+        >
+          <X size={16} />
+        </button>
+
         {/* Branding header */}
         <div className="flex flex-col items-center text-center gap-2">
           <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-md">
@@ -130,9 +139,15 @@ export default function LoginPage() {
         {/* Redirect to register */}
         <div className="text-center text-xs text-text-secondary border-t border-border/60 pt-4">
           <span>{t('auth.noAccount', 'Chưa có tài khoản?')}</span>{' '}
-          <Link to="/owner/register" className="text-primary font-bold hover:underline">
+          <button
+            onClick={() => {
+              onClose();
+              navigate('/owner/register');
+            }}
+            className="text-primary font-bold hover:underline cursor-pointer bg-transparent border-none outline-none"
+          >
             {t('auth.registerNow', 'Đăng ký làm đối tác')}
-          </Link>
+          </button>
         </div>
       </div>
     </div>

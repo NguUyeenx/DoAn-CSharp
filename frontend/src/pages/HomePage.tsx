@@ -56,11 +56,20 @@ export default function HomePage() {
   // Selection states — two separate: popup (marker highlight) vs detail sheet
   const [popupPoiId, setPopupPoiId] = useState<number | null>(null);
   const [detailPoiId, setDetailPoiId] = useState<number | null>(null);
+  const [detailSnap, setDetailSnap] = useState<'mini' | 'full'>('mini');
   const [activeTourStopIndex, setActiveTourStopIndex] = useState<number | null>(null);
 
   // Directions state
   const [showDirections, setShowDirections] = useState(false);
   const [directionsDest, setDirectionsDest] = useState<[number, number] | null>(null);
+
+  // Mobile viewport detection
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Determine Tab mode based on Path
   const currentTab = useMemo(() => {
@@ -134,8 +143,14 @@ export default function HomePage() {
   };
 
   // Handle "View Details" button in popup — opens the detail sheet
-  const handleOpenDetail = (poiId: number, lat: number, lng: number) => {
+  const handleOpenDetail = (poiId: number, lat: number, lng: number, fromPopup = false) => {
     setDetailPoiId(poiId);
+    if (fromPopup) {
+      setDetailSnap('full');
+      setPopupPoiId(null); // Close the Mapbox popup panel/bubble
+    } else {
+      setDetailSnap('mini');
+    }
     // Slight offset so sheet doesn't cover the marker
     flyTo([lng, lat], 17);
     if (currentTab === 'list') navigate('/');
@@ -391,7 +406,7 @@ export default function HomePage() {
                 poi={poi}
                 isSelected={popupPoiId === poi.id}
                 onClick={() => handleSelectPoi(poi.id, poi.latitude, poi.longitude)}
-                onDetailClick={(p) => handleOpenDetail(p.id, p.latitude, p.longitude)}
+                onDetailClick={(p) => handleOpenDetail(p.id, p.latitude, p.longitude, true)}
               />
             ))}
 
@@ -454,9 +469,10 @@ export default function HomePage() {
         </main>
 
         {/* POI Detail Sheet — mobile bottom sheet / desktop right sidebar */}
-        {detailPoiId && (
+        {detailPoiId && (!isMobile || currentTab === 'map') && (
           <POIDetail
             poiId={detailPoiId}
+            initialSnap={detailSnap}
             onClose={() => setDetailPoiId(null)}
             onShowDirections={handleStartDirections}
             onStartQuiz={(poiId) => navigate(`/place/detail/quiz/${poiId}`)}

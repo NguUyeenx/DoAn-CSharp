@@ -5,7 +5,7 @@ namespace DoAn_CSharp.Models.Entities
     public class Notification
     {
         public int Id { get; set; }
-        public int OwnerId { get; set; }
+        public int? OwnerId { get; set; }
         public Owner? Owner { get; set; }
         public string Message { get; set; } = string.Empty;
         public string Type { get; set; } = string.Empty; // OwnerApproved, OwnerRejected, POIApproved, POIRejected, POIUpdated, System

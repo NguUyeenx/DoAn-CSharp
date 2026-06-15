@@ -19,8 +19,9 @@ export default function UserLocation() {
         markerRef.current = null;
       }
       if (rootRef.current) {
-        rootRef.current.unmount();
+        const root = rootRef.current;
         rootRef.current = null;
+        setTimeout(() => root.unmount(), 0);
       }
       return;
     }
@@ -65,8 +66,9 @@ export default function UserLocation() {
   useEffect(() => {
     return () => {
       if (rootRef.current) {
-        rootRef.current.unmount();
+        const root = rootRef.current;
         rootRef.current = null;
+        setTimeout(() => root.unmount(), 0);
       }
       if (markerRef.current) {
         markerRef.current.remove();

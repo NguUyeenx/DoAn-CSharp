@@ -39,6 +39,7 @@ namespace DoAn_CSharp.Models.Entities
         public string ApprovalStatus { get; set; } = "approved";
         public double Rating { get; set; } = 4.5;
         public int ReviewCount { get; set; } = 120; // pending, approved, rejected
+        public string? OperatingHours { get; set; }
 
         // Navigation properties
         public ICollection<POITranslation> Translations { get; set; } = new List<POITranslation>();

@@ -1,7 +1,10 @@
 using System;
 using System.Threading.Tasks;
-using DoAn_CSharp.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using DoAn_CSharp.Services;
+using DoAn_CSharp.Data;
+using DoAn_CSharp.Models.Entities;
 
 namespace DoAn_CSharp.Controllers
 {
@@ -10,10 +13,12 @@ namespace DoAn_CSharp.Controllers
     public class AudioController : ControllerBase
     {
         private readonly ITTSService _ttsService;
+        private readonly AppDbContext _context;
 
-        public AudioController(ITTSService ttsService)
+        public AudioController(ITTSService ttsService, AppDbContext context)
         {
             _ttsService = ttsService;
+            _context = context;
         }
 
         [HttpGet("generate")]
@@ -26,8 +31,21 @@ namespace DoAn_CSharp.Controllers
 
             try
             {
+                // First check if there is a custom audio file uploaded for this POI and language
+                var customAudio = await _context.AudioFiles
+                    .FirstOrDefaultAsync(a => a.TranslationType == TranslationType.POI 
+                                           && a.TranslationId == poiId 
+                                           && a.LanguageCode.ToLower() == lang.ToLower()
+                                           && a.AudioType == "custom");
+
+                if (customAudio != null)
+                {
+                    var fullCustomUrl = $"{Request.Scheme}://{Request.Host}{customAudio.FilePath}";
+                    return Ok(new { url = fullCustomUrl });
+                }
+
+                // If not found, call TTS
                 string audioUrl = await _ttsService.GenerateAudioAsync(text, lang, poiId);
-                // Return absolute URL or relative URL based on config, relative is fine
                 var fullUrl = $"{Request.Scheme}://{Request.Host}{audioUrl}";
                 return Ok(new { url = fullUrl });
             }

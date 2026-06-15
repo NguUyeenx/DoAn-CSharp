@@ -19,6 +19,7 @@ export default function MapView({ children, onMapClick }: MapViewProps) {
   const { setMap, map } = useMap();
   const { t } = useTranslation();
   const mapContainerRef = useRef<HTMLDivElement>(null);
+  const currentThemeRef = useRef<'light' | 'dark'>(theme);
   const [mapLoaded, setMapLoaded] = useState(false);
 
   // Determine Mapbox style based on theme
@@ -55,39 +56,43 @@ export default function MapView({ children, onMapClick }: MapViewProps) {
       )?.id;
 
       if (mapInstance.getSource('composite')) {
-        mapInstance.addLayer(
-          {
-            id: '3d-buildings',
-            source: 'composite',
-            'source-layer': 'building',
-            filter: ['==', 'extrude', 'true'],
-            type: 'fill-extrusion',
-            minzoom: 15,
-            paint: {
-              'fill-extrusion-color': theme === 'dark' ? '#332a24' : '#f5ebe6',
-              'fill-extrusion-height': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                15,
-                0,
-                15.05,
-                ['get', 'height'],
-              ],
-              'fill-extrusion-base': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                15,
-                0,
-                15.05,
-                ['get', 'min_height'],
-              ],
-              'fill-extrusion-opacity': 0.6,
-            },
-          },
-          labelLayerId
-        );
+        setTimeout(() => {
+          if (mapInstance && !mapInstance.getLayer('3d-buildings') && mapInstance.getSource('composite')) {
+            mapInstance.addLayer(
+              {
+                id: '3d-buildings',
+                source: 'composite',
+                'source-layer': 'building',
+                filter: ['==', 'extrude', 'true'],
+                type: 'fill-extrusion',
+                minzoom: 15,
+                paint: {
+                  'fill-extrusion-color': theme === 'dark' ? '#332a24' : '#f5ebe6',
+                  'fill-extrusion-height': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    15,
+                    0,
+                    15.05,
+                    ['get', 'height'],
+                  ],
+                  'fill-extrusion-base': [
+                    'interpolate',
+                    ['linear'],
+                    ['zoom'],
+                    15,
+                    0,
+                    15.05,
+                    ['get', 'min_height'],
+                  ],
+                  'fill-extrusion-opacity': 0.6,
+                },
+              },
+              labelLayerId
+            );
+          }
+        }, 0);
       }
     });
 
@@ -111,55 +116,61 @@ export default function MapView({ children, onMapClick }: MapViewProps) {
   // Sync theme changes with Mapbox style
   useEffect(() => {
     if (!map || !mapLoaded) return;
-    map.setStyle(getStyleByTheme(theme));
 
     // Wait for style load to re-apply 3D building colors if needed
-    const handleStyleData = () => {
-      if (!map.getLayer('3d-buildings') && map.getSource('composite')) {
-        const layers = map.getStyle()?.layers;
-        const labelLayerId = layers?.find(
-          (layer) => layer.type === 'symbol' && layer.layout?.['text-field']
-        )?.id;
+    const handleStyleLoad = () => {
+      setTimeout(() => {
+        if (map && map.isStyleLoaded() && !map.getLayer('3d-buildings') && map.getSource('composite')) {
+          const layers = map.getStyle()?.layers;
+          const labelLayerId = layers?.find(
+            (layer) => layer.type === 'symbol' && layer.layout?.['text-field']
+          )?.id;
 
-        map.addLayer(
-          {
-            id: '3d-buildings',
-            source: 'composite',
-            'source-layer': 'building',
-            filter: ['==', 'extrude', 'true'],
-            type: 'fill-extrusion',
-            minzoom: 15,
-            paint: {
-              'fill-extrusion-color': theme === 'dark' ? '#332a24' : '#f5ebe6',
-              'fill-extrusion-height': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                15,
-                0,
-                15.05,
-                ['get', 'height'],
-              ],
-              'fill-extrusion-base': [
-                'interpolate',
-                ['linear'],
-                ['zoom'],
-                15,
-                0,
-                15.05,
-                ['get', 'min_height'],
-              ],
-              'fill-extrusion-opacity': 0.6,
+          map.addLayer(
+            {
+              id: '3d-buildings',
+              source: 'composite',
+              'source-layer': 'building',
+              filter: ['==', 'extrude', 'true'],
+              type: 'fill-extrusion',
+              minzoom: 15,
+              paint: {
+                'fill-extrusion-color': theme === 'dark' ? '#332a24' : '#f5ebe6',
+                'fill-extrusion-height': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  15,
+                  0,
+                  15.05,
+                  ['get', 'height'],
+                ],
+                'fill-extrusion-base': [
+                  'interpolate',
+                  ['linear'],
+                  ['zoom'],
+                  15,
+                  0,
+                  15.05,
+                  ['get', 'min_height'],
+                ],
+                'fill-extrusion-opacity': 0.6,
+              },
             },
-          },
-          labelLayerId
-        );
-      }
+            labelLayerId
+          );
+        }
+      }, 0);
     };
-    
-    map.on('styledata', handleStyleData);
+
+    if (currentThemeRef.current !== theme) {
+      currentThemeRef.current = theme;
+      map.setStyle(getStyleByTheme(theme));
+    }
+
+    map.on('style.load', handleStyleLoad);
     return () => {
-      map.off('styledata', handleStyleData);
+      map.off('style.load', handleStyleLoad);
     };
   }, [theme, map, mapLoaded]);
 

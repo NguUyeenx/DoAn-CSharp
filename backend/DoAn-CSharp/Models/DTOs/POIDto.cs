@@ -43,6 +43,7 @@ namespace DoAn_CSharp.Models.DTOs
         public double? DistanceMeters { get; set; } // for nearby queries
         public bool IsFavorite { get; set; }        // for authenticated user
 
+        public string? OperatingHours { get; set; }
         public ICollection<POIImageDto> Images { get; set; } = new List<POIImageDto>();
 
         public DateTime CreatedAt { get; set; }
@@ -95,6 +96,7 @@ namespace DoAn_CSharp.Models.DTOs
         public string? FacebookUrl { get; set; }
         public string? ImageUrl { get; set; }
         public string? GoogleMapsUrl { get; set; }
+        public string? OperatingHours { get; set; }
     }
 
     public class POIUpdateDto
@@ -118,6 +120,7 @@ namespace DoAn_CSharp.Models.DTOs
         public string? GoogleMapsUrl { get; set; }
         public bool? IsActive { get; set; }
         public string? ApprovalStatus { get; set; }
+        public string? OperatingHours { get; set; }
     }
 }
 

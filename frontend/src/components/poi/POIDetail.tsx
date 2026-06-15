@@ -15,6 +15,7 @@ import {
   Globe,
   ExternalLink,
   ChevronUp,
+  Star,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
@@ -35,8 +36,50 @@ function FacebookIcon(props: React.SVGProps<SVGSVGElement>) {
   );
 }
 
+interface OperatingHourItem {
+  day: number;
+  open: string;
+  close: string;
+  closed: boolean;
+}
+
+const getDayName = (day: number, t: any) => {
+  const days = [
+    t('days.sunday', 'Chủ Nhật'),
+    t('days.monday', 'Thứ Hai'),
+    t('days.tuesday', 'Thứ Ba'),
+    t('days.wednesday', 'Thứ Tư'),
+    t('days.thursday', 'Thứ Năm'),
+    t('days.friday', 'Thứ Sáu'),
+    t('days.saturday', 'Thứ Bảy')
+  ];
+  return days[day];
+};
+
+const checkIsOpen = (hoursStr?: string) => {
+  if (!hoursStr) return null;
+  try {
+    const hours: OperatingHourItem[] = JSON.parse(hoursStr);
+    const now = new Date();
+    const currentDay = now.getDay();
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    const currentTimeStr = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
+    
+    const todayHours = hours.find(h => h.day === currentDay);
+    if (!todayHours || todayHours.closed) return 'closed';
+    
+    if (currentTimeStr >= todayHours.open && currentTimeStr <= todayHours.close) {
+      return 'open';
+    }
+    return 'closed';
+  } catch {
+    return null;
+  }
+};
+
 // Snap point heights as vh fractions (mobile bottom sheet)
-const SNAP_MINI = 42;  // 2.5/6 ≈ 42vh — default open position
+const SNAP_MINI = 42;  // default open position
 const SNAP_FULL = 92;  // full sheet
 
 type SnapPoint = 'mini' | 'full' | 'closed';
@@ -46,6 +89,7 @@ interface POIDetailProps {
   onClose: () => void;
   onShowDirections?: (poi: POI) => void;
   onStartQuiz?: (poiId: number) => void;
+  initialSnap?: SnapPoint;
 }
 
 export default function POIDetail({
@@ -53,6 +97,7 @@ export default function POIDetail({
   onClose,
   onShowDirections,
   onStartQuiz,
+  initialSnap,
 }: POIDetailProps) {
   const { t, i18n } = useTranslation();
   const [poi, setPoi] = useState<POI | null>(null);
@@ -61,18 +106,18 @@ export default function POIDetail({
   const [error, setError] = useState<string | null>(null);
 
   // Mobile bottom sheet drag state
-  const [snap, setSnap] = useState<SnapPoint>('mini');
+  const [snap, setSnap] = useState<SnapPoint>(initialSnap || 'mini');
   const [dragOffset, setDragOffset] = useState(0); // live drag delta in px
   const [isDragging, setIsDragging] = useState(false);
   const dragStartY = useRef<number | null>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
 
-  // Reset snap to mini whenever a new POI is opened
+  // Reset snap whenever a new POI is opened
   useEffect(() => {
-    if (poiId) setSnap('mini');
-  }, [poiId]);
+    if (poiId) setSnap(initialSnap || 'mini');
+  }, [poiId, initialSnap]);
 
-  // 1. Fetch POI and Menu details
+  // Fetch POI and Menu details
   useEffect(() => {
     if (!poiId) {
       setPoi(null);
@@ -104,7 +149,7 @@ export default function POIDetail({
     return () => { isSubscribed = false; };
   }, [poiId, i18n.language]);
 
-  // 2. Touch/Mouse drag handlers (mobile bottom sheet only)
+  // Touch/Mouse drag handlers (mobile bottom sheet only)
   const getSnapHeight = (s: SnapPoint) => {
     if (s === 'full') return SNAP_FULL;
     if (s === 'mini') return SNAP_MINI;
@@ -126,7 +171,6 @@ export default function POIDetail({
   const handleDragEnd = useCallback((clientY: number, velocityY: number) => {
     if (dragStartY.current === null) return;
     const delta = clientY - dragStartY.current;
-    const vh = window.innerHeight / 100;
 
     dragStartY.current = null;
     setIsDragging(false);
@@ -134,20 +178,15 @@ export default function POIDetail({
 
     if (snap === 'mini') {
       if (delta < -60 || velocityY < -0.5) {
-        // dragged up → go full
         setSnap('full');
       } else if (delta > 80 || velocityY > 0.5) {
-        // dragged down → close
         onClose();
       }
     } else if (snap === 'full') {
       if (delta > 80 || velocityY > 0.5) {
-        // dragged down from full → go mini
         setSnap('mini');
       }
     }
-    // suppress unused var warning
-    void vh;
   }, [snap, onClose]);
 
   // Touch events
@@ -155,7 +194,6 @@ export default function POIDetail({
   const onTouchMove = (e: React.TouchEvent) => handleDragMove(e.touches[0].clientY);
   const onTouchEnd = (e: React.TouchEvent) => {
     const touch = e.changedTouches[0];
-    // Estimate velocity from last delta (crude)
     const delta = dragStartY.current !== null ? touch.clientY - dragStartY.current : 0;
     handleDragEnd(touch.clientY, delta > 0 ? 0.6 : -0.6);
   };
@@ -176,11 +214,8 @@ export default function POIDetail({
 
   if (!poiId) return null;
 
-  // ── Mobile: compute sheet transform from snap + live drag ──
   const snapH = getSnapHeight(snap);
-  // translateY in vh so that the sheet peeks from bottom
   const baseTranslateVh = 100 - snapH;
-  // Add live drag offset (px). Clamp so user can't drag it fully off-screen when going up.
   const liveTranslate = isDragging
     ? `calc(${baseTranslateVh}vh + ${Math.max(-snapH * window.innerHeight / 100 + 60, dragOffset)}px)`
     : `${baseTranslateVh}vh`;
@@ -189,30 +224,24 @@ export default function POIDetail({
 
   return (
     <>
-      {/* ────────────────────────────────────────────────────────────
-          MOBILE: semi-transparent backdrop (only when mini/full open)
-      ──────────────────────────────────────────────────────────── */}
+      {/* MOBILE: Backdrop (full open state only) */}
       <div
         className={cn(
           'fixed inset-0 z-30 md:hidden transition-opacity duration-300',
           snap === 'full' ? 'bg-black/50 pointer-events-auto' : 'bg-transparent pointer-events-none',
         )}
-        onClick={() => snap === 'full' ? setSnap('mini') : undefined}
+        onClick={() => snap === 'full' && setSnap('mini')}
       />
 
-      {/* ────────────────────────────────────────────────────────────
-          MOBILE: Bottom Sheet (full-screen width, 3 snap points)
-      ──────────────────────────────────────────────────────────── */}
+      {/* MOBILE: Bottom Sheet Container */}
       <div
         ref={sheetRef}
         className={cn(
           'md:hidden fixed z-40 bottom-0 inset-x-0 bg-card rounded-t-[var(--radius-xl)]',
           'border-t border-border shadow-xl flex flex-col',
-          // Only use CSS transition when NOT dragging (avoid jank)
           !isDragging && 'transition-transform duration-300 ease-[var(--ease-out-quint)]',
         )}
         style={{
-          // Height is always 92vh, position is controlled by translateY
           height: `${SNAP_FULL}vh`,
           transform: `translateY(${liveTranslate})`,
         }}
@@ -226,7 +255,6 @@ export default function POIDetail({
           onMouseDown={onMouseDown}
         >
           <div className="w-10 h-1 bg-border rounded-full" />
-          {/* Expand hint: shown only in mini */}
           {snap === 'mini' && (
             <div className="flex items-center gap-1 text-[10px] font-semibold text-text-muted">
               <ChevronUp size={10} />
@@ -235,10 +263,10 @@ export default function POIDetail({
           )}
         </div>
 
-        {/* Sheet header: name + close button */}
+        {/* Sheet header */}
         <div className="flex items-center justify-between px-4 pb-2 shrink-0">
           <h2 className="font-display font-extrabold text-sm tracking-tight text-text-primary line-clamp-1 flex-1 mr-2">
-            {poi?.name ?? (loading ? '...' : '')}
+            {poi?.localizedName || poi?.name || (loading ? 'Loading...' : '')}
           </h2>
           <button
             type="button"
@@ -250,7 +278,7 @@ export default function POIDetail({
           </button>
         </div>
 
-        {/* Scrollable content — only scrollable when snap=full */}
+        {/* Scrollable content */}
         <div
           className={cn(
             'flex-1 flex flex-col gap-4 px-4 pb-8',
@@ -271,9 +299,7 @@ export default function POIDetail({
         </div>
       </div>
 
-      {/* ────────────────────────────────────────────────────────────
-          DESKTOP: Right sidebar panel (unchanged behavior)
-      ──────────────────────────────────────────────────────────── */}
+      {/* DESKTOP: Right sidebar panel */}
       <div
         className={cn(
           'hidden md:flex fixed z-40 bg-card border-border shadow-xl',
@@ -285,8 +311,8 @@ export default function POIDetail({
       >
         {/* Desktop header */}
         <div className="flex items-center justify-between p-4 border-b border-border/60 shrink-0">
-          <h2 className="font-display font-extrabold text-base tracking-tight text-text-primary">
-            {t('poi.details', 'Chi tiết')}
+          <h2 className="font-display font-extrabold text-base tracking-tight text-text-primary truncate flex-1 mr-2">
+            {poi?.localizedName || poi?.name || t('poi.details', 'Chi tiết')}
           </h2>
           <button
             type="button"
@@ -379,15 +405,34 @@ function SheetContent({
       {/* Gallery */}
       <POIGallery images={poi.images || []} fallbackEmoji={poi.category[0] || '🍴'} />
 
-      {/* Name + Category */}
+      {/* Name + Category + Rating + Open Status */}
       <div className="flex flex-col gap-2">
         <h3 className="font-display font-extrabold text-lg tracking-tight text-text-primary leading-tight">
-          {poi.name}
+          {poi.localizedName || poi.name}
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="px-2.5 py-0.5 bg-primary/5 border border-primary/20 text-primary text-xs font-semibold rounded-[var(--radius-sm)] capitalize">
             {poi.category}
           </span>
+          {checkIsOpen(poi.operatingHours) === 'open' && (
+            <span className="px-2 py-0.5 bg-teal-500/10 border border-teal-500/20 text-teal-600 text-[10px] font-bold rounded">
+              {t('poi.openNow', 'Đang mở cửa')}
+            </span>
+          )}
+          {checkIsOpen(poi.operatingHours) === 'closed' && (
+            <span className="px-2 py-0.5 bg-danger/10 border border-danger/20 text-danger text-[10px] font-bold rounded">
+              {t('poi.closed', 'Đã đóng cửa')}
+            </span>
+          )}
+          {poi.rating > 0 && (
+            <div className="flex items-center gap-0.5 text-xs text-amber-500 font-bold ml-1">
+              <Star size={12} className="fill-current" />
+              <span>{poi.rating.toFixed(1)}</span>
+              {poi.reviewCount > 0 && (
+                <span className="text-text-muted font-normal">({poi.reviewCount})</span>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -447,7 +492,7 @@ function SheetContent({
           </div>
         )}
         {(poi.website || poi.facebookUrl || poi.googleMapsUrl) && (
-          <div className="flex items-center gap-4 mt-2 pt-2 border-t border-border/40 text-[11px] font-semibold text-text-primary">
+          <div className="flex items-center gap-4 mt-2 pt-2 border-t border-border/40 text-[11px] font-semibold text-text-primary text-wrap flex-wrap gap-y-1">
             {poi.website && (
               <a href={poi.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-primary transition-colors">
                 <Globe size={12} /><span>Website</span><ExternalLink size={10} className="opacity-60" />
@@ -466,6 +511,28 @@ function SheetContent({
           </div>
         )}
       </div>
+
+      {/* Operating Hours Card */}
+      {poi.operatingHours && (
+        <div className="flex flex-col gap-2 p-3 bg-surface-alt rounded-[var(--radius-md)] border border-border text-xs text-text-secondary">
+          <h4 className="font-display font-bold text-sm text-text-primary uppercase border-b border-border/40 pb-1">
+            {t('poi.operatingHours', 'Thời gian hoạt động')}
+          </h4>
+          <div className="flex flex-col gap-1.5 mt-1">
+            {JSON.parse(poi.operatingHours).map((item: any) => {
+              const isToday = new Date().getDay() === item.day;
+              return (
+                <div key={item.day} className={cn("flex items-center justify-between py-0.5 px-1 rounded", isToday && "bg-primary/5 font-semibold text-primary")}>
+                  <span>{getDayName(item.day, t)}</span>
+                  <span className="font-mono">
+                    {item.closed ? t('poi.closed', 'Đóng cửa') : `${item.open} - ${item.close}`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Menu */}
       {menuItems.length > 0 && <MenuList items={menuItems} />}

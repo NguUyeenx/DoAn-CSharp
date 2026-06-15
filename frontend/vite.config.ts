@@ -17,6 +17,18 @@ export default defineConfig({
         target: 'http://localhost:5011',
         changeOrigin: true,
       },
+      '/images': {
+        target: 'http://localhost:5011',
+        changeOrigin: true,
+      },
+      '/audio': {
+        target: 'http://localhost:5011',
+        changeOrigin: true,
+      },
+      '/qrcodes': {
+        target: 'http://localhost:5011',
+        changeOrigin: true,
+      },
     },
   },
 });

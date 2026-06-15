@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import ThemeToggle from '@/components/ui/ThemeToggle';
 import SearchBar from '@/components/search/SearchBar';
 import { cn } from '@/utils/cn';
+import { useAuth } from '@/hooks/useAuth';
 
 interface HeaderProps {
   searchQuery?: string;
@@ -23,6 +24,7 @@ export default function Header({
   showSearch = true,
 }: HeaderProps) {
   const { t, i18n } = useTranslation();
+  const { isAuthenticated, role, setLoginModalOpen } = useAuth();
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   
@@ -146,6 +148,25 @@ export default function Header({
               </div>
             )}
           </div>
+
+          {/* Login/Register or Dashboard Button */}
+          {isAuthenticated ? (
+            <Link
+              to={role === 'admin' ? '/admin' : '/owner'}
+              className="hidden md:flex items-center justify-center h-9 px-4 rounded-[var(--radius-md)] text-sm font-semibold border border-primary text-primary hover:bg-primary/5 transition-colors outline-none cursor-pointer"
+            >
+              {role === 'admin'
+                ? t('nav.adminDashboard', 'Bảng quản trị')
+                : t('nav.ownerDashboard', 'Kênh đối tác')}
+            </Link>
+          ) : (
+            <button
+              onClick={() => setLoginModalOpen(true)}
+              className="hidden md:flex items-center justify-center h-9 px-4 rounded-[var(--radius-md)] text-sm font-semibold text-white bg-primary hover:bg-primary-hover shadow-sm transition-colors outline-none cursor-pointer"
+            >
+              {t('nav.loginRegister', 'Đăng nhập / Đăng ký')}
+            </button>
+          )}
         </div>
       </div>
     </header>

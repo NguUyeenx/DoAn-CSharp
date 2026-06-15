@@ -33,4 +33,21 @@ export const adminApi = {
 
   // Audit logs list
   getAuditLogs: () => api.get<any[]>('/admin/audit-logs'),
+
+  // Comprehensive Owner management
+  getAllOwners: () => api.get<any[]>('/admin/owners'),
+  lockOwner: (id: number) => api.put(`/admin/owners/${id}/lock`),
+  unlockOwner: (id: number) => api.put(`/admin/owners/${id}/unlock`),
+  resetOwnerPassword: (id: number, data: { newPassword: string }) => api.put(`/admin/owners/${id}/reset-password`, data),
+
+  // Comprehensive POI management
+  updatePOIOwner: (id: number, data: { ownerId: number | null }) => api.put(`/admin/pois/${id}/owner`, data),
+  restorePOI: (id: number) => api.post(`/admin/pois/${id}/restore`),
+  saveCustomAudio: (poiId: number, data: { languageCode: string; filePath: string; durationSeconds: number }) =>
+    api.post(`/admin/pois/${poiId}/custom-audio`, data),
+
+  // Admin Notifications
+  getNotifications: () => api.get<any[]>('/admin/notifications'),
+  markNotificationRead: (id: number) => api.put(`/admin/notifications/${id}/read`),
+  markAllNotificationsRead: () => api.put('/admin/notifications/read-all'),
 };

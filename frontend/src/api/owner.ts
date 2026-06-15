@@ -56,4 +56,7 @@ export const ownerApi = {
 
   getUnreadCount: () =>
     api.get('/notifications/unread-count'),
+
+  saveCustomAudio: (poiId: number, data: { languageCode: string; filePath: string; durationSeconds: number }) =>
+    api.post(`/owner/pois/${poiId}/custom-audio`, data),
 };

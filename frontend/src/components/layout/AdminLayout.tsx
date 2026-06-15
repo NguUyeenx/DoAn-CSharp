@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -15,8 +15,10 @@ import {
   Menu,
   X,
   ClipboardCheck,
+  Bell,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { adminApi } from '@/api/admin';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/utils/cn';
 
@@ -50,12 +52,68 @@ export default function AdminLayout() {
   const { token, logout } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const username = getUsernameFromToken(token);
+
+  // Notification states
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [bellOpen, setBellOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchNotifications = async () => {
+    try {
+      const { data } = await adminApi.getNotifications();
+      setNotifications(data);
+      setUnreadCount(data.filter((n: any) => !n.isRead).length);
+    } catch (err) {
+      console.error('Failed to fetch admin notifications:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    // Poll every 30 seconds
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Close mobile sidebar on route change
   useEffect(() => {
     setMobileSidebarOpen(false);
   }, [location.pathname]);
+
+  const handleNotificationClick = async (notif: any) => {
+    try {
+      if (!notif.isRead) {
+        await adminApi.markNotificationRead(notif.id);
+        // update local state
+        setNotifications((prev) =>
+          prev.map((n) => (n.id === notif.id ? { ...n, isRead: true } : n))
+        );
+        setUnreadCount((c) => Math.max(0, c - 1));
+      }
+      setBellOpen(false);
+
+      // Redirect based on type
+      if (notif.type === 'OwnerPending') {
+        navigate('/admin/owners');
+      } else if (notif.type === 'POIPending' || notif.type === 'POIUpdated') {
+        navigate('/admin/pois/pending');
+      }
+    } catch (err) {
+      console.error('Failed to process notification:', err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await adminApi.markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch (err) {
+      console.error('Failed to mark all read:', err);
+    }
+  };
 
   const menuItems = [
     { label: t('admin.nav.dashboard', 'Dashboard'), to: '/admin/dashboard', icon: LayoutDashboard },
@@ -207,6 +265,68 @@ export default function AdminLayout() {
 
           {/* Admin Info Profile Actions */}
           <div className="flex items-center gap-4">
+            {/* Notification Bell */}
+            <div className="relative">
+              <button
+                onClick={() => setBellOpen(!bellOpen)}
+                className="p-2 text-text-secondary hover:text-text-primary hover:bg-surface-alt rounded-lg transition-colors cursor-pointer outline-none relative"
+                aria-label="Notifications"
+              >
+                <Bell size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-4 h-4 bg-danger text-white rounded-full text-[9px] font-bold flex items-center justify-center animate-bounce">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {bellOpen && (
+                <>
+                  {/* Backdrop click closer */}
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setBellOpen(false)}
+                  />
+                  {/* Dropdown panel */}
+                  <div className="absolute right-0 mt-2 w-80 bg-card border border-border rounded-2xl shadow-xl z-50 overflow-hidden animate-[fade-in_0.15s_ease-out]">
+                    <div className="p-3 border-b border-border flex items-center justify-between bg-surface-alt">
+                      <span className="text-xs font-bold text-text-primary">Thông báo Admin</span>
+                      {unreadCount > 0 && (
+                        <button
+                          onClick={handleMarkAllRead}
+                          className="text-[10px] text-primary hover:underline font-bold bg-transparent border-0 cursor-pointer outline-none"
+                        >
+                          Đánh dấu đã đọc tất cả
+                        </button>
+                      )}
+                    </div>
+                    <div className="max-h-72 overflow-y-auto divide-y divide-border/60">
+                      {notifications.length === 0 ? (
+                        <div className="p-6 text-center text-text-muted text-xs">
+                          Không có thông báo mới nào.
+                        </div>
+                      ) : (
+                        notifications.map((n) => (
+                          <div
+                            key={n.id}
+                            onClick={() => handleNotificationClick(n)}
+                            className={`p-3 text-xs cursor-pointer hover:bg-surface-alt/65 transition-colors ${
+                              !n.isRead ? 'bg-primary/5 font-semibold' : 'text-text-secondary'
+                            }`}
+                          >
+                            <p className="leading-snug text-text-primary">{n.message}</p>
+                            <span className="text-[9px] text-text-muted mt-1 block">
+                              {new Date(n.createdAt).toLocaleString()}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
             <div className="text-right hidden sm:block">
               <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
                 {t('admin.header.role', 'Administrator')}

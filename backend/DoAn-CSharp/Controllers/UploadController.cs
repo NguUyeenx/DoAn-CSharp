@@ -7,7 +7,7 @@ namespace DoAn_CSharp.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "admin")]
+    [Authorize(Roles = "admin,owner")]
     public class UploadController : ControllerBase
     {
         private readonly IUploadService _uploadService;

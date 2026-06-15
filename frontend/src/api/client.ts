@@ -2,44 +2,13 @@ import axios from 'axios';
 import type { RefreshTokenRequest } from '@/types/auth';
 
 function getAuthKeys() {
-  const isAdminPath = window.location.pathname.startsWith('/admin');
-  const isOwnerPath = window.location.pathname.startsWith('/owner');
-
-  if (isAdminPath) {
-    return {
-      tokenKey: 'vk_admin_token',
-      refreshKey: 'vk_admin_refresh_token',
-      roleKey: 'vk_admin_role',
-      expiresKey: 'vk_admin_expires',
-      loginPath: '/admin/login',
-    };
-  } else if (isOwnerPath) {
-    return {
-      tokenKey: 'vk_owner_token',
-      refreshKey: 'vk_owner_refresh_token',
-      roleKey: 'vk_owner_role',
-      expiresKey: 'vk_owner_expires',
-      loginPath: '/owner/login',
-    };
-  } else {
-    const hasOwnerToken = !!localStorage.getItem('vk_owner_token');
-    if (hasOwnerToken) {
-      return {
-        tokenKey: 'vk_owner_token',
-        refreshKey: 'vk_owner_refresh_token',
-        roleKey: 'vk_owner_role',
-        expiresKey: 'vk_owner_expires',
-        loginPath: '/owner/login',
-      };
-    }
-    return {
-      tokenKey: 'vk_admin_token',
-      refreshKey: 'vk_admin_refresh_token',
-      roleKey: 'vk_admin_role',
-      expiresKey: 'vk_admin_expires',
-      loginPath: '/admin/login',
-    };
-  }
+  return {
+    tokenKey: 'vk_token',
+    refreshKey: 'vk_refresh_token',
+    roleKey: 'vk_role',
+    expiresKey: 'vk_expires',
+    loginPath: '/owner/login',
+  };
 }
 
 export const api = axios.create({

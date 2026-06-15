@@ -83,21 +83,27 @@ export default function POIMarker({ poi, isSelected, onClick, onDetailClick }: P
 
     // Cleanup
     return () => {
-      if (popupRootRef.current) {
-        popupRootRef.current.unmount();
-        popupRootRef.current = null;
+      const pRoot = popupRootRef.current;
+      const mRoot = markerRootRef.current;
+      const m = markerRef.current;
+      const p = popupRef.current;
+
+      popupRootRef.current = null;
+      markerRootRef.current = null;
+      markerRef.current = null;
+      popupRef.current = null;
+
+      // Defer unmounting to avoid warning: "Attempted to synchronously unmount a root while React was already rendering"
+      setTimeout(() => {
+        if (pRoot) pRoot.unmount();
+        if (mRoot) mRoot.unmount();
+      }, 0);
+
+      if (m) {
+        m.remove();
       }
-      if (markerRootRef.current) {
-        markerRootRef.current.unmount();
-        markerRootRef.current = null;
-      }
-      if (markerRef.current) {
-        markerRef.current.remove();
-        markerRef.current = null;
-      }
-      if (popupRef.current) {
-        popupRef.current.remove();
-        popupRef.current = null;
+      if (p) {
+        p.remove();
       }
     };
   }, [map, poi.id]); // Re-create only on map or id change

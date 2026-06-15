@@ -44,8 +44,15 @@ export default function DashboardPage() {
                 { date: '06-14', count: 580 },
                 { date: '06-15', count: 620 },
               ],
-              popularPOIs: [],
-              languageBreakdown: [],
+              popularPOIs: [
+                { poiId: 1, poiName: 'Ốc Oanh', count: 1240 },
+                { poiId: 2, poiName: 'Lẩu Bò Khu Nhà Cháy', count: 980 },
+                { poiId: 3, poiName: 'Bánh Mì Huỳnh Hoa', count: 710 },
+              ],
+              languageBreakdown: [
+                { languageCode: 'vi', count: 9800 },
+                { languageCode: 'en', count: 5090 },
+              ],
             },
           };
         }),
@@ -57,21 +64,21 @@ export default function DashboardPage() {
                 id: 1,
                 userName: 'admin',
                 action: 'APPROVE_OWNER',
-                details: 'Approved owner account "Quan Oc Khanh"',
+                details: 'Approved owner account "Quan Oc Oanh"',
                 createdAt: new Date(Date.now() - 3600000).toISOString(),
               },
               {
                 id: 2,
-                userName: 'quanockhanh',
+                userName: 'quanocoanh',
                 action: 'CREATE_POI',
-                details: 'Registered POI "Oc Khanh - Vinh Khanh"',
+                details: 'Registered POI "Oc Oanh - Vinh Khanh"',
                 createdAt: new Date(Date.now() - 7200000).toISOString(),
               },
               {
                 id: 3,
                 userName: 'admin',
                 action: 'GENERATE_QR',
-                details: 'Generated QR Code for POI ID 5',
+                details: 'Generated QR Code for POI ID 1',
                 createdAt: new Date(Date.now() - 10800000).toISOString(),
               },
             ],
@@ -233,7 +240,7 @@ export default function DashboardPage() {
             <Eye size={20} />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Total Visits</span>
+            <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Lượt Truy Cập</span>
             <p className="text-xl font-display font-extrabold text-text-primary mt-0.5">{summary?.totalVisits}</p>
           </div>
         </div>
@@ -244,7 +251,7 @@ export default function DashboardPage() {
             <Headphones size={20} />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Audio Plays</span>
+            <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Nghe Thuyết Minh</span>
             <p className="text-xl font-display font-extrabold text-text-primary mt-0.5">{summary?.totalAudioPlays}</p>
           </div>
         </div>
@@ -255,18 +262,18 @@ export default function DashboardPage() {
             <QrCode size={20} />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">QR Scans</span>
+            <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Quét mã QR</span>
             <p className="text-xl font-display font-extrabold text-text-primary mt-0.5">{summary?.totalQrScans}</p>
           </div>
         </div>
 
-        {/* Mock overall items count */}
+        {/* Live POIs */}
         <div className="bg-card border border-border p-4 rounded-2xl shadow-xs flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
             <Store size={20} />
           </div>
           <div>
-            <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Live POIs</span>
+            <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Địa điểm mở</span>
             <p className="text-xl font-display font-extrabold text-text-primary mt-0.5">18</p>
           </div>
         </div>
@@ -277,7 +284,7 @@ export default function DashboardPage() {
         {/* Chart */}
         <div className="lg:col-span-2 bg-card border border-border rounded-2xl shadow-sm p-5 sm:p-6 flex flex-col gap-4">
           <h3 className="font-display font-bold text-sm sm:text-base text-text-primary border-b border-border/40 pb-2.5">
-            System Visitors Traffic
+            Lưu lượng truy cập hệ thống
           </h3>
           <div className="h-56 flex items-center justify-center">
             {renderSvgChart()}
@@ -288,12 +295,12 @@ export default function DashboardPage() {
         <div className="bg-card border border-border rounded-2xl shadow-sm p-5 sm:p-6 flex flex-col gap-4 overflow-hidden h-[340px]">
           <h3 className="font-display font-bold text-sm sm:text-base text-text-primary border-b border-border/40 pb-2.5 flex items-center gap-1.5 shrink-0">
             <FileText size={16} className="text-primary" />
-            <span>Audit Log Activity</span>
+            <span>Nhật ký hoạt động</span>
           </h3>
 
           <div className="flex-1 overflow-y-auto space-y-3 pr-1 scrollbar-thin">
             {logs.length === 0 ? (
-              <span className="text-xs text-text-muted">No actions logged.</span>
+              <span className="text-xs text-text-muted">Không có nhật ký hoạt động.</span>
             ) : (
               logs.map((log) => (
                 <div key={log.id} className="text-xs border-b border-border/40 pb-2.5 last:border-0 last:pb-0">
@@ -307,6 +314,76 @@ export default function DashboardPage() {
                   <span className="text-[9px] text-text-muted block mt-1">{formatTime(log.createdAt)}</span>
                 </div>
               ))
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Grid: Popular POIs & Language Breakdown */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Popular POIs */}
+        <div className="lg:col-span-2 bg-card border border-border rounded-2xl shadow-sm p-5 sm:p-6 flex flex-col gap-4">
+          <h3 className="font-display font-bold text-sm sm:text-base text-text-primary border-b border-border/40 pb-2.5">
+            Địa điểm nổi bật (Popular Spots)
+          </h3>
+          <div className="overflow-x-auto">
+            {summary?.popularPOIs && summary.popularPOIs.length > 0 ? (
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="text-text-secondary border-b border-border font-bold">
+                    <th className="pb-2 w-12 text-center">Hạng</th>
+                    <th className="pb-2">Tên địa điểm</th>
+                    <th className="pb-2 text-right">Lượt truy cập</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border/40 font-medium">
+                  {summary.popularPOIs.map((poi, idx) => (
+                    <tr key={poi.poiId} className="hover:bg-surface-alt/30 transition-colors">
+                      <td className="py-2.5 text-center font-bold text-text-muted">{idx + 1}</td>
+                      <td className="py-2.5 text-text-primary font-bold">{poi.poiName}</td>
+                      <td className="py-2.5 text-right font-mono text-primary font-bold">{poi.count} lượt</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : (
+              <div className="py-6 text-center text-text-muted">Chưa ghi nhận lượt ghé thăm nào.</div>
+            )}
+          </div>
+        </div>
+
+        {/* Language Breakdown */}
+        <div className="bg-card border border-border rounded-2xl shadow-sm p-5 sm:p-6 flex flex-col gap-4">
+          <h3 className="font-display font-bold text-sm sm:text-base text-text-primary border-b border-border/40 pb-2.5">
+            Ngôn ngữ sử dụng (Languages)
+          </h3>
+          <div className="flex-grow space-y-4">
+            {summary?.languageBreakdown && summary.languageBreakdown.length > 0 ? (
+              summary.languageBreakdown.map((item) => {
+                const total = summary.languageBreakdown.reduce((sum, i) => sum + i.count, 0) || 1;
+                const percent = Math.round((item.count / total) * 100);
+                const flag = item.languageCode === 'vi' ? '🇻🇳' : item.languageCode === 'en' ? '🇬🇧' : '🌐';
+                const name = item.languageCode === 'vi' ? 'Tiếng Việt' : item.languageCode === 'en' ? 'English' : item.languageCode.toUpperCase();
+                return (
+                  <div key={item.languageCode} className="space-y-1 text-xs">
+                    <div className="flex justify-between items-center font-semibold text-text-primary">
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-base">{flag}</span>
+                        <span>{name}</span>
+                      </span>
+                      <span className="font-mono text-primary font-bold">{percent}% ({item.count})</span>
+                    </div>
+                    <div className="w-full bg-surface-alt border border-border h-2 rounded-full overflow-hidden">
+                      <div 
+                        className="bg-primary h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${percent}%` }} 
+                      />
+                    </div>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="py-6 text-center text-text-muted">Chưa có dữ liệu ngôn ngữ.</div>
             )}
           </div>
         </div>

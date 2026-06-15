@@ -10,44 +10,13 @@ import {
 import { authApi } from '@/api/auth';
 
 function getStoredAuthKeys() {
-  const isAdminPath = window.location.pathname.startsWith('/admin');
-  const isOwnerPath = window.location.pathname.startsWith('/owner');
-
-  if (isAdminPath) {
-    return {
-      tokenKey: 'vk_admin_token',
-      refreshKey: 'vk_admin_refresh_token',
-      roleKey: 'vk_admin_role',
-      expiresKey: 'vk_admin_expires',
-      loginPath: '/admin/login',
-    };
-  } else if (isOwnerPath) {
-    return {
-      tokenKey: 'vk_owner_token',
-      refreshKey: 'vk_owner_refresh_token',
-      roleKey: 'vk_owner_role',
-      expiresKey: 'vk_owner_expires',
-      loginPath: '/owner/login',
-    };
-  } else {
-    const hasOwnerToken = !!localStorage.getItem('vk_owner_token');
-    if (hasOwnerToken) {
-      return {
-        tokenKey: 'vk_owner_token',
-        refreshKey: 'vk_owner_refresh_token',
-        roleKey: 'vk_owner_role',
-        expiresKey: 'vk_owner_expires',
-        loginPath: '/owner/login',
-      };
-    }
-    return {
-      tokenKey: 'vk_admin_token',
-      refreshKey: 'vk_admin_refresh_token',
-      roleKey: 'vk_admin_role',
-      expiresKey: 'vk_admin_expires',
-      loginPath: '/admin/login',
-    };
-  }
+  return {
+    tokenKey: 'vk_token',
+    refreshKey: 'vk_refresh_token',
+    roleKey: 'vk_role',
+    expiresKey: 'vk_expires',
+    loginPath: '/owner/login',
+  };
 }
 
 interface AuthContextValue {
@@ -55,8 +24,10 @@ interface AuthContextValue {
   refreshToken: string | null;
   role: string | null;
   isAuthenticated: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<string>;
   logout: () => void;
+  loginModalOpen: boolean;
+  setLoginModalOpen: (open: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -78,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [loginModalOpen, setLoginModalOpen] = useState(false);
 
   // On mount: restore from localStorage if token is still valid
   useEffect(() => {
@@ -94,31 +66,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(async (username: string, password: string) => {
     const keys = getStoredAuthKeys();
-    const isAdminPath = window.location.pathname.startsWith('/admin');
+    const { data } = await authApi.ownerLogin({ username, password });
 
-    if (isAdminPath) {
-      const { data } = await authApi.adminLogin({ username, password });
+    localStorage.setItem(keys.tokenKey, data.accessToken);
+    localStorage.setItem(keys.refreshKey, data.refreshToken);
+    localStorage.setItem(keys.roleKey, data.role);
+    localStorage.setItem(keys.expiresKey, data.expiresAt);
 
-      localStorage.setItem(keys.tokenKey, data.accessToken);
-      localStorage.setItem(keys.refreshKey, data.refreshToken);
-      localStorage.setItem(keys.roleKey, data.role);
-      localStorage.setItem(keys.expiresKey, data.expiresAt);
+    setToken(data.accessToken);
+    setRefreshToken(data.refreshToken);
+    setRole(data.role);
 
-      setToken(data.accessToken);
-      setRefreshToken(data.refreshToken);
-      setRole(data.role);
-    } else {
-      const { data } = await authApi.ownerLogin({ username, password });
-
-      localStorage.setItem(keys.tokenKey, data.accessToken);
-      localStorage.setItem(keys.refreshKey, data.refreshToken);
-      localStorage.setItem(keys.roleKey, 'owner');
-      localStorage.setItem(keys.expiresKey, data.expiresAt);
-
-      setToken(data.accessToken);
-      setRefreshToken(data.refreshToken);
-      setRole('owner');
-    }
+    return data.role;
   }, []);
 
   const logout = useCallback(() => {
@@ -141,8 +100,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: token !== null,
       login,
       logout,
+      loginModalOpen,
+      setLoginModalOpen,
     }),
-    [token, refreshToken, role, login, logout],
+    [token, refreshToken, role, login, logout, loginModalOpen],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

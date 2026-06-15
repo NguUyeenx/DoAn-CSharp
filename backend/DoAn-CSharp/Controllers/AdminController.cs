@@ -222,6 +222,177 @@ namespace DoAn_CSharp.Controllers
             // Placeholder: Call TTSService to regenerate this specific audio
             return Ok(new { message = $"Audio regeneration triggered for ID {id}." });
         }
+
+        // ── Comprehensive Owner Management ───────────────────────────
+
+        [HttpGet("owners")]
+        public async Task<IActionResult> GetAllOwners()
+        {
+            var owners = await _context.Owners
+                .Select(o => new
+                {
+                    o.Id,
+                    o.Username,
+                    o.Email,
+                    o.DisplayName,
+                    o.OwnerStatus,
+                    o.CreatedAt,
+                    o.LastLoginAt,
+                    o.AdminNote,
+                    PoiCount = _context.POIs.Count(p => p.OwnerId == o.Id && p.DeletedAt == null)
+                })
+                .ToListAsync();
+
+            return Ok(owners);
+        }
+
+        [HttpPut("owners/{id:int}/lock")]
+        public async Task<IActionResult> LockOwner(int id)
+        {
+            var owner = await _context.Owners.FindAsync(id);
+            if (owner == null) return NotFound("Owner not found.");
+
+            owner.OwnerStatus = "suspended";
+            owner.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Owner locked/suspended successfully." });
+        }
+
+        [HttpPut("owners/{id:int}/unlock")]
+        public async Task<IActionResult> UnlockOwner(int id)
+        {
+            var owner = await _context.Owners.FindAsync(id);
+            if (owner == null) return NotFound("Owner not found.");
+
+            owner.OwnerStatus = "approved";
+            owner.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Owner unlocked/approved successfully." });
+        }
+
+        [HttpPut("owners/{id:int}/reset-password")]
+        public async Task<IActionResult> ResetOwnerPassword(int id, [FromBody] ResetPasswordAdminDto dto)
+        {
+            var owner = await _context.Owners.FindAsync(id);
+            if (owner == null) return NotFound("Owner not found.");
+
+            owner.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            owner.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Owner password reset successfully." });
+        }
+
+        // ── Comprehensive POI Management ─────────────────────────────
+
+        [HttpPut("pois/{id:int}/owner")]
+        public async Task<IActionResult> UpdatePOIOwner(int id, [FromBody] ChangePOIOwnerDto dto)
+        {
+            var poi = await _context.POIs.FindAsync(id);
+            if (poi == null) return NotFound("POI not found.");
+
+            if (dto.OwnerId.HasValue)
+            {
+                var owner = await _context.Owners.FindAsync(dto.OwnerId.Value);
+                if (owner == null) return BadRequest("Owner not found.");
+            }
+
+            poi.OwnerId = dto.OwnerId;
+            poi.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "POI owner updated successfully." });
+        }
+
+        [HttpPost("pois/{id:int}/restore")]
+        public async Task<IActionResult> RestorePOI(int id)
+        {
+            var success = await _poiService.RestoreAsync(id);
+            if (!success) return NotFound("POI not found or not deleted.");
+
+            return Ok(new { message = "POI restored successfully." });
+        }
+
+        // ── Admin Notifications ───────────────────────────────────────
+
+        [HttpGet("notifications")]
+        public async Task<IActionResult> GetAdminNotifications()
+        {
+            var notifications = await _context.Notifications
+                .Where(n => n.OwnerId == null)
+                .OrderByDescending(n => n.CreatedAt)
+                .ToListAsync();
+            return Ok(notifications);
+        }
+
+        [HttpPut("notifications/{id:int}/read")]
+        public async Task<IActionResult> MarkNotificationAsRead(int id)
+        {
+            var notification = await _context.Notifications.FindAsync(id);
+            if (notification == null || notification.OwnerId != null) 
+                return NotFound();
+
+            notification.IsRead = true;
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Notification marked as read." });
+        }
+
+        [HttpPut("notifications/read-all")]
+        public async Task<IActionResult> MarkAllNotificationsAsRead()
+        {
+            var notifications = await _context.Notifications
+                .Where(n => n.OwnerId == null && !n.IsRead)
+                .ToListAsync();
+
+            foreach (var n in notifications)
+            {
+                n.IsRead = true;
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "All notifications marked as read." });
+        }
+
+        /// <summary>Upload audio thuyết minh riêng cho POI bởi Admin</summary>
+        [HttpPost("pois/{id:int}/custom-audio")]
+        public async Task<IActionResult> SaveCustomAudio(int id, [FromBody] CustomAudioUploadDto dto)
+        {
+            var poi = await _poiService.GetByIdAsync(id, "en");
+            if (poi == null) return NotFound();
+
+            var existingAudio = await _context.AudioFiles
+                .FirstOrDefaultAsync(a => a.TranslationType == Models.Entities.TranslationType.POI
+                                       && a.TranslationId == id
+                                       && a.LanguageCode.ToLower() == dto.LanguageCode.ToLower()
+                                       && a.AudioType == "custom");
+
+            if (existingAudio != null)
+            {
+                existingAudio.FilePath = dto.FilePath;
+                existingAudio.DurationSeconds = dto.DurationSeconds;
+                existingAudio.GeneratedAt = DateTime.UtcNow;
+            }
+            else
+            {
+                var audioFile = new Models.Entities.AudioFile
+                {
+                    TranslationType = Models.Entities.TranslationType.POI,
+                    TranslationId = id,
+                    LanguageCode = dto.LanguageCode,
+                    FilePath = dto.FilePath,
+                    DurationSeconds = dto.DurationSeconds,
+                    AudioType = "custom",
+                    IsDefault = true,
+                    GeneratedAt = DateTime.UtcNow
+                };
+                await _context.AudioFiles.AddAsync(audioFile);
+            }
+
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Custom audio saved successfully." });
+        }
     }
 
     public class RejectDto
@@ -244,5 +415,15 @@ namespace DoAn_CSharp.Controllers
         public string AnswerD { get; set; } = string.Empty;
         public char CorrectOption { get; set; }
         public string ExplanationText { get; set; } = string.Empty;
+    }
+
+    public class ResetPasswordAdminDto
+    {
+        public string NewPassword { get; set; } = string.Empty;
+    }
+
+    public class ChangePOIOwnerDto
+    {
+        public int? OwnerId { get; set; }
     }
 }

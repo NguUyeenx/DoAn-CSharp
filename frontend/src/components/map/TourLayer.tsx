@@ -22,14 +22,19 @@ export default function TourLayer({ tour, activeStopIndex, onStopClick }: TourLa
 
   const cleanupMarkers = () => {
     // Unmount all react roots
-    rootsRef.current.forEach((root) => {
-      try {
-        root.unmount();
-      } catch (e) {
-        // Already unmounted or error
-      }
-    });
+    const rootsToUnmount = [...rootsRef.current];
     rootsRef.current = [];
+
+    // Defer unmounting to avoid warning: "Attempted to synchronously unmount a root while React was already rendering"
+    setTimeout(() => {
+      rootsToUnmount.forEach((root) => {
+        try {
+          root.unmount();
+        } catch (e) {
+          // Already unmounted or error
+        }
+      });
+    }, 0);
 
     // Remove all mapbox markers
     markersRef.current.forEach((marker) => {

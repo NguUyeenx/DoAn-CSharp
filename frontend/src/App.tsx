@@ -1,6 +1,7 @@
 import React, { Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import LoginModal from '@/components/auth/LoginModal';
 
 // --- Lazy Load Public Pages ---
 const HomePage = React.lazy(() => import('@/pages/HomePage'));
@@ -21,7 +22,6 @@ const OwnerProfilePage = React.lazy(() => import('@/pages/owner/ProfilePage'));
 
 // --- Lazy Load Admin Pages ---
 const AdminLayout = React.lazy(() => import('@/components/layout/AdminLayout'));
-const AdminLoginPage = React.lazy(() => import('@/pages/admin/LoginPage'));
 const AdminDashboardPage = React.lazy(() => import('@/pages/admin/DashboardPage'));
 const AdminOwnerApprovalPage = React.lazy(() => import('@/pages/admin/OwnerApprovalPage'));
 const AdminPOIApprovalPage = React.lazy(() => import('@/pages/admin/POIApprovalPage'));
@@ -43,16 +43,20 @@ interface ProtectedRouteProps {
 }
 
 function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
-  const { isAuthenticated, role } = useAuth();
+  const { isAuthenticated, role, setLoginModalOpen } = useAuth();
+
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      setLoginModalOpen(true);
+    }
+  }, [isAuthenticated, setLoginModalOpen]);
 
   if (!isAuthenticated) {
-    const loginRedirectPath = allowedRole === 'admin' ? '/admin/login' : '/owner/login';
-    return <Navigate to={loginRedirectPath} replace />;
+    return <Navigate to="/" replace />;
   }
 
   if (role !== allowedRole) {
-    const loginRedirectPath = allowedRole === 'admin' ? '/admin/login' : '/owner/login';
-    return <Navigate to={loginRedirectPath} replace />;
+    return <Navigate to={role === 'admin' ? '/admin' : '/owner'} replace />;
   }
 
   return <>{children}</>;
@@ -69,6 +73,8 @@ function LoadingFallback() {
 }
 
 export default function App() {
+  const { loginModalOpen, setLoginModalOpen } = useAuth();
+
   return (
     <Suspense fallback={<LoadingFallback />}>
       <Routes>
@@ -104,7 +110,7 @@ export default function App() {
         </Route>
 
         {/* === Admin Panel Routes === */}
-        <Route path="/admin/login" element={<AdminLoginPage />} />
+        <Route path="/admin/login" element={<Navigate to="/owner/login" replace />} />
         
         <Route
           path="/admin"
@@ -135,6 +141,10 @@ export default function App() {
         {/* === Catch-All Redirection === */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {loginModalOpen && (
+        <LoginModal onClose={() => setLoginModalOpen(false)} />
+      )}
     </Suspense>
   );
 }

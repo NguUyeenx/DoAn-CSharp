@@ -40,6 +40,7 @@ export interface AuthResponseDto {
   accessToken:  string;
   refreshToken: string;
   expiresAt:    string;
+  role:         string;
   owner:        OwnerDto;
 }
 
