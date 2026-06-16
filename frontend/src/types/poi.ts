@@ -30,6 +30,7 @@ export interface POI {
   menuItemCount: number;
   distanceMeters?: number;
   isFavorite: boolean;
+  priceRange: string;
   images: POIImage[];
   operatingHours?: string;
   createdAt: string;
@@ -51,6 +52,7 @@ export interface POIListItem {
   isFavorite: boolean;
   rating: number;
   reviewCount: number;
+  priceRange: string;
 }
 
 export interface POIImage {

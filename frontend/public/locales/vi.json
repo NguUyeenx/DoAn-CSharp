@@ -38,6 +38,12 @@
     "noResultsTitle": "Không tìm thấy địa điểm",
     "noResultsDesc": "Thử tìm kiếm với từ khóa khác"
   },
+  "filter": {
+    "priceAll": "Tất cả",
+    "priceBudget": "Bình dân",
+    "priceMidrange": "Trung bình",
+    "priceUpscale": "Khá"
+  },
   "poi": {
     "address": "Địa chỉ",
     "category": "Danh mục",

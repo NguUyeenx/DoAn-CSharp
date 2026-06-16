@@ -51,6 +51,7 @@ export default function POIFormPage() {
   const [category, setCategory] = useState('');
   const [address, setAddress] = useState('');
   const [phone, setPhone] = useState('');
+  const [priceRange, setPriceRange] = useState('1');
   const [latitude, setLatitude] = useState(10.758);
   const [longitude, setLongitude] = useState(106.699);
   const [triggerRadiusMeters, setTriggerRadiusMeters] = useState(50);
@@ -119,6 +120,7 @@ export default function POIFormPage() {
         setCategory(data.category);
         setAddress(data.address || '');
         setPhone(data.phone || '');
+        setPriceRange(data.priceRange || '1');
         setLatitude(data.latitude);
         setLongitude(data.longitude);
         setTriggerRadiusMeters(data.triggerRadiusMeters);
@@ -397,6 +399,7 @@ export default function POIFormPage() {
       category,
       address,
       phone,
+      priceRange,
       latitude,
       longitude,
       triggerRadiusMeters,
@@ -520,8 +523,8 @@ export default function POIFormPage() {
               Thông tin chung
             </h3>
 
-            {/* Grid Category + Phone */}
-            <div className="grid grid-cols-2 gap-4">
+            {/* Grid Category + Phone + Price Range */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="flex flex-col gap-1">
                 <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
                   {t('owner.pois.fieldCategory', 'Danh mục')} *
@@ -537,6 +540,22 @@ export default function POIFormPage() {
                       {i18n.language === 'vi' ? cat.name : cat.nameEn}
                     </option>
                   ))}
+                </select>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+                  {t('poi.priceRange', 'Mức giá')} *
+                </label>
+                <select
+                  disabled={saving}
+                  value={priceRange}
+                  onChange={(e) => setPriceRange(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none cursor-pointer"
+                >
+                  <option value="1">{t('filter.priceBudget', 'Bình dân')}</option>
+                  <option value="2">{t('filter.priceMidrange', 'Trung bình')}</option>
+                  <option value="3">{t('filter.priceUpscale', 'Khá')}</option>
                 </select>
               </div>
 

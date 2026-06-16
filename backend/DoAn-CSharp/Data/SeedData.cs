@@ -65,20 +65,102 @@ namespace DoAn_CSharp.Data
 
             if (!await context.Tours.AnyAsync())
             {
-                var tour = new Tour
+                var tours = new[]
                 {
-                    Name = "Khám phá Ốc Vĩnh Khánh",
-                    Description = "Hành trình trải nghiệm các quán ốc huyền thoại trên con đường sầm uất nhất Quận 4.",
-                    EstimatedMinutes = 60,
-                    DistanceKm = 1.5,
-                    IsActive = true,
-                    Stops = new List<TourStop>
+                    new Tour
                     {
-                        new TourStop { POIId = 1, StopOrder = 1, TransitionNote = "Bắt đầu tại Ốc Oanh." },
-                        new TourStop { POIId = 2, StopOrder = 2, TransitionNote = "Đi bộ xuống cuối đường đến Ốc Đào." }
+                        Name = "Seafood Discovery Tour",
+                        Description = "Tuyến tham quan dành cho du khách muốn khám phá văn hóa hải sản đường phố đặc trưng của Quận 4 với các món ốc, sò, cua, ghẹ và hải sản tươi sống.",
+                        EstimatedMinutes = 90,
+                        DistanceKm = 0.8,
+                        IsActive = true,
+                        Stops = new List<TourStop>
+                        {
+                            new TourStop { POIId = 1, StopOrder = 1, TransitionNote = "Đi bộ 120m về hướng Bắc đến Ốc Đào." },
+                            new TourStop { POIId = 2, StopOrder = 2, TransitionNote = "Tiếp tục đi bộ 150m đến Ốc Vũ." },
+                            new TourStop { POIId = 4, StopOrder = 3, TransitionNote = "Đi bộ 200m đến Hải Sản Biển Ngọc." },
+                            new TourStop { POIId = 9, StopOrder = 4, TransitionNote = "Đi thêm 180m để đến Ốc Đêm Vĩnh Khánh." },
+                            new TourStop { POIId = 10, StopOrder = 5, TransitionNote = "Kết thúc hành trình khám phá hải sản." }
+                        }
+                    },
+                    new Tour
+                    {
+                        Name = "Best Of Vĩnh Khánh",
+                        Description = "Tuyến tham quan tổng hợp những món ăn nổi bật nhất tại khu phố Vĩnh Khánh từ hải sản, món nướng, món Việt cho đến cà phê thư giãn.",
+                        EstimatedMinutes = 120,
+                        DistanceKm = 1.2,
+                        IsActive = true,
+                        Stops = new List<TourStop>
+                        {
+                            new TourStop { POIId = 1, StopOrder = 1, TransitionNote = "Di chuyển 250m đến Quán Nhậu Tự Do." },
+                            new TourStop { POIId = 12, StopOrder = 2, TransitionNote = "Đi bộ 180m đến Bò Nướng Vĩnh Khánh." },
+                            new TourStop { POIId = 15, StopOrder = 3, TransitionNote = "Đi tiếp 120m đến Bún Thái Hải Sản Vĩnh Khánh." },
+                            new TourStop { POIId = 18, StopOrder = 4, TransitionNote = "Đi thêm 220m đến Cafe Vĩnh Khánh Corner." },
+                            new TourStop { POIId = 19, StopOrder = 5, TransitionNote = "Thư giãn và kết thúc tour tại quán cà phê." }
+                        }
+                    },
+                    new Tour
+                    {
+                        Name = "Vĩnh Khánh By Night",
+                        Description = "Trải nghiệm không khí náo nhiệt của phố ẩm thực về đêm, thưởng thức các món ăn nóng hổi và kết thúc bằng một ly cà phê thư giãn.",
+                        EstimatedMinutes = 150,
+                        DistanceKm = 1.5,
+                        IsActive = true,
+                        Stops = new List<TourStop>
+                        {
+                            new TourStop { POIId = 10, StopOrder = 1, TransitionNote = "Đi bộ 150m đến Ốc Phát." },
+                            new TourStop { POIId = 6, StopOrder = 2, TransitionNote = "Di chuyển 300m đến Thế Giới Bò." },
+                            new TourStop { POIId = 14, StopOrder = 3, TransitionNote = "Đi tiếp 200m đến Thuận Việt BBQ & Hotpot." },
+                            new TourStop { POIId = 13, StopOrder = 4, TransitionNote = "Đi bộ 450m đến Riverside Coffee Q4." },
+                            new TourStop { POIId = 20, StopOrder = 5, TransitionNote = "Kết thúc hành trình ẩm thực đêm." }
+                        }
+                    },
+                    new Tour
+                    {
+                        Name = "Family & Friends Tour",
+                        Description = "Tuyến phù hợp cho gia đình hoặc nhóm đông người với không gian rộng rãi, thực đơn đa dạng và nhiều lựa chọn phù hợp cho mọi lứa tuổi.",
+                        EstimatedMinutes = 180,
+                        DistanceKm = 1.0,
+                        IsActive = true,
+                        Stops = new List<TourStop>
+                        {
+                            new TourStop { POIId = 11, StopOrder = 1, TransitionNote = "Đi bộ 180m đến Hải Sản Biển Ngọc." },
+                            new TourStop { POIId = 9, StopOrder = 2, TransitionNote = "Di chuyển 280m đến Thuận Việt BBQ & Hotpot." },
+                            new TourStop { POIId = 13, StopOrder = 3, TransitionNote = "Đi tiếp 240m đến Bánh Xèo Miền Tây." },
+                            new TourStop { POIId = 17, StopOrder = 4, TransitionNote = "Đi thêm 300m đến Riverside Coffee Q4." },
+                            new TourStop { POIId = 20, StopOrder = 5, TransitionNote = "Kết thúc buổi họp mặt gia đình." }
+                        }
+                    },
+                    new Tour
+                    {
+                        Name = "Hương Vị Việt Nam",
+                        Description = "Khám phá những món ăn mang đậm bản sắc Việt Nam từ miền Trung đến miền Tây Nam Bộ.",
+                        EstimatedMinutes = 120,
+                        DistanceKm = 0.9,
+                        IsActive = true,
+                        Stops = new List<TourStop>
+                        {
+                            new TourStop { POIId = 16, StopOrder = 1, TransitionNote = "Đi bộ 260m đến Bún Thái Hải Sản Vĩnh Khánh." },
+                            new TourStop { POIId = 18, StopOrder = 2, TransitionNote = "Đi bộ 220m đến Bánh Xèo Miền Tây." },
+                            new TourStop { POIId = 17, StopOrder = 3, TransitionNote = "Di chuyển 350m đến Lãng Restaurant." },
+                            new TourStop { POIId = 11, StopOrder = 4, TransitionNote = "Kết thúc hành trình khám phá ẩm thực Việt." }
+                        }
+                    },
+                    new Tour
+                    {
+                        Name = "Coffee Explorer",
+                        Description = "Tuyến tham quan nhẹ nhàng dành cho du khách muốn nghỉ ngơi, chụp ảnh và thưởng thức đồ uống trong không gian thư giãn.",
+                        EstimatedMinutes = 60,
+                        DistanceKm = 0.5,
+                        IsActive = true,
+                        Stops = new List<TourStop>
+                        {
+                            new TourStop { POIId = 19, StopOrder = 1, TransitionNote = "Đi bộ 500m dọc bờ sông đến Riverside Coffee Q4." },
+                            new TourStop { POIId = 20, StopOrder = 2, TransitionNote = "Thư giãn ngắm cảnh và kết thúc tour." }
+                        }
                     }
                 };
-                await context.Tours.AddAsync(tour);
+                await context.Tours.AddRangeAsync(tours);
                 await context.SaveChangesAsync();
             }
         }
@@ -99,6 +181,7 @@ namespace DoAn_CSharp.Data
                 Priority = 10,
                 Rating = 4.2,
                 ReviewCount = 500,
+                PriceRange = "2",
                 ImageUrl = "http://localhost:5011/imgs/ocOanh.jpg",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.761,106.7045",
                 IsActive = true,
@@ -125,6 +208,7 @@ namespace DoAn_CSharp.Data
                 Priority = 9,
                 Rating = 4.3,
                 ReviewCount = 550,
+                PriceRange = "2",
                 ImageUrl = "http://localhost:5011/imgs/ocDao.jpg",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7585,106.7021",
                 IsActive = true,
@@ -151,6 +235,7 @@ namespace DoAn_CSharp.Data
                 Priority = 8,
                 Rating = 4.4,
                 ReviewCount = 600,
+                PriceRange = "1",
                 ImageUrl = "http://localhost:5011/imgs/ocSauNo.jpg",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.762,106.705",
                 IsActive = true,
@@ -177,6 +262,7 @@ namespace DoAn_CSharp.Data
                 Priority = 10,
                 Rating = 4.5,
                 ReviewCount = 650,
+                PriceRange = "1",
                 ImageUrl = "http://localhost:5011/imgs/ocVu.jpg",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.763,106.7065",
                 IsActive = true,
@@ -203,6 +289,7 @@ namespace DoAn_CSharp.Data
                 Priority = 9,
                 Rating = 4.6,
                 ReviewCount = 700,
+                PriceRange = "1",
                 ImageUrl = "http://localhost:5011/imgs/ocThao.jpg",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.764,106.708",
                 IsActive = true,
@@ -229,6 +316,7 @@ namespace DoAn_CSharp.Data
                 Priority = 8,
                 Rating = 4.7,
                 ReviewCount = 750,
+                PriceRange = "1",
                 ImageUrl = "http://localhost:5011/imgs/ocPhat.jpg",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7615,106.7048",
                 IsActive = true,
@@ -255,6 +343,7 @@ namespace DoAn_CSharp.Data
                 Priority = 10,
                 Rating = 4.2,
                 ReviewCount = 800,
+                PriceRange = "1",
                 ImageUrl = "http://localhost:5011/imgs/ocTo.jpg",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.759,106.703",
                 IsActive = true,
@@ -281,6 +370,7 @@ namespace DoAn_CSharp.Data
                 Priority = 9,
                 Rating = 4.3,
                 ReviewCount = 850,
+                PriceRange = "1",
                 ImageUrl = "https://images.unsplash.com/photo-1560717845-968823efbee1?auto=format&fit=crop&q=80&w=800",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.76,106.704",
                 IsActive = true,
@@ -307,6 +397,7 @@ namespace DoAn_CSharp.Data
                 Priority = 8,
                 Rating = 4.4,
                 ReviewCount = 900,
+                PriceRange = "2",
                 ImageUrl = "https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?auto=format&fit=crop&q=80&w=800",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7635,106.7075",
                 IsActive = true,
@@ -333,6 +424,7 @@ namespace DoAn_CSharp.Data
                 Priority = 10,
                 Rating = 4.5,
                 ReviewCount = 950,
+                PriceRange = "1",
                 ImageUrl = "http://localhost:5011/imgs/ocDemVinhKhanh.jpg",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7625,106.706",
                 IsActive = true,
@@ -359,6 +451,7 @@ namespace DoAn_CSharp.Data
                 Priority = 9,
                 Rating = 4.6,
                 ReviewCount = 1000,
+                PriceRange = "3",
                 ImageUrl = "https://images.unsplash.com/photo-1514933651103-005eec06c04b?auto=format&fit=crop&q=80&w=800",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7605,106.7042",
                 IsActive = true,
@@ -385,6 +478,7 @@ namespace DoAn_CSharp.Data
                 Priority = 8,
                 Rating = 4.7,
                 ReviewCount = 1050,
+                PriceRange = "2",
                 ImageUrl = "https://images.unsplash.com/photo-1572116469696-31de0f17cc34?auto=format&fit=crop&q=80&w=800",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7645,106.7085",
                 IsActive = true,
@@ -411,6 +505,7 @@ namespace DoAn_CSharp.Data
                 Priority = 10,
                 Rating = 4.2,
                 ReviewCount = 1100,
+                PriceRange = "2",
                 ImageUrl = "http://localhost:5011/imgs/thuanVietBBQ.jpg",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7618,106.7052",
                 IsActive = true,
@@ -437,6 +532,7 @@ namespace DoAn_CSharp.Data
                 Priority = 9,
                 Rating = 4.3,
                 ReviewCount = 1150,
+                PriceRange = "2",
                 ImageUrl = "https://images.unsplash.com/photo-1558030006-450675393462?auto=format&fit=crop&q=80&w=800",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7592,106.7028",
                 IsActive = true,
@@ -463,6 +559,7 @@ namespace DoAn_CSharp.Data
                 Priority = 8,
                 Rating = 4.4,
                 ReviewCount = 1200,
+                PriceRange = "2",
                 ImageUrl = "https://images.unsplash.com/photo-1529692236671-f1f6cf9683ba?auto=format&fit=crop&q=80&w=800",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7632,106.7068",
                 IsActive = true,
@@ -489,6 +586,7 @@ namespace DoAn_CSharp.Data
                 Priority = 10,
                 Rating = 4.5,
                 ReviewCount = 1250,
+                PriceRange = "1",
                 ImageUrl = "http://localhost:5011/imgs/nemNuong.jpg",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7602,106.7035",
                 IsActive = true,
@@ -515,6 +613,7 @@ namespace DoAn_CSharp.Data
                 Priority = 9,
                 Rating = 4.6,
                 ReviewCount = 1300,
+                PriceRange = "1",
                 ImageUrl = "https://images.unsplash.com/photo-1564834724105-918b73d1b9e0?auto=format&fit=crop&q=80&w=800",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7642,106.7082",
                 IsActive = true,
@@ -541,6 +640,7 @@ namespace DoAn_CSharp.Data
                 Priority = 8,
                 Rating = 4.7,
                 ReviewCount = 1350,
+                PriceRange = "1",
                 ImageUrl = "https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&q=80&w=800",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7612,106.704",
                 IsActive = true,
@@ -567,6 +667,7 @@ namespace DoAn_CSharp.Data
                 Priority = 10,
                 Rating = 4.2,
                 ReviewCount = 1400,
+                PriceRange = "1",
                 ImageUrl = "http://localhost:5011/imgs/cafeVinhKhanh.jpg",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7588,106.7018",
                 IsActive = true,
@@ -593,6 +694,7 @@ namespace DoAn_CSharp.Data
                 Priority = 9,
                 Rating = 4.3,
                 ReviewCount = 1450,
+                PriceRange = "2",
                 ImageUrl = "https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&q=80&w=800",
                 GoogleMapsUrl = "https://maps.google.com/?q=10.7655,106.7095",
                 IsActive = true,

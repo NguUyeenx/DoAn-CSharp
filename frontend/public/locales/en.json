@@ -38,6 +38,12 @@
     "noResultsTitle": "No places found",
     "noResultsDesc": "Try a different search term or filter"
   },
+  "filter": {
+    "priceAll": "All",
+    "priceBudget": "Budget",
+    "priceMidrange": "Mid-range",
+    "priceUpscale": "Upscale"
+  },
   "poi": {
     "address": "Address",
     "category": "Category",

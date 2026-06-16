@@ -414,6 +414,13 @@ function SheetContent({
           <span className="px-2.5 py-0.5 bg-primary/5 border border-primary/20 text-primary text-xs font-semibold rounded-[var(--radius-sm)] capitalize">
             {poi.category}
           </span>
+          {poi.priceRange && (
+            <span className="px-2.5 py-0.5 bg-primary/10 border border-primary/20 text-primary text-xs font-semibold rounded-[var(--radius-sm)]">
+              {poi.priceRange === '1' && t('filter.priceBudget', 'Bình dân')}
+              {poi.priceRange === '2' && t('filter.priceMidrange', 'Trung bình')}
+              {poi.priceRange === '3' && t('filter.priceUpscale', 'Khá')}
+            </span>
+          )}
           {checkIsOpen(poi.operatingHours) === 'open' && (
             <span className="px-2 py-0.5 bg-teal-500/10 border border-teal-500/20 text-teal-600 text-[10px] font-bold rounded">
               {t('poi.openNow', 'Đang mở cửa')}

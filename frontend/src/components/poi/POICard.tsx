@@ -12,14 +12,11 @@ interface POICardProps {
 
 export default function POICard({ poi, onClick, onToggleFavorite }: POICardProps) {
   const { t } = useTranslation();
-  const [isFavoriteState, setIsFavoriteState] = useState(poi.isFavorite);
 
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    const newFav = !isFavoriteState;
-    setIsFavoriteState(newFav);
     if (onToggleFavorite) {
-      onToggleFavorite(poi.id, newFav);
+      onToggleFavorite(poi.id, !poi.isFavorite);
     }
   };
 
@@ -81,13 +78,13 @@ export default function POICard({ poi, onClick, onToggleFavorite }: POICardProps
               onClick={handleFavoriteClick}
               className={`
                 p-1.5 rounded-full border border-border hover:border-border-hover bg-card hover:bg-surface-alt transition-all cursor-pointer outline-none active:scale-90
-                ${isFavoriteState ? 'text-danger border-danger-light bg-danger/5 hover:bg-danger/10' : 'text-text-muted hover:text-text-primary'}
+                ${poi.isFavorite ? 'text-danger border-danger-light bg-danger/5 hover:bg-danger/10' : 'text-text-muted hover:text-text-primary'}
               `}
-              aria-label={isFavoriteState ? t('poi.removeFavorite', 'Remove from favorites') : t('poi.addFavorite', 'Add to favorites')}
+              aria-label={poi.isFavorite ? t('poi.removeFavorite', 'Remove from favorites') : t('poi.addFavorite', 'Add to favorites')}
             >
               <Heart
                 size={15}
-                className={isFavoriteState ? 'fill-current animate-scale-in' : ''}
+                className={poi.isFavorite ? 'fill-current animate-scale-in' : ''}
               />
             </button>
           </div>
@@ -110,6 +107,15 @@ export default function POICard({ poi, onClick, onToggleFavorite }: POICardProps
             {poi.reviewCount > 0 && (
               <span className="text-text-muted">
                 ({poi.reviewCount} {t('poi.reviews', 'reviews')})
+              </span>
+            )}
+
+            {/* Price Badge */}
+            {poi.priceRange && (
+              <span className="inline-flex items-center px-1.5 py-0.5 bg-primary/10 text-primary font-bold rounded-[var(--radius-sm)] text-[10px] border border-primary/20">
+                {poi.priceRange === '1' && t('filter.priceBudget', 'Bình dân')}
+                {poi.priceRange === '2' && t('filter.priceMidrange', 'Trung bình')}
+                {poi.priceRange === '3' && t('filter.priceUpscale', 'Khá')}
               </span>
             )}
           </div>

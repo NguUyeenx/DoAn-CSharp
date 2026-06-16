@@ -70,14 +70,14 @@ export default function FilterPanel({
 
   return (
     <div className={cn('w-full py-2 bg-card', className)}>
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+      <div className="flex flex-col gap-3 text-xs">
         
-        {/* Dropdowns Group (Category, Sort, Price) */}
-        <div className="flex flex-wrap items-center gap-3 sm:gap-4 min-w-0 flex-1">
+        {/* Top Row: Category and Toggles */}
+        <div className="flex items-center justify-between gap-3 w-full">
           {/* Category Dropdown */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-text-muted text-xs font-semibold font-display">Danh mục:</span>
-            <div className="relative flex items-center">
+          <div className="flex flex-col gap-1 shrink-0">
+            <span className="text-text-muted text-[10px] uppercase font-bold font-display tracking-wider">Danh mục</span>
+            <div className="relative flex items-center w-max">
               <select
                 value={selectedCategory || 'all'}
                 onChange={(e) => onCategoryChange(e.target.value === 'all' ? null : e.target.value)}
@@ -96,12 +96,45 @@ export default function FilterPanel({
             </div>
           </div>
 
-          {/* Divider */}
-          <span className="h-3 w-[1px] bg-border/60 shrink-0 hidden sm:inline-block" />
-
-          {/* Sort dropdown */}
+          {/* Favorites and Distance Toggles */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <ArrowUpDown size={13} className="text-text-muted shrink-0" />
+            {/* Favorites filter toggle */}
+            <button
+              type="button"
+              onClick={() => onShowFavoritesOnlyChange?.(!showFavoritesOnly)}
+              className={cn(
+                'p-1.5 rounded-lg border transition-all duration-200 outline-none cursor-pointer',
+                showFavoritesOnly
+                  ? 'bg-primary/10 border-primary text-primary font-bold shadow-xs'
+                  : 'border-border bg-card text-text-secondary hover:text-text-primary hover:border-border-hover'
+              )}
+              title={t('filter.favorites', 'Danh sách yêu thích')}
+            >
+              <Heart size={13} className={cn(showFavoritesOnly && 'fill-current')} />
+            </button>
+
+            {/* Distance filter (<1km) toggle */}
+            <button
+              type="button"
+              onClick={() => onShowNearbyOnlyChange?.(!showNearbyOnly)}
+              className={cn(
+                'p-1.5 rounded-lg border transition-all duration-200 outline-none cursor-pointer',
+                showNearbyOnly
+                  ? 'bg-primary/10 border-primary text-primary font-bold shadow-xs'
+                  : 'border-border bg-card text-text-secondary hover:text-text-primary hover:border-border-hover'
+              )}
+              title={t('filter.nearby', 'Khoảng cách gần (<1km)')}
+            >
+              <MapPin size={13} />
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom Row: Sort & Price Group */}
+        <div className="flex flex-col gap-1 shrink-0">
+          <span className="text-text-muted text-[10px] uppercase font-bold font-display tracking-wider">{t('filter.sortLabel', 'Sắp xếp')}</span>
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+            {/* Sort dropdown */}
             <div className="relative flex items-center">
               <select
                 value={sortBy}
@@ -114,62 +147,30 @@ export default function FilterPanel({
               </select>
               <ChevronDown size={10} className="absolute right-0 text-text-muted pointer-events-none" />
             </div>
-          </div>
 
-          {/* Divider */}
-          <span className="h-3 w-[1px] bg-border/60 shrink-0 hidden sm:inline-block" />
+            {/* Divider */}
+            <span className="h-3 w-[1px] bg-border/60 shrink-0" />
 
-          {/* Price dropdown */}
-          <div className="flex items-center gap-1.5 shrink-0">
-            <span className="text-text-muted text-xs font-semibold font-display">Giá:</span>
-            <div className="relative flex items-center">
-              <select
-                value={selectedPrice || 'all'}
-                onChange={(e) => onPriceChange?.(e.target.value === 'all' ? null : e.target.value)}
-                className="appearance-none bg-transparent font-bold text-xs text-primary cursor-pointer outline-none border-none py-1 pr-4 font-mono"
-              >
-                <option value="all">{t('filter.priceAll', 'Tất cả')}</option>
-                <option value="1">$</option>
-                <option value="2">$$</option>
-                <option value="3">$$$</option>
-              </select>
-              <ChevronDown size={10} className="absolute right-0 text-primary pointer-events-none" />
+            {/* Price dropdown */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-text-muted text-xs font-semibold font-display">{t('poi.priceRange', 'Giá')}:</span>
+              <div className="relative flex items-center">
+                <select
+                  value={selectedPrice || 'all'}
+                  onChange={(e) => onPriceChange?.(e.target.value === 'all' ? null : e.target.value)}
+                  className="appearance-none bg-transparent font-bold text-xs text-primary cursor-pointer outline-none border-none py-1 pr-4"
+                >
+                  <option value="all">{t('filter.priceAll', 'Tất cả')}</option>
+                  <option value="1">{t('filter.priceBudget', 'Bình dân')}</option>
+                  <option value="2">{t('filter.priceMidrange', 'Trung bình')}</option>
+                  <option value="3">{t('filter.priceUpscale', 'Khá')}</option>
+                </select>
+                <ChevronDown size={10} className="absolute right-0 text-primary pointer-events-none" />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Favorites and Distance Toggles */}
-        <div className="flex items-center gap-1.5 shrink-0 border-l border-border/50 pl-2.5">
-          {/* Favorites filter toggle */}
-          <button
-            type="button"
-            onClick={() => onShowFavoritesOnlyChange?.(!showFavoritesOnly)}
-            className={cn(
-              'p-1.5 rounded-lg border transition-all duration-200 outline-none cursor-pointer',
-              showFavoritesOnly
-                ? 'bg-primary/10 border-primary text-primary font-bold shadow-xs'
-                : 'border-border bg-card text-text-secondary hover:text-text-primary hover:border-border-hover'
-            )}
-            title={t('filter.favorites', 'Danh sách yêu thích')}
-          >
-            <Heart size={13} className={cn(showFavoritesOnly && 'fill-current')} />
-          </button>
-
-          {/* Distance filter (<1km) toggle */}
-          <button
-            type="button"
-            onClick={() => onShowNearbyOnlyChange?.(!showNearbyOnly)}
-            className={cn(
-              'p-1.5 rounded-lg border transition-all duration-200 outline-none cursor-pointer',
-              showNearbyOnly
-                ? 'bg-primary/10 border-primary text-primary font-bold shadow-xs'
-                : 'border-border bg-card text-text-secondary hover:text-text-primary hover:border-border-hover'
-            )}
-            title={t('filter.nearby', 'Khoảng cách gần (<1km)')}
-          >
-            <MapPin size={13} />
-          </button>
-        </div>
       </div>
     </div>
   );

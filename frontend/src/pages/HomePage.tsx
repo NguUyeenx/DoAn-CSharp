@@ -16,6 +16,8 @@ import { usePOIs } from '@/hooks/usePOIs';
 import { useTours } from '@/hooks/useTours';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useMapbox } from '@/hooks/useMapbox';
+import { useFavorites } from '@/hooks/useFavorites';
+import { DEFAULT_CENTER } from '@/utils/constants';
 
 // Helper to calculate distance in meters using Haversine formula
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -44,6 +46,7 @@ export default function HomePage() {
   const { pois, loading: poisLoading, fetchPOIs } = usePOIs();
   const { tours, selectedTour, loading: toursLoading, fetchTours, fetchTourById, setSelectedTour } = useTours();
   const { flyTo } = useMapbox();
+  const { favorites, toggleFavorite } = useFavorites();
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -52,6 +55,22 @@ export default function HomePage() {
   const [sortBy, setSortBy] = useState<string>('default');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState<boolean>(false);
   const [showNearbyOnly, setShowNearbyOnly] = useState<boolean>(false);
+
+  const handleNearbyToggle = (show: boolean) => {
+    if (show && !position) {
+      alert(t('map.locationRequired', 'Please enable GPS/location services to use this feature.'));
+      return;
+    }
+    setShowNearbyOnly(show);
+  };
+
+  const handleSortChange = (sort: string) => {
+    if (sort === 'distance' && !position) {
+      alert(t('map.locationRequired', 'Please enable GPS/location services to use this feature.'));
+      return;
+    }
+    setSortBy(sort);
+  };
 
   // Selection states — two separate: popup (marker highlight) vs detail sheet
   const [popupPoiId, setPopupPoiId] = useState<number | null>(null);
@@ -94,9 +113,10 @@ export default function HomePage() {
       return {
         ...poi,
         distanceMeters: distance,
+        isFavorite: favorites.includes(poi.id),
       };
     });
-  }, [pois, position]);
+  }, [pois, position, favorites]);
 
   // Filtered & Sorted POIs
   const filteredPOIs = useMemo(() => {
@@ -108,7 +128,7 @@ export default function HomePage() {
       
       const matchesCategory = selectedCategory ? item.category.toLowerCase() === selectedCategory.toLowerCase() : true;
       
-      const matchesPrice = priceFilter ? ((item.id % 3) + 1).toString() === priceFilter : true;
+      const matchesPrice = priceFilter ? item.priceRange === priceFilter : true;
       
       const matchesFavorite = showFavoritesOnly ? item.isFavorite : true;
       
@@ -356,11 +376,11 @@ export default function HomePage() {
                     selectedPrice={priceFilter}
                     onPriceChange={setPriceFilter}
                     sortBy={sortBy}
-                    onSortByChange={setSortBy}
+                    onSortByChange={handleSortChange}
                     showFavoritesOnly={showFavoritesOnly}
                     onShowFavoritesOnlyChange={setShowFavoritesOnly}
                     showNearbyOnly={showNearbyOnly}
-                    onShowNearbyOnlyChange={setShowNearbyOnly}
+                    onShowNearbyOnlyChange={handleNearbyToggle}
                   />
                 </div>
 
@@ -385,6 +405,7 @@ export default function HomePage() {
                       key={poi.id}
                       poi={poi}
                       onClick={() => handleSelectPoi(poi.id, poi.latitude, poi.longitude)}
+                      onToggleFavorite={(id) => toggleFavorite(id)}
                     />
                   ))}
                 </div>
@@ -491,11 +512,11 @@ export default function HomePage() {
               selectedPrice={priceFilter}
               onPriceChange={setPriceFilter}
               sortBy={sortBy}
-              onSortByChange={setSortBy}
+              onSortByChange={handleSortChange}
               showFavoritesOnly={showFavoritesOnly}
               onShowFavoritesOnlyChange={setShowFavoritesOnly}
               showNearbyOnly={showNearbyOnly}
-              onShowNearbyOnlyChange={setShowNearbyOnly}
+              onShowNearbyOnlyChange={handleNearbyToggle}
             />
           </div>
 
@@ -511,6 +532,7 @@ export default function HomePage() {
                   key={poi.id}
                   poi={poi}
                   onClick={() => handleSelectPoi(poi.id, poi.latitude, poi.longitude)}
+                  onToggleFavorite={(id) => toggleFavorite(id)}
                 />
               ))
             )}

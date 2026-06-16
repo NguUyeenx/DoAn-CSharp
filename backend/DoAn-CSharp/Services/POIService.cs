@@ -138,6 +138,7 @@ namespace DoAn_CSharp.Services
                 OwnerId = ownerId,
                 ApprovalStatus = ownerId.HasValue ? "pending" : "approved",
                 OperatingHours = dto.OperatingHours,
+                PriceRange = dto.PriceRange,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -182,6 +183,7 @@ namespace DoAn_CSharp.Services
             if (dto.IsActive.HasValue) poi.IsActive = dto.IsActive.Value;
             if (dto.ApprovalStatus != null) poi.ApprovalStatus = dto.ApprovalStatus;
             if (dto.OperatingHours != null) poi.OperatingHours = dto.OperatingHours;
+            if (dto.PriceRange != null) poi.PriceRange = dto.PriceRange;
 
             poi.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
@@ -251,6 +253,9 @@ namespace DoAn_CSharp.Services
                 ShortDescription = translation?.ShortDescription ?? string.Empty,
                 OwnerId = poi.OwnerId,
                 ApprovalStatus = poi.ApprovalStatus,
+                Rating = poi.Rating,
+                ReviewCount = poi.ReviewCount,
+                PriceRange = poi.PriceRange,
                 DistanceMeters = null // Populated in GetNearbyAsync
             };
         }
@@ -283,6 +288,9 @@ namespace DoAn_CSharp.Services
                 IsActive = poi.IsActive,
                 OwnerId = poi.OwnerId,
                 ApprovalStatus = poi.ApprovalStatus,
+                Rating = poi.Rating,
+                ReviewCount = poi.ReviewCount,
+                PriceRange = poi.PriceRange,
                 LocalizedName = translation?.Name ?? poi.Name,
                 ShortDescription = translation?.ShortDescription ?? string.Empty,
                 FullDescription = translation?.FullDescription ?? string.Empty,

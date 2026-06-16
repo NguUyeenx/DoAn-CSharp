@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { audioApi } from '@/api/audio';
+import { translationsApi } from '@/api/translations';
 import { formatDuration } from '@/utils/format';
-import { Play, Pause, Volume2, VolumeX, AlertCircle, Headphones } from 'lucide-react';
+import { Play, Pause, Volume2, VolumeX, AlertCircle, Headphones, Globe } from 'lucide-react';
 
 interface AudioPlayerProps {
   poiId: number;
@@ -14,6 +15,31 @@ interface AudioPlayerProps {
 // Fixed pseudo-random idle bar heights (seeded by index) to look organic, not all flat
 const IDLE_BAR_HEIGHTS = [4, 8, 6, 10, 5, 12, 7, 9, 4, 11, 6, 8];
 
+const LANGUAGES = [
+  { code: 'vi', name: 'Tiếng Việt', flag: '🇻🇳' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'ja', name: '日本語', flag: '🇯🇵' },
+  { code: 'ko', name: '한국어', flag: '🇰🇷' },
+  { code: 'zh', name: '中文', flag: '🇨🇳' },
+  { code: 'fr', name: 'Français', flag: '🇫🇷' },
+  { code: 'es', name: 'Español', flag: '🇪🇸' },
+  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
+  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
+  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
+  { code: 'pt', name: 'Português', flag: '🇵🇹' },
+  { code: 'th', name: 'ภาษาไทย', flag: '🇹🇭' },
+  { code: 'id', name: 'Bahasa Indonesia', flag: '🇮🇩' },
+  { code: 'ms', name: 'Bahasa Melayu', flag: '🇲🇾' },
+  { code: 'hi', name: 'हिन्दी', flag: '🇮🇳' },
+  { code: 'ar', name: 'العربية', flag: '🇸🇦' },
+  { code: 'nl', name: 'Nederlands', flag: '🇳🇱' },
+  { code: 'pl', name: 'Polski', flag: '🇵🇱' },
+  { code: 'tr', name: 'Türkçe', flag: '🇹🇷' },
+  { code: 'sv', name: 'Svenska', flag: '🇸🇪' },
+  { code: 'fil', name: 'Filipino', flag: '🇵🇭' },
+  { code: 'km', name: 'ភាសាខ្មែរ', flag: '🇰🇭' },
+];
+
 export default function AudioPlayer({
   poiId,
   audioText = '',
@@ -22,8 +48,10 @@ export default function AudioPlayer({
 }: AudioPlayerProps) {
   const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  
-  const [resolvedUrl, setResolvedUrl] = useState<string | null>(audioUrl || null);
+
+  const [activeLang, setActiveLang] = useState(languageCode);
+  const [activeText, setActiveText] = useState(audioText);
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -33,15 +61,24 @@ export default function AudioPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
 
-  // 1. Resolve Audio URL from backend API if not provided directly
+  // Sync props when POI or global app language changes
   useEffect(() => {
-    if (audioUrl) {
+    setActiveLang(languageCode);
+  }, [languageCode]);
+
+  useEffect(() => {
+    setActiveText(audioText);
+  }, [audioText]);
+
+  // 1. Resolve Audio URL from backend API if text and language are set
+  useEffect(() => {
+    if (audioUrl && activeLang === languageCode) {
       setResolvedUrl(audioUrl);
       setError(null);
       return;
     }
 
-    if (!audioText) {
+    if (!activeText) {
       setResolvedUrl(null);
       return;
     }
@@ -51,8 +88,11 @@ export default function AudioPlayer({
       setLoading(true);
       setError(null);
       setIsPlaying(false);
+      if (audioRef.current) {
+        audioRef.current.pause();
+      }
       try {
-        const response = await audioApi.getAudioUrl(audioText, languageCode, poiId);
+        const response = await audioApi.getAudioUrl(activeText, activeLang, poiId);
         if (isSubscribed) {
           setResolvedUrl(response.data.url);
         }
@@ -71,7 +111,7 @@ export default function AudioPlayer({
     return () => {
       isSubscribed = false;
     };
-  }, [poiId, audioText, languageCode, audioUrl]);
+  }, [poiId, activeText, activeLang, audioUrl, languageCode]);
 
   // 2. Reset playback state when source URL changes
   useEffect(() => {
@@ -132,6 +172,27 @@ export default function AudioPlayer({
     setCurrentTime(0);
   };
 
+  // 4. Handle Commentary Language Change
+  const handleLanguageChange = async (newLang: string) => {
+    if (newLang === activeLang) return;
+    setLoading(true);
+    setError(null);
+    setIsPlaying(false);
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    try {
+      const response = await translationsApi.getTranslation(poiId, newLang);
+      setActiveText(response.data.audioText || '');
+      setActiveLang(newLang);
+    } catch (err) {
+      console.error('Error changing audio language:', err);
+      setError(t('audio.translateFailed', 'Could not translate audio guide to selected language'));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Seek progress % for custom slider track fill
   const seekProgress = duration > 0 ? (currentTime / duration) * 100 : 0;
   const volumeProgress = isMuted ? 0 : volume * 100;
@@ -140,7 +201,7 @@ export default function AudioPlayer({
   const waveBars = useMemo(() => Array.from({ length: waveBarsCount }), []);
 
   return (
-    <div className="w-full p-4 rounded-[var(--radius-lg)] border border-border bg-card shadow-sm flex flex-col gap-3 relative">
+    <div className="w-full p-4 rounded-[var(--radius-lg)] border border-border bg-card shadow-sm flex flex-col gap-3 relative animate-scale-in">
       {/* Title / Header */}
       <div className="flex items-center justify-between gap-2 min-w-0">
         <div className="flex items-center gap-2 text-text-primary min-w-0">
@@ -149,22 +210,40 @@ export default function AudioPlayer({
             {t('audio.title', 'Thuyết Minh Âm Thanh')}
           </span>
         </div>
-        
+
         {/* Animated Waveform Visualizer */}
-        <div className="audio-waveform h-8 flex items-center gap-0.5 px-1 shrink-0" aria-hidden="true">
+        <div className="audio-waveform h-5 flex items-center gap-0.5 px-1 shrink-0" aria-hidden="true">
           {waveBars.map((_, i) => (
             <div
               key={i}
-              className={`audio-waveform-bar w-[3px] rounded-full transition-all duration-300 ${
+              className={`audio-waveform-bar w-[2px] rounded-full transition-all duration-300 ${
                 isPlaying ? 'wave-bar-anim bg-primary' : 'bg-primary/35'
               }`}
               style={{
-                height: isPlaying ? undefined : `${IDLE_BAR_HEIGHTS[i]}px`,
+                height: isPlaying ? undefined : `${IDLE_BAR_HEIGHTS[i] / 2}px`,
                 animationDelay: isPlaying ? `-${(i * 0.12).toFixed(2)}s` : undefined,
               }}
             />
           ))}
         </div>
+      </div>
+
+      {/* Language Selector Row */}
+      <div className="flex items-center gap-1.5 px-1 pb-1 border-b border-border/30">
+        <Globe size={13} className="text-primary shrink-0" />
+        <span className="text-[11px] text-text-secondary font-semibold">{t('audio.selectLanguage', 'Ngôn ngữ thuyết minh:')}</span>
+        <select
+          value={activeLang}
+          onChange={(e) => handleLanguageChange(e.target.value)}
+          disabled={loading}
+          className="text-xs border-0 bg-transparent py-0.5 font-bold text-primary focus:outline-none cursor-pointer outline-none"
+        >
+          {LANGUAGES.map((lang) => (
+            <option key={lang.code} value={lang.code} className="bg-card text-text-primary">
+              {lang.flag} {lang.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Status region for screen readers */}
@@ -203,7 +282,7 @@ export default function AudioPlayer({
           <span className="font-mono tabular-nums w-8 text-right">
             {formatDuration(currentTime)}
           </span>
-          
+
           <input
             type="range"
             min={0}
@@ -219,7 +298,7 @@ export default function AudioPlayer({
             aria-label={t('audio.seekLabel', 'Seek audio')}
             aria-valuetext={`${formatDuration(currentTime)} of ${formatDuration(duration)}`}
           />
-          
+
           <span className="font-mono tabular-nums w-8">
             {formatDuration(duration)}
           </span>
@@ -261,7 +340,7 @@ export default function AudioPlayer({
                 : <Volume2 size={16} aria-hidden="true" />
               }
             </button>
-            
+
             {/* Volume slider — custom track fill */}
             <input
               type="range"
@@ -281,7 +360,7 @@ export default function AudioPlayer({
         </div>
 
         {/* Transcript Section */}
-        {audioText && (
+        {activeText && (
           <div className="border-t border-border/40 pt-2 mt-2">
             <button
               type="button"
@@ -294,10 +373,10 @@ export default function AudioPlayer({
                 {showTranscript ? t('audio.hideTranscript', 'Ẩn') : t('audio.showTranscript', 'Xem')}
               </span>
             </button>
-            
+
             {showTranscript && (
               <div className="mt-2 p-2.5 rounded-md bg-surface-alt/70 border border-border/40 text-xs text-text-secondary leading-relaxed whitespace-pre-line max-h-28 overflow-y-auto scrollbar-thin animate-slide-in-top">
-                {audioText}
+                {activeText}
               </div>
             )}
           </div>

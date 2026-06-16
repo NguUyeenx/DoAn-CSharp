@@ -42,6 +42,7 @@ namespace DoAn_CSharp.Models.DTOs
         public int MenuItemCount { get; set; }
         public double? DistanceMeters { get; set; } // for nearby queries
         public bool IsFavorite { get; set; }        // for authenticated user
+        public string PriceRange { get; set; } = string.Empty;
 
         public string? OperatingHours { get; set; }
         public ICollection<POIImageDto> Images { get; set; } = new List<POIImageDto>();
@@ -74,6 +75,7 @@ namespace DoAn_CSharp.Models.DTOs
         public bool IsFavorite { get; set; }
         public double Rating { get; set; }
         public int ReviewCount { get; set; }
+        public string PriceRange { get; set; } = string.Empty;
     }
 
     // ── Create / Update ───────────────────────────────────────────────
@@ -96,6 +98,7 @@ namespace DoAn_CSharp.Models.DTOs
         public string? FacebookUrl { get; set; }
         public string? ImageUrl { get; set; }
         public string? GoogleMapsUrl { get; set; }
+        public string PriceRange { get; set; } = "1";
         public string? OperatingHours { get; set; }
     }
 
@@ -118,6 +121,7 @@ namespace DoAn_CSharp.Models.DTOs
         public string? FacebookUrl { get; set; }
         public string? ImageUrl { get; set; }
         public string? GoogleMapsUrl { get; set; }
+        public string? PriceRange { get; set; }
         public bool? IsActive { get; set; }
         public string? ApprovalStatus { get; set; }
         public string? OperatingHours { get; set; }
