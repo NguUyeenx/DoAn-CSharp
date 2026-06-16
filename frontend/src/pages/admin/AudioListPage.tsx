@@ -391,9 +391,9 @@ export default function AudioListPage() {
         </div>
 
         <div className="flex items-center gap-3 self-end sm:self-center">
-          {selectedRegenLangs.length === 0 && (
-            <span className="text-[10px] text-danger font-medium whitespace-nowrap">Vui lòng chọn ít nhất một ngôn ngữ</span>
-          )}
+          <span className={`text-[10px] text-danger font-medium transition-opacity duration-200 ${selectedRegenLangs.length === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none select-none'}`}>
+            Vui lòng chọn ít nhất một ngôn ngữ
+          </span>
           <button
             disabled={regeneratingAll || regeneratingId !== null || selectedRegenLangs.length === 0}
             onClick={handleRegenerateAll}
