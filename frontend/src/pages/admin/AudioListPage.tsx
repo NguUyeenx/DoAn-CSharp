@@ -391,6 +391,9 @@ export default function AudioListPage() {
         </div>
 
         <div className="flex items-center gap-3 self-end sm:self-center">
+          {selectedRegenLangs.length === 0 && (
+            <span className="text-[10px] text-danger font-medium whitespace-nowrap">Vui lòng chọn ít nhất một ngôn ngữ</span>
+          )}
           <button
             disabled={regeneratingAll || regeneratingId !== null || selectedRegenLangs.length === 0}
             onClick={handleRegenerateAll}
@@ -399,9 +402,6 @@ export default function AudioListPage() {
             {regeneratingAll ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
             <span>Regenerate Selected TTS ({selectedRegenLangs.length})</span>
           </button>
-          {selectedRegenLangs.length === 0 && (
-            <span className="text-[10px] text-danger font-medium">Vui lòng chọn ít nhất một ngôn ngữ</span>
-          )}
         </div>
       </div>
 
