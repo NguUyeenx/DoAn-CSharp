@@ -6,6 +6,7 @@ import { menuApi } from '@/api/menu';
 import POIGallery from './POIGallery';
 import MenuList from './MenuList';
 import AudioPlayer from './AudioPlayer';
+import ReviewModal from './ReviewModal';
 import {
   X,
   MapPin,
@@ -16,6 +17,7 @@ import {
   ExternalLink,
   ChevronUp,
   Star,
+  MessageSquare,
 } from 'lucide-react';
 import { cn } from '@/utils/cn';
 
@@ -117,8 +119,9 @@ export default function POIDetail({
     if (poiId) setSnap(initialSnap || 'mini');
   }, [poiId, initialSnap]);
 
-  // Fetch POI and Menu details
-  useEffect(() => {
+  const [showReviewModal, setShowReviewModal] = useState(false);
+
+  const fetchPoiData = useCallback(async (silent = false) => {
     if (!poiId) {
       setPoi(null);
       setMenuItems([]);
@@ -126,28 +129,26 @@ export default function POIDetail({
       return;
     }
 
-    let isSubscribed = true;
-    const fetch = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const [poiRes, menuRes] = await Promise.all([
-          poisApi.getById(poiId, i18n.language),
-          menuApi.getByPOI(poiId, i18n.language).catch(() => ({ data: [] })),
-        ]);
-        if (isSubscribed) {
-          setPoi(poiRes.data);
-          setMenuItems(menuRes.data);
-        }
-      } catch {
-        if (isSubscribed) setError(t('poi.detailError', 'Could not load details for this food spot'));
-      } finally {
-        if (isSubscribed) setLoading(false);
-      }
-    };
-    fetch();
-    return () => { isSubscribed = false; };
-  }, [poiId, i18n.language]);
+    if (!silent) setLoading(true);
+    setError(null);
+    try {
+      const [poiRes, menuRes] = await Promise.all([
+        poisApi.getById(poiId, i18n.language),
+        menuApi.getByPOI(poiId, i18n.language).catch(() => ({ data: [] })),
+      ]);
+      setPoi(poiRes.data);
+      setMenuItems(menuRes.data);
+    } catch {
+      setError(t('poi.detailError', 'Could not load details for this food spot'));
+    } finally {
+      if (!silent) setLoading(false);
+    }
+  }, [poiId, i18n.language, t]);
+
+  // Fetch POI and Menu details
+  useEffect(() => {
+    fetchPoiData();
+  }, [fetchPoiData]);
 
   // Touch/Mouse drag handlers (mobile bottom sheet only)
   const getSnapHeight = (s: SnapPoint) => {
@@ -281,7 +282,7 @@ export default function POIDetail({
         {/* Scrollable content */}
         <div
           className={cn(
-            'flex-1 flex flex-col gap-4 px-4 pb-8',
+            'flex-1 flex flex-col gap-4 px-4 pb-32 md:pb-8',
             contentScrollable ? 'overflow-y-auto scrollbar-thin' : 'overflow-hidden',
           )}
         >
@@ -293,6 +294,7 @@ export default function POIDetail({
             onClose={onClose}
             onShowDirections={onShowDirections}
             onStartQuiz={onStartQuiz}
+            onOpenReview={() => setShowReviewModal(true)}
             languageCode={i18n.language}
             t={t}
           />
@@ -334,11 +336,24 @@ export default function POIDetail({
             onClose={onClose}
             onShowDirections={onShowDirections}
             onStartQuiz={onStartQuiz}
+            onOpenReview={() => setShowReviewModal(true)}
             languageCode={i18n.language}
             t={t}
           />
         </div>
       </div>
+
+      {showReviewModal && poi && (
+        <ReviewModal
+          poiId={poi.id}
+          poiName={poi.localizedName || poi.name}
+          onClose={() => setShowReviewModal(false)}
+          onSuccess={() => {
+            fetchPoiData(true);
+            window.dispatchEvent(new CustomEvent('poi-updated'));
+          }}
+        />
+      )}
     </>
   );
 }
@@ -352,13 +367,14 @@ interface SheetContentProps {
   onClose: () => void;
   onShowDirections?: (poi: POI) => void;
   onStartQuiz?: (poiId: number) => void;
+  onOpenReview: () => void;
   languageCode: string;
   t: (key: string, fallback: string) => string;
 }
 
 function SheetContent({
   loading, error, poi, menuItems,
-  onClose, onShowDirections, onStartQuiz,
+  onClose, onShowDirections, onStartQuiz, onOpenReview,
   languageCode, t,
 }: SheetContentProps) {
   if (loading) {
@@ -436,7 +452,7 @@ function SheetContent({
               <Star size={12} className="fill-current" />
               <span>{poi.rating.toFixed(1)}</span>
               {poi.reviewCount > 0 && (
-                <span className="text-text-muted font-normal">({poi.reviewCount})</span>
+                <span className="text-text-muted font-normal">{poi.reviewCount}</span>
               )}
             </div>
           )}
@@ -444,22 +460,32 @@ function SheetContent({
       </div>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-2.5">
+      <div className="flex flex-col gap-2.5">
+        <div className="grid grid-cols-2 gap-2.5">
+          <button
+            type="button"
+            onClick={() => onShowDirections?.(poi)}
+            className="h-10 rounded-[var(--radius-md)] bg-primary text-white text-xs font-semibold flex items-center justify-center gap-2 hover:bg-primary-hover active:scale-95 transition-all shadow-sm cursor-pointer outline-none"
+          >
+            <Compass size={15} />
+            <span>{t('poi.getDirections', 'Đường đi')}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onStartQuiz?.(poi.id)}
+            className="h-10 rounded-[var(--radius-md)] border border-border bg-card text-text-primary text-xs font-semibold flex items-center justify-center gap-2 hover:bg-surface-alt active:scale-95 transition-all shadow-xs cursor-pointer outline-none"
+          >
+            <FileQuestion size={15} className="text-secondary-light" />
+            <span>{t('poi.playQuiz', 'Thử thách')}</span>
+          </button>
+        </div>
         <button
           type="button"
-          onClick={() => onShowDirections?.(poi)}
-          className="h-10 rounded-[var(--radius-md)] bg-primary text-white text-xs font-semibold flex items-center justify-center gap-2 hover:bg-primary-hover active:scale-95 transition-all shadow-sm cursor-pointer outline-none"
+          onClick={onOpenReview}
+          className="h-10 rounded-[var(--radius-md)] border border-primary/20 bg-primary/5 text-primary text-xs font-semibold flex items-center justify-center gap-2 hover:bg-primary/10 active:scale-95 transition-all shadow-xs cursor-pointer outline-none"
         >
-          <Compass size={15} />
-          <span>{t('poi.getDirections', 'Đường đi')}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => onStartQuiz?.(poi.id)}
-          className="h-10 rounded-[var(--radius-md)] border border-border bg-card text-text-primary text-xs font-semibold flex items-center justify-center gap-2 hover:bg-surface-alt active:scale-95 transition-all shadow-xs cursor-pointer outline-none"
-        >
-          <FileQuestion size={15} className="text-secondary-light" />
-          <span>{t('poi.playQuiz', 'Thử thách')}</span>
+          <MessageSquare size={15} />
+          <span>{t('poi.reviewPlace', 'Đánh giá quán này')}</span>
         </button>
       </div>
 
@@ -543,6 +569,9 @@ function SheetContent({
 
       {/* Menu */}
       {menuItems.length > 0 && <MenuList items={menuItems} />}
+
+      {/* Mobile bottom spacer to clear navigation bar */}
+      <div className="h-24 md:hidden shrink-0" aria-hidden="true" />
     </>
   );
 }

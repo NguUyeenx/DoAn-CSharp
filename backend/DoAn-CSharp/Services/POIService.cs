@@ -235,6 +235,59 @@ namespace DoAn_CSharp.Services
             return true;
         }
 
+        public async Task<ReviewDto> AddReviewAsync(int poiId, CreateReviewDto dto)
+        {
+            var poi = await _context.POIs.FindAsync(poiId);
+            if (poi == null) throw new KeyNotFoundException("POI not found");
+
+            // Check if phone number already reviewed this POI
+            var existingReview = await _context.Reviews
+                .FirstOrDefaultAsync(r => r.POIId == poiId && r.VisitorPhone == dto.VisitorPhone);
+            if (existingReview != null)
+            {
+                throw new InvalidOperationException("You have already reviewed this place.");
+            }
+
+            var review = new Review
+            {
+                POIId = poiId,
+                VisitorName = dto.VisitorName,
+                VisitorPhone = dto.VisitorPhone,
+                Rating = dto.Rating,
+                Comment = dto.Comment,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            await _context.Reviews.AddAsync(review);
+            await _context.SaveChangesAsync();
+
+            // Recalculate Rating and ReviewCount
+            var allReviews = await _context.Reviews.Where(r => r.POIId == poiId).ToListAsync();
+            
+            // To incorporate default seeded reviews and rating, we can either:
+            // 1. Just average the real reviews and ignore default/seed.
+            // 2. Add real reviews on top of the default ones.
+            // Let's implement real average based on actual reviews.
+            // If we want to keep the seed data base: 
+            // New Rating = ((Old Rating * Old Count) + New Rating) / (Old Count + 1)
+
+            poi.Rating = Math.Round(((poi.Rating * poi.ReviewCount) + dto.Rating) / (poi.ReviewCount + 1), 1);
+            poi.ReviewCount += 1;
+            
+            poi.UpdatedAt = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
+
+            return new ReviewDto
+            {
+                Id = review.Id,
+                POIId = review.POIId,
+                VisitorName = review.VisitorName,
+                Rating = review.Rating,
+                Comment = review.Comment,
+                CreatedAt = review.CreatedAt
+            };
+        }
+
         #region Helpers
 
 
