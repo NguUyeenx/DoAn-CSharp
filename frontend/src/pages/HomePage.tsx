@@ -100,13 +100,20 @@ export default function HomePage() {
   useEffect(() => {
     fetchPOIs();
     fetchTours();
+
+    const handlePoiUpdated = () => {
+      fetchPOIs(undefined, true);
+    };
+
+    window.addEventListener('poi-updated', handlePoiUpdated);
+    return () => window.removeEventListener('poi-updated', handlePoiUpdated);
   }, [fetchPOIs, fetchTours]);
 
   // Computed POIs with distances based on GPS position
   const poisWithDistance = useMemo(() => {
     return pois.map((poi) => {
       let distance = poi.distanceMeters;
-      if (distance === undefined && position) {
+      if ((distance === undefined || distance === null) && position) {
         distance = getDistance(position.latitude, position.longitude, poi.latitude, poi.longitude);
       }
       return {
@@ -131,7 +138,7 @@ export default function HomePage() {
       
       const matchesFavorite = showFavoritesOnly ? item.isFavorite : true;
       
-      const matchesNearby = showNearbyOnly ? (item.distanceMeters !== undefined && item.distanceMeters < 1000) : true;
+      const matchesNearby = showNearbyOnly ? (item.distanceMeters !== undefined && item.distanceMeters !== null && item.distanceMeters < 1000) : true;
       
       return matchesSearch && matchesCategory && matchesPrice && matchesFavorite && matchesNearby;
     });
@@ -394,8 +401,10 @@ export default function HomePage() {
                   )}
 
                   {!poisLoading && filteredPOIs.length === 0 && (
-                    <div className="text-center py-12 text-text-muted text-xs">
-                      {t('search.noResults', 'No food spots found matching your filter.')}
+                    <div className="text-center py-12 px-4 text-text-muted text-xs">
+                      {showNearbyOnly
+                        ? t('search.noNearbyResults', 'Không có quán nào trong phạm vi 1km xung quanh vị trí của bạn. Hãy thử tắt bộ lọc hoặc di chuyển đến gần phố ẩm thực hơn.')
+                        : t('search.noResults', 'Không tìm thấy quán nào phù hợp với bộ lọc.')}
                     </div>
                   )}
 
@@ -524,7 +533,11 @@ export default function HomePage() {
             {poisLoading ? (
               <div className="text-center py-12 text-xs font-semibold text-text-muted animate-pulse">{t('common.loading', 'Loading...')}</div>
             ) : filteredPOIs.length === 0 ? (
-              <div className="text-center py-12 text-text-muted text-xs">{t('search.noResults', 'No food spots found.')}</div>
+              <div className="text-center py-12 px-4 text-text-muted text-xs">
+                {showNearbyOnly
+                  ? t('search.noNearbyResults', 'Không có quán nào trong phạm vi 1km xung quanh vị trí của bạn. Hãy thử tắt bộ lọc hoặc di chuyển đến gần phố ẩm thực hơn.')
+                  : t('search.noResults', 'Không tìm thấy quán nào phù hợp với bộ lọc.')}
+              </div>
             ) : (
               filteredPOIs.map((poi) => (
                 <POICard

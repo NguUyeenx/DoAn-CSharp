@@ -105,7 +105,7 @@ export default function POICard({ poi, onClick, onToggleFavorite }: POICardProps
             </div>
             {poi.reviewCount > 0 && (
               <span className="text-text-muted">
-                ({poi.reviewCount} {t('poi.reviews', 'reviews')})
+                {poi.reviewCount} {t('poi.reviews', 'reviews')}
               </span>
             )}
 

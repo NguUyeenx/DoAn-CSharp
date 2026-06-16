@@ -23,4 +23,7 @@ export const poisApi = {
     api.put<POI>(`/pois/${id}`, data),
   delete: (id: number) => api.delete(`/pois/${id}`),
   restore: (id: number) => api.post(`/pois/${id}/restore`),
+
+  submitReview: (id: number, data: { visitorName: string; visitorPhone: string; rating: number; comment?: string }) =>
+    api.post(`/pois/${id}/reviews`, data),
 };

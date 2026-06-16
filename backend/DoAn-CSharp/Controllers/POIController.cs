@@ -87,6 +87,39 @@ namespace DoAn_CSharp.Controllers
 
         /// <summary>Cập nhật POI (Admin only)</summary>
         [Authorize(Roles = "admin")]
+        [HttpPost("{id}/approval")]
+        public async Task<IActionResult> UpdateApprovalStatus(int id, [FromBody] UpdateApprovalDto dto)
+        {
+            var result = await _poiService.UpdateApprovalStatusAsync(id, dto.Status);
+            if (!result) return NotFound();
+            return Ok(new { message = "Approval status updated successfully" });
+        }
+
+        [HttpPost("{id}/reviews")]
+        public async Task<IActionResult> AddReview(int id, [FromBody] CreateReviewDto dto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            try
+            {
+                var result = await _poiService.AddReviewAsync(id, dto);
+                return CreatedAtAction(nameof(GetById), new { id = result.POIId }, result);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound(new { message = "POI not found" });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = "An error occurred while adding the review.", error = ex.Message });
+            }
+        }
+
+        /// <summary>Cập nhật POI (Admin only)</summary>
+        [Authorize(Roles = "admin")]
         [HttpPut("{id:int}")]
         public async Task<IActionResult> Update(int id, [FromBody] POIUpdateDto dto)
         {
@@ -117,5 +150,10 @@ namespace DoAn_CSharp.Controllers
                 return NotFound(new { error = "NotFound", message = $"POI with ID {id} was not found." });
             return Ok(new { message = "POI restored successfully." });
         }
+    }
+
+    public class UpdateApprovalDto
+    {
+        public string Status { get; set; } = string.Empty;
     }
 }

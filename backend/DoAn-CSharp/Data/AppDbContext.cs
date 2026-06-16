@@ -22,6 +22,7 @@ namespace DoAn_CSharp.Data
         public DbSet<AdminUser> AdminUsers { get; set; }
         public DbSet<QuizQuestion> QuizQuestions { get; set; }
         public DbSet<QuizQuestionTranslation> QuizQuestionTranslations { get; set; }
+        public DbSet<Review> Reviews { get; set; }
 
         // New
         public DbSet<Owner> Owners { get; set; }
@@ -177,7 +178,12 @@ namespace DoAn_CSharp.Data
                 .HasForeignKey(t => t.QuizQuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-
+            // ── Review ────────────────────────────────────────────────────
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.POI)
+                .WithMany()
+                .HasForeignKey(r => r.POIId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

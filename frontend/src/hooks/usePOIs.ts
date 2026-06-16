@@ -12,8 +12,8 @@ export function usePOIs() {
   const [error, setError] = useState<Error | null>(null);
 
   const fetchPOIs = useCallback(
-    async (params?: { category?: string; q?: string }) => {
-      setLoading(true);
+    async (params?: { category?: string; q?: string }, silent = false) => {
+      if (!silent) setLoading(true);
       setError(null);
       try {
         const { data } = await poisApi.getAll({
@@ -24,7 +24,7 @@ export function usePOIs() {
       } catch (err: any) {
         setError(err);
       } finally {
-        setLoading(false);
+        if (!silent) setLoading(false);
       }
     },
     [language]
