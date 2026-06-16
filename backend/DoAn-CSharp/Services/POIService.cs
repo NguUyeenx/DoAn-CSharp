@@ -13,10 +13,12 @@ namespace DoAn_CSharp.Services
     public class POIService : IPOIService
     {
         private readonly AppDbContext _context;
+        private readonly ITranslationService _translationService;
 
-        public POIService(AppDbContext context)
+        public POIService(AppDbContext context, ITranslationService translationService)
         {
             _context = context;
+            _translationService = translationService;
         }
 
         public async Task<IEnumerable<POIListDto>> GetAllAsync(string? category, string lang)
@@ -32,6 +34,7 @@ namespace DoAn_CSharp.Services
             }
 
             var pois = await query.OrderByDescending(p => p.Priority).ToListAsync();
+            await EnsureTranslationsExistAsync(pois, lang);
             return pois.Select(p => MapToPOIListDto(p, lang)).ToList();
         }
 
@@ -46,6 +49,7 @@ namespace DoAn_CSharp.Services
                                             t.ShortDescription.ToLower().Contains(lower))))
                 .OrderByDescending(p => p.Priority)
                 .ToListAsync();
+            await EnsureTranslationsExistAsync(pois, lang);
             return pois.Select(p => MapToPOIListDto(p, lang)).ToList();
         }
 
@@ -57,7 +61,9 @@ namespace DoAn_CSharp.Services
                 .Include(p => p.QRCodes)
                 .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Slug == slug && p.IsActive && p.DeletedAt == null && p.ApprovalStatus == "approved");
-            return poi == null ? null : MapToPOIDto(poi, lang);
+            if (poi == null) return null;
+            await EnsureTranslationsExistAsync(new[] { poi }, lang);
+            return MapToPOIDto(poi, lang);
         }
 
         public async Task<POIDto?> GetByIdAsync(int id, string lang)
@@ -69,7 +75,9 @@ namespace DoAn_CSharp.Services
                 .Include(p => p.Images)
                 .FirstOrDefaultAsync(p => p.Id == id && p.DeletedAt == null);
 
-            return poi == null ? null : MapToPOIDto(poi, lang);
+            if (poi == null) return null;
+            await EnsureTranslationsExistAsync(new[] { poi }, lang);
+            return MapToPOIDto(poi, lang);
         }
 
         public async Task<IEnumerable<POIListDto>> GetNearbyAsync(double lat, double lng, int radiusMeters, string lang)
@@ -78,6 +86,8 @@ namespace DoAn_CSharp.Services
                 .Include(p => p.Translations)
                 .Where(p => p.IsActive && p.DeletedAt == null && p.ApprovalStatus == "approved")
                 .ToListAsync();
+
+            await EnsureTranslationsExistAsync(activePois, lang);
 
             var nearbyPois = new List<(POIListDto dto, double dist, int priority)>();
 
@@ -377,6 +387,26 @@ namespace DoAn_CSharp.Services
                 text = text.Replace(arr1[i], arr2[i]);
             }
             return text;
+        }
+
+        private async Task EnsureTranslationsExistAsync(IEnumerable<POI> pois, string lang)
+        {
+            var targetLang = lang.ToLowerInvariant();
+            foreach (var poi in pois)
+            {
+                if (!poi.Translations.Any(t => t.LanguageCode.ToLowerInvariant() == targetLang))
+                {
+                    var newTransDto = await _translationService.GetTranslationAsync(poi.Id, targetLang);
+                    if (newTransDto != null)
+                    {
+                        var newTrans = await _context.POITranslations.FindAsync(newTransDto.Id);
+                        if (newTrans != null)
+                        {
+                            poi.Translations.Add(newTrans);
+                        }
+                    }
+                }
+            }
         }
 
         #endregion

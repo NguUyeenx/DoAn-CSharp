@@ -36,10 +36,17 @@ namespace DoAn_CSharp.Services
                 return $"/audio/{fileName}";
             }
 
+            // Write text to a temporary file in UTF-8 without BOM to avoid argument length, character encoding, and edge-tts BOM parsing errors on Windows
+            string tempTextFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.txt");
+            await File.WriteAllTextAsync(tempTextFile, text, new UTF8Encoding(false));
+
+            Console.WriteLine($"[TTSService] voice={voice}, tempFile={tempTextFile}, filePath={filePath}, textLength={text.Length}");
+            Console.WriteLine($"[TTSService] fileExists={File.Exists(tempTextFile)}, content='{await File.ReadAllTextAsync(tempTextFile)}'");
+
             var processInfo = new ProcessStartInfo
             {
                 FileName = "edge-tts",
-                Arguments = $"--voice {voice} --text \"{text.Replace("\"", "\\\"")}\" --write-media \"{filePath}\"",
+                Arguments = $"--voice {voice} --file \"{tempTextFile}\" --write-media \"{filePath}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -63,6 +70,20 @@ namespace DoAn_CSharp.Services
             {
                 throw new Exception($"Could not run edge-tts. Make sure it is installed. Error: {ex.Message}");
             }
+            finally
+            {
+                try
+                {
+                    if (File.Exists(tempTextFile))
+                    {
+                        File.Delete(tempTextFile);
+                    }
+                }
+                catch
+                {
+                    // Ignore temp file deletion errors
+                }
+            }
             
             return $"/audio/{fileName}";
         }
@@ -76,6 +97,23 @@ namespace DoAn_CSharp.Services
                 "ja" => "ja-JP-NanamiNeural",
                 "ko" => "ko-KR-SunHiNeural",
                 "zh" => "zh-CN-XiaoxiaoNeural",
+                "fr" => "fr-FR-DeniseNeural",
+                "es" => "es-ES-ElviraNeural",
+                "de" => "de-DE-KatjaNeural",
+                "it" => "it-IT-ElsaNeural",
+                "ru" => "ru-RU-SvetlanaNeural",
+                "pt" => "pt-PT-RaquelNeural",
+                "th" => "th-TH-NiwatNeural",
+                "id" => "id-ID-GadisNeural",
+                "ms" => "ms-MY-YasminNeural",
+                "hi" => "hi-IN-SwaraNeural",
+                "ar" => "ar-EG-SalmaNeural",
+                "nl" => "nl-NL-ColetteNeural",
+                "pl" => "pl-PL-ZofiaNeural",
+                "tr" => "tr-TR-EmelNeural",
+                "sv" => "sv-SE-SofieNeural",
+                "fil" => "fil-PH-BlessicaNeural",
+                "km" => "km-KH-SreymomNeural",
                 _ => "en-US-AriaNeural"
             };
         }
