@@ -29,18 +29,61 @@ namespace DoAn_CSharp.Data
                 adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@1234");
                 context.AdminUsers.Update(adminUser);
             }
-            await context.SaveChangesAsync();
-
-            if (!await context.Languages.AnyAsync())
+            // Fix existing AudioFiles with 0 duration by parsing physical files
+            var zeroDurationAudios = await context.AudioFiles.Where(a => a.DurationSeconds == 0).ToListAsync();
+            if (zeroDurationAudios.Any())
             {
-                var languages = new[]
+                foreach (var audio in zeroDurationAudios)
                 {
-                    new Language { Code = "vi", Name = "Vietnamese", NativeName = "Tiếng Việt", IsActive = true, SortOrder = 1 },
-                    new Language { Code = "en", Name = "English", NativeName = "English", IsActive = true, SortOrder = 2 }
-                };
-                await context.Languages.AddRangeAsync(languages);
+                    var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audio.FilePath.TrimStart('/'));
+                    if (System.IO.File.Exists(physicalPath))
+                    {
+                        int duration = DoAn_CSharp.Services.TTSService.GetMp3Duration(physicalPath);
+                        if (duration > 0)
+                        {
+                            audio.DurationSeconds = duration;
+                        }
+                    }
+                }
                 await context.SaveChangesAsync();
             }
+
+
+            var supportedLanguages = new System.Collections.Generic.List<Language>
+            {
+                new Language { Code = "vi", Name = "Vietnamese", NativeName = "Tiếng Việt", IsActive = true, SortOrder = 1 },
+                new Language { Code = "en", Name = "English", NativeName = "English", IsActive = true, SortOrder = 2 },
+                new Language { Code = "ja", Name = "Japanese", NativeName = "日本語", IsActive = true, SortOrder = 3 },
+                new Language { Code = "ko", Name = "Korean", NativeName = "한국어", IsActive = true, SortOrder = 4 },
+                new Language { Code = "zh", Name = "Chinese", NativeName = "中文", IsActive = true, SortOrder = 5 },
+                new Language { Code = "fr", Name = "French", NativeName = "Français", IsActive = true, SortOrder = 6 },
+                new Language { Code = "es", Name = "Spanish", NativeName = "Español", IsActive = true, SortOrder = 7 },
+                new Language { Code = "de", Name = "German", NativeName = "Deutsch", IsActive = true, SortOrder = 8 },
+                new Language { Code = "it", Name = "Italian", NativeName = "Italiano", IsActive = true, SortOrder = 9 },
+                new Language { Code = "ru", Name = "Russian", NativeName = "Русский", IsActive = true, SortOrder = 10 },
+                new Language { Code = "pt", Name = "Portuguese", NativeName = "Português", IsActive = true, SortOrder = 11 },
+                new Language { Code = "th", Name = "Thai", NativeName = "ไทย", IsActive = true, SortOrder = 12 },
+                new Language { Code = "id", Name = "Indonesian", NativeName = "Bahasa Indonesia", IsActive = true, SortOrder = 13 },
+                new Language { Code = "ms", Name = "Malay", NativeName = "Bahasa Melayu", IsActive = true, SortOrder = 14 },
+                new Language { Code = "hi", Name = "Hindi", NativeName = "हिन्दी", IsActive = true, SortOrder = 15 },
+                new Language { Code = "ar", Name = "Arabic", NativeName = "العربية", IsActive = true, SortOrder = 16 },
+                new Language { Code = "nl", Name = "Dutch", NativeName = "Nederlands", IsActive = true, SortOrder = 17 },
+                new Language { Code = "pl", Name = "Polish", NativeName = "Polski", IsActive = true, SortOrder = 18 },
+                new Language { Code = "tr", Name = "Turkish", NativeName = "Türkçe", IsActive = true, SortOrder = 19 },
+                new Language { Code = "sv", Name = "Swedish", NativeName = "Svenska", IsActive = true, SortOrder = 20 },
+                new Language { Code = "fil", Name = "Filipino", NativeName = "Tagalog", IsActive = true, SortOrder = 21 },
+                new Language { Code = "km", Name = "Khmer", NativeName = "ភាសាខ្មែរ", IsActive = true, SortOrder = 22 }
+            };
+
+            foreach (var lang in supportedLanguages)
+            {
+                var exists = await context.Languages.AnyAsync(l => l.Code == lang.Code);
+                if (!exists)
+                {
+                    await context.Languages.AddAsync(lang);
+                }
+            }
+            await context.SaveChangesAsync();
 
             if (!await context.POICategories.AnyAsync())
             {
