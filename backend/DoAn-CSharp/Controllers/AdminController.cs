@@ -358,7 +358,7 @@ namespace DoAn_CSharp.Controllers
                     x.IsDefault,
                     FileExists = fileExists
                 };
-            }).ToList();
+            }).Where(d => d.FileExists).ToList();
 
             return Ok(dtos);
         }
@@ -433,7 +433,11 @@ namespace DoAn_CSharp.Controllers
             {
                 // Generate new audio via edge-tts
                 string audioUrl = await _ttsService.GenerateAudioAsync(translation.AudioText, audio.LanguageCode, translation.POIId);
+                string newPhysicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audioUrl.TrimStart('/'));
+                int duration = TTSService.GetMp3Duration(newPhysicalPath);
+
                 audio.FilePath = audioUrl;
+                audio.DurationSeconds = duration;
                 audio.GeneratedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
@@ -442,6 +446,7 @@ namespace DoAn_CSharp.Controllers
                     message = "Audio file regenerated successfully.",
                     id = audio.Id,
                     filePath = audio.FilePath,
+                    durationSeconds = audio.DurationSeconds,
                     generatedAt = audio.GeneratedAt
                 });
             }
@@ -449,6 +454,74 @@ namespace DoAn_CSharp.Controllers
             {
                 return StatusCode(500, new { error = "InternalServerError", message = $"Failed to generate TTS audio: {ex.Message}" });
             }
+        }
+
+        [HttpPost("audio/regenerate-all")]
+        public async Task<IActionResult> RegenerateAllAudio([FromBody] RegenerateAudioRequest? request)
+        {
+            var query = _context.AudioFiles
+                .Where(x => x.AudioType == "tts" && x.TranslationType == Models.Entities.TranslationType.POI);
+
+            if (request?.Languages != null && request.Languages.Any())
+            {
+                var targetLangs = request.Languages.Select(l => l.ToLowerInvariant()).ToList();
+                query = query.Where(x => targetLangs.Contains(x.LanguageCode.ToLower()));
+            }
+
+            var audios = await query.ToListAsync();
+
+            int successCount = 0;
+            int failCount = 0;
+
+            foreach (var audio in audios)
+            {
+                var translation = await _context.POITranslations.FindAsync(audio.TranslationId);
+                if (translation == null || string.IsNullOrWhiteSpace(translation.AudioText))
+                {
+                    failCount++;
+                    continue;
+                }
+
+                // Delete existing physical file if exists
+                var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audio.FilePath.TrimStart('/'));
+                if (System.IO.File.Exists(physicalPath))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(physicalPath);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        System.Console.WriteLine($"Error deleting physical audio file before regeneration: {ex.Message}");
+                    }
+                }
+
+                try
+                {
+                    string audioUrl = await _ttsService.GenerateAudioAsync(translation.AudioText, audio.LanguageCode, translation.POIId);
+                    string newPhysicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audioUrl.TrimStart('/'));
+                    int duration = TTSService.GetMp3Duration(newPhysicalPath);
+
+                    audio.FilePath = audioUrl;
+                    audio.DurationSeconds = duration;
+                    audio.GeneratedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                    successCount++;
+                }
+                catch (System.Exception ex)
+                {
+                    System.Console.WriteLine($"Error regenerating TTS audio ID {audio.Id}: {ex.Message}");
+                    failCount++;
+                }
+            }
+
+            return Ok(new
+            {
+                message = "Regeneration of all TTS audio files completed.",
+                total = audios.Count,
+                success = successCount,
+                failed = failCount
+            });
         }
 
         // ── Comprehensive Owner Management ───────────────────────────
@@ -653,5 +726,10 @@ namespace DoAn_CSharp.Controllers
     public class ChangePOIOwnerDto
     {
         public int? OwnerId { get; set; }
+    }
+
+    public class RegenerateAudioRequest
+    {
+        public System.Collections.Generic.List<string>? Languages { get; set; }
     }
 }
