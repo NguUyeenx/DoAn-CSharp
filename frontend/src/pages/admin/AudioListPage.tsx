@@ -397,7 +397,7 @@ export default function AudioListPage() {
           <button
             disabled={regeneratingAll || regeneratingId !== null || selectedRegenLangs.length === 0}
             onClick={handleRegenerateAll}
-            className="h-10 px-5 rounded-xl bg-primary text-white font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-primary-hover active:scale-95 transition-all shadow-md outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
+            className="h-10 px-5 rounded-xl bg-primary text-white font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-primary-hover active:scale-95 transition-all shadow-md outline-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shrink-0 w-60"
           >
             {regeneratingAll ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
             <span>Regenerate Selected TTS ({selectedRegenLangs.length})</span>
