@@ -25,6 +25,7 @@ export const adminApi = {
   getAudioFiles: () => api.get<any[]>('/admin/audio'),
   deleteAudio: (id: number) => api.delete(`/admin/audio/${id}`),
   regenerateAudio: (id: number) => api.post(`/admin/audio/${id}/regenerate`),
+  regenerateAllAudio: (languages?: string[]) => api.post<any>('/admin/audio/regenerate-all', { languages }),
 
   // Quiz questions CRUD
   getQuizQuestions: (poiId?: number) => api.get<any[]>('/admin/quiz', { params: poiId ? { poiId } : undefined }),
