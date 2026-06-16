@@ -15,6 +15,6 @@ export const qrApi = {
   adminGetAllQR: () =>
     api.get('/admin/qr'),
 
-  adminToggleQRStatus: (id: number, isActive: boolean) =>
-    api.put(`/admin/qr/${id}/status`, isActive),
+  adminDeleteQR: (id: number) =>
+    api.delete(`/admin/qr/${id}`),
 };

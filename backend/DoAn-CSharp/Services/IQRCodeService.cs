@@ -7,5 +7,6 @@ namespace DoAn_CSharp.Services
     {
         Task<QRCodeDto?> GetByCodeAsync(string code);
         Task<QRCodeDto> GenerateQRCodeAsync(int poiId);
+        Task<bool> DeleteQRCodeAsync(int id);
     }
 }

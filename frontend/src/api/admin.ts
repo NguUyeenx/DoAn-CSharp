@@ -27,9 +27,16 @@ export const adminApi = {
   regenerateAudio: (id: number) => api.post(`/admin/audio/${id}/regenerate`),
 
   // Quiz questions CRUD
+  getQuizQuestions: (poiId?: number) => api.get<any[]>('/admin/quiz', { params: poiId ? { poiId } : undefined }),
   createQuiz: (data: any) => api.post('/admin/quiz', data),
   updateQuiz: (id: number, data: any) => api.put(`/admin/quiz/${id}`, data),
   deleteQuiz: (id: number) => api.delete(`/admin/quiz/${id}`),
+
+  // Category management
+  getCategories: () => api.get<any[]>('/admin/categories'),
+  createCategory: (data: any) => api.post('/admin/categories', data),
+  updateCategory: (id: number, data: any) => api.put(`/admin/categories/${id}`, data),
+  deleteCategory: (id: number) => api.delete(`/admin/categories/${id}`),
 
   // Audit logs list
   getAuditLogs: () => api.get<any[]>('/admin/audit-logs'),

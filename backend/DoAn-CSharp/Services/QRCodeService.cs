@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using DoAn_CSharp.Data;
 using DoAn_CSharp.Models.DTOs;
 using DoAn_CSharp.Models.Entities;
@@ -13,10 +14,12 @@ namespace DoAn_CSharp.Services
     public class QRCodeService : IQRCodeService
     {
         private readonly AppDbContext _context;
+        private readonly IConfiguration _config;
 
-        public QRCodeService(AppDbContext context)
+        public QRCodeService(AppDbContext context, IConfiguration config)
         {
             _context = context;
+            _config = config;
         }
 
         public async Task<QRCodeDto?> GetByCodeAsync(string code)
@@ -56,8 +59,11 @@ namespace DoAn_CSharp.Services
             }
 
             // Generate QR Code bytes using QRCoder
+            var baseUrl = _config.GetValue<string>("App:BaseUrl") ?? "http://localhost:5173";
+            baseUrl = baseUrl.TrimEnd('/');
+
             using var qrGenerator = new QRCodeGenerator();
-            using var qrCodeData = qrGenerator.CreateQrCode($"https://vkexplorer.com/qr/{code}", QRCodeGenerator.ECCLevel.Q);
+            using var qrCodeData = qrGenerator.CreateQrCode($"{baseUrl}/qr/{code}", QRCodeGenerator.ECCLevel.Q);
             using var qrCode = new PngByteQRCode(qrCodeData);
             byte[] qrCodeBytes = qrCode.GetGraphic(20);
 
@@ -85,6 +91,32 @@ namespace DoAn_CSharp.Services
             await _context.SaveChangesAsync();
 
             return MapToDto(qrEntity);
+        }
+
+        public async Task<bool> DeleteQRCodeAsync(int id)
+        {
+            var qr = await _context.QRCodes.FindAsync(id);
+            if (qr == null)
+            {
+                return false;
+            }
+
+            if (qr.ScanCount > 0)
+            {
+                throw new InvalidOperationException("Cannot delete a QR code that has scan history.");
+            }
+
+            // Remove physical file
+            string qrDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "qrcodes");
+            string physicalPath = Path.Combine(qrDir, $"{qr.Code}.png");
+            if (File.Exists(physicalPath))
+            {
+                File.Delete(physicalPath);
+            }
+
+            _context.QRCodes.Remove(qr);
+            await _context.SaveChangesAsync();
+            return true;
         }
 
         private static QRCodeDto MapToDto(QRCode entity)

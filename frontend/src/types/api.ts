@@ -88,11 +88,14 @@ export interface Language {
 export interface QuizQuestion {
   id: number;
   poiId: number;
+  poiName?: string;
   questionText: string;
   answerA: string;
   answerB: string;
   answerC: string;
   answerD: string;
+  correctOption?: string;
+  explanationText?: string;
 }
 
 export interface QuizSubmission {

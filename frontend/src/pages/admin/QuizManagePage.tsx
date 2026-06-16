@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/api/admin';
 import { poisApi } from '@/api/pois';
-import { quizApi } from '@/api/quiz';
 import type { POIListItem } from '@/types/poi';
 import type { QuizQuestion } from '@/types/api';
 import { Loader2, Plus, Edit2, Trash2, Save, HelpCircle } from 'lucide-react';
@@ -56,7 +55,7 @@ export default function QuizManagePage() {
     const fetchQuestions = async () => {
       setLoadingQuestions(true);
       try {
-        const { data } = await quizApi.getQuiz(selectedPoiId);
+        const { data } = await adminApi.getQuizQuestions(selectedPoiId);
         setQuestions(data);
       } catch (err) {
         console.error('Failed to fetch quiz:', err);
@@ -82,19 +81,14 @@ export default function QuizManagePage() {
   };
 
   const handleOpenEdit = (q: QuizQuestion) => {
-    // We need correct option and explanation. The backend entity has CorrectOption and ExplanationText, but let's see.
-    // In our api types:
-    // export interface QuizQuestion { id, poiId, questionText, answerA, answerB, answerC, answerD }
-    // Wait, let's cast or find their properties.
-    const extendedQ = q as any;
     setEditingQuestion(q);
     setQuestionText(q.questionText);
     setAnswerA(q.answerA);
     setAnswerB(q.answerB);
     setAnswerC(q.answerC);
     setAnswerD(q.answerD);
-    setCorrectOption(extendedQ.correctOption || 'A');
-    setExplanationText(extendedQ.explanationText || '');
+    setCorrectOption(q.correctOption || 'A');
+    setExplanationText(q.explanationText || '');
     setIsModalOpen(true);
   };
 
@@ -230,7 +224,6 @@ export default function QuizManagePage() {
               </thead>
               <tbody className="divide-y divide-border/60">
                 {questions.map((q) => {
-                  const extendedQ = q as any;
                   return (
                     <tr key={q.id} className="hover:bg-surface-alt/40 transition-colors">
                       <td className="p-4 font-bold text-text-primary max-w-xs sm:max-w-md whitespace-pre-wrap leading-relaxed">
@@ -245,7 +238,7 @@ export default function QuizManagePage() {
                         </div>
                       </td>
                       <td className="p-4 font-display font-extrabold text-accent text-sm">
-                        {extendedQ.correctOption || 'A'}
+                        {q.correctOption || 'A'}
                       </td>
                       <td className="p-4 text-right flex items-center justify-end gap-2.5">
                         <button

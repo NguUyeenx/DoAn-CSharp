@@ -1,4 +1,4 @@
-import type { QuizQuestion } from '@/types/api';
+import type { QuizQuestion, QuizResult } from '@/types/api';
 import { useTranslation } from 'react-i18next';
 
 interface QuizCardProps {
@@ -8,6 +8,7 @@ interface QuizCardProps {
   selectedOption: string | null;
   onSelectOption: (option: string) => void;
   disabled: boolean;
+  result?: QuizResult | null;
 }
 
 export default function QuizCard({
@@ -17,6 +18,7 @@ export default function QuizCard({
   selectedOption,
   onSelectOption,
   disabled,
+  result,
 }: QuizCardProps) {
   const { t } = useTranslation();
 
@@ -59,6 +61,27 @@ export default function QuizCard({
       <div className="flex flex-col gap-3">
         {options.map((opt) => {
           const isSelected = selectedOption === opt.key;
+
+          let btnClass = 'border-border bg-card text-text-secondary hover:border-border-hover hover:text-text-primary active:scale-[0.99]';
+          let indicatorClass = 'bg-surface-alt border-border text-text-muted';
+
+          if (result) {
+            const isCorrectOption = result.correctOption === opt.key;
+            if (isCorrectOption) {
+              btnClass = 'border-accent bg-accent/5 text-accent font-semibold';
+              indicatorClass = 'bg-accent border-accent text-white';
+            } else if (isSelected) {
+              btnClass = 'border-danger bg-danger/5 text-danger font-semibold';
+              indicatorClass = 'bg-danger border-danger text-white';
+            } else {
+              btnClass = 'border-border bg-card text-text-muted opacity-50';
+              indicatorClass = 'bg-surface-alt border-border text-text-muted';
+            }
+          } else if (isSelected) {
+            btnClass = 'border-primary bg-primary/5 text-primary font-semibold';
+            indicatorClass = 'bg-primary border-primary text-white';
+          }
+
           return (
             <button
               key={opt.key}
@@ -67,23 +90,14 @@ export default function QuizCard({
               onClick={() => onSelectOption(opt.key)}
               className={`
                 w-full text-left p-4 rounded-xl border-2 transition-all flex items-center gap-3.5 outline-none select-none cursor-pointer
-                ${
-                  isSelected
-                    ? 'border-primary bg-primary/5 text-primary font-semibold'
-                    : 'border-border bg-card text-text-secondary hover:border-border-hover hover:text-text-primary active:scale-[0.99]'
-                }
-                ${disabled && !isSelected ? 'opacity-60 hover:border-border' : ''}
+                ${btnClass}
               `}
             >
               {/* Option Letter Indicator */}
               <div
                 className={`
                   w-6 h-6 rounded-full shrink-0 flex items-center justify-center font-display font-extrabold text-xs border-2
-                  ${
-                    isSelected
-                      ? 'bg-primary border-primary text-white'
-                      : 'bg-surface-alt border-border text-text-muted'
-                  }
+                  ${indicatorClass}
                 `}
               >
                 {opt.key}

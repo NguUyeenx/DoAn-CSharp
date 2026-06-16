@@ -43,13 +43,22 @@ interface ProtectedRouteProps {
 }
 
 function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
-  const { isAuthenticated, role, setLoginModalOpen } = useAuth();
+  const { isAuthenticated, role, setLoginModalOpen, isLoading } = useAuth();
 
   React.useEffect(() => {
-    if (!isAuthenticated) {
+    if (!isLoading && !isAuthenticated) {
       setLoginModalOpen(true);
     }
-  }, [isAuthenticated, setLoginModalOpen]);
+  }, [isLoading, isAuthenticated, setLoginModalOpen]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-surface flex flex-col items-center justify-center p-6 text-text-secondary">
+        <div className="w-8 h-8 rounded-full border-4 border-primary/20 border-t-primary animate-spin" />
+        <span className="text-xs font-semibold mt-3.5">Restoring session...</span>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;

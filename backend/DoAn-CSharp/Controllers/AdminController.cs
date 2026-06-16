@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using DoAn_CSharp.Data;
 using DoAn_CSharp.Models.DTOs;
+using DoAn_CSharp.Models.Entities;
 using DoAn_CSharp.Services;
 
 namespace DoAn_CSharp.Controllers
@@ -14,11 +15,13 @@ namespace DoAn_CSharp.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IPOIService _poiService;
+        private readonly ITTSService _ttsService;
 
-        public AdminController(AppDbContext context, IPOIService poiService)
+        public AdminController(AppDbContext context, IPOIService poiService, ITTSService ttsService)
         {
             _context = context;
             _poiService = poiService;
+            _ttsService = ttsService;
         }
 
         // ── Owner Approvals ───────────────────────────────────────────
@@ -178,6 +181,34 @@ namespace DoAn_CSharp.Controllers
             return Ok(quiz);
         }
 
+        [HttpGet("quiz")]
+        public async Task<IActionResult> GetQuizQuestions([FromQuery] int? poiId = null)
+        {
+            var query = _context.QuizQuestions.AsQueryable();
+            if (poiId.HasValue)
+            {
+                query = query.Where(q => q.POIId == poiId.Value);
+            }
+
+            var quizList = await query
+                .Select(q => new
+                {
+                    q.Id,
+                    q.POIId,
+                    POIName = _context.POIs.Where(p => p.Id == q.POIId).Select(p => p.Name).FirstOrDefault(),
+                    q.QuestionText,
+                    q.AnswerA,
+                    q.AnswerB,
+                    q.AnswerC,
+                    q.AnswerD,
+                    q.CorrectOption,
+                    q.ExplanationText
+                })
+                .ToListAsync();
+
+            return Ok(quizList);
+        }
+
         [HttpDelete("quiz/{id:int}")]
         public async Task<IActionResult> DeleteQuiz(int id)
         {
@@ -185,6 +216,89 @@ namespace DoAn_CSharp.Controllers
             if (quiz == null) return NotFound("Quiz not found.");
 
             _context.QuizQuestions.Remove(quiz);
+            await _context.SaveChangesAsync();
+            return NoContent();
+        }
+
+        // ── Category Management ─────────────────────────────────────────
+
+        [HttpGet("categories")]
+        public async Task<IActionResult> GetCategories()
+        {
+            var categories = await _context.POICategories
+                .Select(c => new
+                {
+                    c.Id,
+                    c.Slug,
+                    c.Name,
+                    c.IconUrl,
+                    c.Color,
+                    c.SortOrder,
+                    c.IsActive,
+                    PoiCount = c.POIs.Count()
+                })
+                .OrderBy(c => c.SortOrder)
+                .ToListAsync();
+
+            return Ok(categories);
+        }
+
+        [HttpPost("categories")]
+        public async Task<IActionResult> CreateCategory([FromBody] CreateCategoryDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Name) || string.IsNullOrWhiteSpace(dto.Slug))
+            {
+                return BadRequest("Name and Slug are required.");
+            }
+
+            var category = new POICategory
+            {
+                Slug = dto.Slug,
+                Name = dto.Name,
+                IconUrl = dto.IconUrl,
+                Color = dto.Color,
+                SortOrder = dto.SortOrder,
+                IsActive = true
+            };
+
+            _context.POICategories.Add(category);
+            await _context.SaveChangesAsync();
+
+            return Ok(category);
+        }
+
+        [HttpPut("categories/{id:int}")]
+        public async Task<IActionResult> UpdateCategory(int id, [FromBody] CategoryDto dto)
+        {
+            var category = await _context.POICategories.FindAsync(id);
+            if (category == null) return NotFound("Category not found.");
+
+            category.Name = dto.Name;
+            category.Slug = dto.Slug;
+            category.IconUrl = dto.IconUrl;
+            category.Color = dto.Color;
+            category.SortOrder = dto.SortOrder;
+            category.IsActive = dto.IsActive;
+
+            await _context.SaveChangesAsync();
+            return Ok(category);
+        }
+
+        [HttpDelete("categories/{id:int}")]
+        public async Task<IActionResult> DeleteCategory(int id)
+        {
+            var category = await _context.POICategories
+                .Include(c => c.POIs)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (category == null) return NotFound("Category not found.");
+
+            if (category.POIs.Any())
+            {
+                return BadRequest("Cannot delete category because it contains active POIs.");
+            }
+
+            _context.POICategories.Remove(category);
             await _context.SaveChangesAsync();
             return NoContent();
         }
@@ -201,7 +315,52 @@ namespace DoAn_CSharp.Controllers
         public async Task<IActionResult> GetAudioFiles()
         {
             var audios = await _context.AudioFiles.OrderByDescending(x => x.Id).ToListAsync();
-            return Ok(audios);
+            
+            // Pre-load POI translations mapping (TranslationId -> POIId)
+            var poiTranslations = await _context.POITranslations.ToDictionaryAsync(t => t.Id, t => t.POIId);
+            // Pre-load POI names (POIId -> Name)
+            var pois = await _context.POIs.ToDictionaryAsync(p => p.Id, p => p.Name);
+
+            var dtos = audios.Select(x => {
+                int poiId = 0;
+                if (x.TranslationType == Models.Entities.TranslationType.POI)
+                {
+                    if (x.AudioType == "custom")
+                    {
+                        poiId = x.TranslationId;
+                    }
+                    else // tts
+                    {
+                        if (poiTranslations.TryGetValue(x.TranslationId, out var mappedPoiId))
+                        {
+                            poiId = mappedPoiId;
+                        }
+                    }
+                }
+
+                pois.TryGetValue(poiId, out var poiName);
+
+                var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", x.FilePath.TrimStart('/'));
+                var fileExists = System.IO.File.Exists(physicalPath);
+
+                return new
+                {
+                    x.Id,
+                    POIId = poiId,
+                    PoiName = poiName ?? $"Food Spot #{poiId}",
+                    x.LanguageCode,
+                    x.FilePath,
+                    x.DurationSeconds,
+                    x.AudioType,
+                    x.TTSProvider,
+                    x.VoiceName,
+                    x.GeneratedAt,
+                    x.IsDefault,
+                    FileExists = fileExists
+                };
+            }).ToList();
+
+            return Ok(dtos);
         }
 
         [HttpDelete("audio/{id:int}")]
@@ -209,6 +368,21 @@ namespace DoAn_CSharp.Controllers
         {
             var audio = await _context.AudioFiles.FindAsync(id);
             if (audio == null) return NotFound();
+
+            // Delete physical file if exists
+            var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audio.FilePath.TrimStart('/'));
+            if (System.IO.File.Exists(physicalPath))
+            {
+                try
+                {
+                    System.IO.File.Delete(physicalPath);
+                }
+                catch (System.Exception ex)
+                {
+                    System.Console.WriteLine($"Error deleting physical audio file: {ex.Message}");
+                }
+            }
+
             _context.AudioFiles.Remove(audio);
             await _context.SaveChangesAsync();
             return NoContent();
@@ -219,8 +393,62 @@ namespace DoAn_CSharp.Controllers
         {
             var audio = await _context.AudioFiles.FindAsync(id);
             if (audio == null) return NotFound("Audio not found");
-            // Placeholder: Call TTSService to regenerate this specific audio
-            return Ok(new { message = $"Audio regeneration triggered for ID {id}." });
+
+            if (audio.AudioType == "custom")
+            {
+                return BadRequest(new { error = "BadRequest", message = "Cannot regenerate custom uploaded audio files using TTS." });
+            }
+
+            if (audio.TranslationType != Models.Entities.TranslationType.POI)
+            {
+                return BadRequest(new { error = "BadRequest", message = "Regeneration is only supported for POI audio translations." });
+            }
+
+            var translation = await _context.POITranslations.FindAsync(audio.TranslationId);
+            if (translation == null)
+            {
+                return NotFound(new { error = "NotFound", message = $"POI translation (ID: {audio.TranslationId}) not found." });
+            }
+
+            if (string.IsNullOrWhiteSpace(translation.AudioText))
+            {
+                return BadRequest(new { error = "BadRequest", message = "Translation audio text is empty." });
+            }
+
+            // Delete existing physical file if exists
+            var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audio.FilePath.TrimStart('/'));
+            if (System.IO.File.Exists(physicalPath))
+            {
+                try
+                {
+                    System.IO.File.Delete(physicalPath);
+                }
+                catch (System.Exception ex)
+                {
+                    System.Console.WriteLine($"Error deleting physical audio file before regeneration: {ex.Message}");
+                }
+            }
+
+            try
+            {
+                // Generate new audio via edge-tts
+                string audioUrl = await _ttsService.GenerateAudioAsync(translation.AudioText, audio.LanguageCode, translation.POIId);
+                audio.FilePath = audioUrl;
+                audio.GeneratedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
+
+                return Ok(new
+                {
+                    message = "Audio file regenerated successfully.",
+                    id = audio.Id,
+                    filePath = audio.FilePath,
+                    generatedAt = audio.GeneratedAt
+                });
+            }
+            catch (System.Exception ex)
+            {
+                return StatusCode(500, new { error = "InternalServerError", message = $"Failed to generate TTS audio: {ex.Message}" });
+            }
         }
 
         // ── Comprehensive Owner Management ───────────────────────────

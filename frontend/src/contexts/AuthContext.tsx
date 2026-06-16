@@ -7,7 +7,9 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import axios from 'axios';
 import { authApi } from '@/api/auth';
+import { authUpdateEmitter } from '@/api/client';
 
 function getStoredAuthKeys() {
   return {
@@ -24,6 +26,7 @@ interface AuthContextValue {
   refreshToken: string | null;
   role: string | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (username: string, password: string) => Promise<string>;
   logout: () => void;
   loginModalOpen: boolean;
@@ -49,19 +52,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
   const [role, setRole] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [loginModalOpen, setLoginModalOpen] = useState(false);
 
-  // On mount: restore from localStorage if token is still valid
+  // Restore/refresh session on mount
   useEffect(() => {
+    let isSubscribed = true;
     const keys = getStoredAuthKeys();
     const storedToken = localStorage.getItem(keys.tokenKey);
-    if (storedToken && !isTokenExpired(keys.expiresKey)) {
-      setToken(storedToken);
-      setRefreshToken(localStorage.getItem(keys.refreshKey));
-      setRole(localStorage.getItem(keys.roleKey));
-    } else {
-      clearStoredAuth(keys);
-    }
+    const storedRefresh = localStorage.getItem(keys.refreshKey);
+
+    const initAuth = async () => {
+      if (storedToken && !isTokenExpired(keys.expiresKey)) {
+        setToken(storedToken);
+        setRefreshToken(storedRefresh);
+        setRole(localStorage.getItem(keys.roleKey));
+        setIsLoading(false);
+      } else if (storedRefresh) {
+        try {
+          const { data } = await axios.post('/api/auth/refresh', {
+            refreshToken: storedRefresh,
+          });
+
+          localStorage.setItem(keys.tokenKey, data.accessToken);
+          localStorage.setItem(keys.refreshKey, data.refreshToken);
+          if (data.role) localStorage.setItem(keys.roleKey, data.role);
+          if (data.expiresAt) localStorage.setItem(keys.expiresKey, data.expiresAt);
+
+          if (isSubscribed) {
+            setToken(data.accessToken);
+            setRefreshToken(data.refreshToken);
+            setRole(data.role || localStorage.getItem(keys.roleKey));
+          }
+        } catch (err) {
+          console.error('Failed to restore session on mount:', err);
+          clearStoredAuth(keys);
+        } finally {
+          if (isSubscribed) {
+            setIsLoading(false);
+          }
+        }
+      } else {
+        clearStoredAuth(keys);
+        setIsLoading(false);
+      }
+    };
+
+    initAuth();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, []);
+
+  // Listen for background/interceptor token refreshes
+  useEffect(() => {
+    const unsubscribe = authUpdateEmitter.subscribe((data) => {
+      setToken(data.accessToken);
+      setRefreshToken(data.refreshToken);
+      setRole(data.role);
+    });
+    return unsubscribe;
   }, []);
 
   const login = useCallback(async (username: string, password: string) => {
@@ -98,12 +149,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       refreshToken,
       role,
       isAuthenticated: token !== null,
+      isLoading,
       login,
       logout,
       loginModalOpen,
       setLoginModalOpen,
     }),
-    [token, refreshToken, role, login, logout, loginModalOpen],
+    [token, refreshToken, role, isLoading, login, logout, loginModalOpen],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

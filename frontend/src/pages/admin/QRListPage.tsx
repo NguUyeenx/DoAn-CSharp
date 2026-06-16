@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { qrApi } from '@/api/qr';
 import { poisApi } from '@/api/pois';
 import type { POIListItem } from '@/types/poi';
-import { Loader2, Plus, QrCode, ToggleLeft, ToggleRight, Download, Image as ImageIcon } from 'lucide-react';
+import { Loader2, Plus, QrCode, Download, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
 interface QRCodeItem {
@@ -83,17 +83,17 @@ export default function QRListPage() {
     }
   };
 
-  const handleToggleStatus = async (item: QRCodeItem) => {
-    const newStatus = !item.isActive;
+  const handleDeleteQR = async (item: QRCodeItem) => {
+    if (!window.confirm(`Are you sure you want to delete the QR code '${item.code}'? This will break any physical prints.`)) {
+      return;
+    }
     try {
-      await qrApi.adminToggleQRStatus(item.id, newStatus);
-      setQrCodes((prev) =>
-        prev.map((q) => (q.id === item.id ? { ...q, isActive: newStatus } : q))
-      );
-      success(newStatus ? 'QR code enabled' : 'QR code disabled');
+      await qrApi.adminDeleteQR(item.id);
+      success('QR Code deleted successfully!');
+      setQrCodes((prev) => prev.filter((q) => q.id !== item.id));
     } catch (err) {
-      console.error('Failed to toggle QR status:', err);
-      toastError('Status update failed.');
+      console.error('Failed to delete QR:', err);
+      toastError('Failed to delete QR code.');
     }
   };
 
@@ -183,7 +183,6 @@ export default function QRListPage() {
                   <th className="p-4">Food Spot Name</th>
                   <th className="p-4">Unique Code</th>
                   <th className="p-4">Scan Count</th>
-                  <th className="p-4">Status</th>
                   <th className="p-4 text-right">Actions</th>
                 </tr>
               </thead>
@@ -204,26 +203,25 @@ export default function QRListPage() {
                     <td className="p-4 font-display font-extrabold text-accent text-sm">
                       {item.scanCount} scans
                     </td>
-                    <td className="p-4">
-                      <button
-                        onClick={() => handleToggleStatus(item)}
-                        className="flex items-center gap-1.5 text-[10px] font-bold text-text-secondary hover:text-text-primary transition-colors cursor-pointer outline-none"
-                      >
-                        {item.isActive ? (
-                          <ToggleRight className="text-accent stroke-[2.5px]" size={22} />
-                        ) : (
-                          <ToggleLeft className="text-text-muted stroke-[2.5px]" size={22} />
-                        )}
-                        <span>{item.isActive ? 'Active' : 'Inactive'}</span>
-                      </button>
-                    </td>
-                    <td className="p-4 text-right">
+                    <td className="p-4 text-right flex items-center justify-end gap-2.5">
                       <button
                         onClick={() => handleDownload(item)}
                         className="p-2 border border-border bg-card text-text-secondary hover:text-text-primary hover:border-border-hover rounded-lg transition-colors cursor-pointer outline-none"
                         title="Download QR"
                       >
                         <Download size={14} />
+                      </button>
+                      <button
+                        disabled={item.scanCount > 0}
+                        onClick={() => handleDeleteQR(item)}
+                        className={`p-2 border rounded-lg transition-colors outline-none ${
+                          item.scanCount > 0
+                            ? 'border-border bg-surface-alt text-text-muted opacity-40 cursor-not-allowed'
+                            : 'border-border bg-card text-danger hover:border-danger/40 hover:bg-danger/5 cursor-pointer'
+                        }`}
+                        title={item.scanCount > 0 ? 'Cannot delete QR code with scan history' : 'Delete QR'}
+                      >
+                        <Trash2 size={14} />
                       </button>
                     </td>
                   </tr>

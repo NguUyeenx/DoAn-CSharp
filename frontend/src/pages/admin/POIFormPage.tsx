@@ -5,7 +5,7 @@ import { poisApi } from '@/api/pois';
 import { adminApi } from '@/api/admin';
 import { uploadApi } from '@/api/upload';
 import { api } from '@/api/client';
-import { ArrowLeft, Save, Loader2, MapPin, Upload, Play, Check } from 'lucide-react';
+import { ArrowLeft, Save, Loader2, MapPin, Upload, Play, Check, ImagePlus, X, AlertCircle, Link as LinkIcon } from 'lucide-react';
 import MapView from '@/components/map/MapView';
 import POIMarker from '@/components/map/POIMarker';
 import { useToast } from '@/components/ui/Toast';
@@ -46,6 +46,12 @@ export default function POIFormPage() {
   const [triggerRadiusMeters, setTriggerRadiusMeters] = useState(50);
   const [imageUrl, setImageUrl] = useState('');
   const [operatingHours, setOperatingHours] = useState<OperatingHourItem[]>(DEFAULT_HOURS);
+
+  // Image upload states
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageError, setImageError] = useState('');
+  const [imageSource, setImageSource] = useState<'upload' | 'url' | null>(null);
+  const [showUrlInput, setShowUrlInput] = useState(false);
 
   // Translation state (Tabs)
   const [activeLangTab, setActiveLangTab] = useState<'vi' | 'en'>('vi');
@@ -112,6 +118,9 @@ export default function POIFormPage() {
         setLongitude(data.longitude);
         setTriggerRadiusMeters(data.triggerRadiusMeters);
         setImageUrl(data.imageUrl || '');
+        if (data.imageUrl) {
+          setImageSource(data.imageUrl.startsWith('/') ? 'upload' : 'url');
+        }
         if (data.operatingHours) {
           try {
             setOperatingHours(JSON.parse(data.operatingHours));
@@ -166,6 +175,75 @@ export default function POIFormPage() {
   const handleMapClick = (lngLat: [number, number]) => {
     setLongitude(lngLat[0]);
     setLatitude(lngLat[1]);
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+    if (!validTypes.includes(file.type)) {
+      setImageError('Chỉ hỗ trợ định dạng JPEG, PNG, WebP, GIF');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setImageError('Ảnh không được lớn hơn 5MB');
+      return;
+    }
+
+    setUploadingImage(true);
+    setImageError('');
+    try {
+      const { data } = await uploadApi.uploadPOIImage(file);
+      setImageUrl(data.url);
+      setImageSource('upload');
+      setShowUrlInput(false);
+      success('Tải lên ảnh đại diện thành công!');
+    } catch {
+      setImageError('Tải lên ảnh thất bại. Vui lòng thử lại.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const validateImageUrl = (url: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (!url) { resolve(false); return; }
+      const img = new window.Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+    });
+  };
+
+  const handleImageUrlChange = async (url: string) => {
+    setImageUrl(url);
+    setImageError('');
+    if (!url) {
+      setImageSource(null);
+      return;
+    }
+    try {
+      new URL(url);
+    } catch {
+      setImageError('URL không đúng định dạng');
+      return;
+    }
+    const valid = await validateImageUrl(url);
+    if (valid) {
+      setImageSource('url');
+      setImageError('');
+    } else {
+      setImageError('Link ảnh không hợp lệ hoặc không thể tải');
+      setImageSource(null);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageUrl('');
+    setImageSource(null);
+    setImageError('');
+    setShowUrlInput(false);
   };
 
   const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -423,19 +501,97 @@ export default function POIFormPage() {
               />
             </div>
 
-            {/* Cover Photo URL */}
-            <div className="flex flex-col gap-1">
+            {/* Cover Photo - Upload + URL + Preview */}
+            <div className="flex flex-col gap-2">
               <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
-                Link ảnh bìa đại diện
+                Ảnh đại diện địa điểm
               </label>
-              <input
-                type="url"
-                disabled={saving}
-                value={imageUrl}
-                onChange={(e) => setImageUrl(e.target.value)}
-                placeholder="https://example.com/photo.jpg"
-                className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none"
-              />
+
+              {/* Preview / Upload Area */}
+              {imageUrl && imageSource ? (
+                <div className="relative group rounded-xl overflow-hidden border border-border bg-surface-alt">
+                  <img
+                    src={imageUrl}
+                    alt="Ảnh đại diện"
+                    className="w-full h-40 object-cover"
+                    onError={() => setImageError('Không thể hiển thị ảnh')}
+                  />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
+                    <label className="p-2 bg-white/90 text-text-primary rounded-full hover:bg-white transition-colors cursor-pointer" title="Đổi ảnh">
+                      <Upload size={16} />
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp,image/gif"
+                        disabled={uploadingImage || saving}
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="p-2 bg-red-500/90 text-white rounded-full hover:bg-red-600 transition-colors cursor-pointer"
+                      title="Xóa ảnh"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <div className="absolute bottom-2 left-2 px-2 py-0.5 bg-black/60 text-white text-[10px] font-semibold rounded-md">
+                    {imageSource === 'upload' ? '📤 Đã tải lên' : '🔗 Từ link'}
+                  </div>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center h-36 rounded-xl border-2 border-dashed border-border hover:border-primary/50 bg-surface-alt/50 hover:bg-surface-alt transition-all cursor-pointer group">
+                  {uploadingImage ? (
+                    <Loader2 className="animate-spin text-primary" size={28} />
+                  ) : (
+                    <>
+                      <ImagePlus size={28} className="text-text-muted group-hover:text-primary transition-colors" />
+                      <span className="text-xs text-text-secondary mt-2 font-semibold">Click để chọn ảnh từ máy</span>
+                      <span className="text-[10px] text-text-muted mt-0.5">JPEG, PNG, WebP, GIF — tối đa 5MB</span>
+                    </>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    disabled={uploadingImage || saving}
+                    onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </label>
+              )}
+
+              {/* Toggle URL input */}
+              {!imageSource && (
+                <button
+                  type="button"
+                  onClick={() => setShowUrlInput(!showUrlInput)}
+                  className="flex items-center gap-1.5 text-[11px] text-text-secondary hover:text-primary font-semibold transition-colors cursor-pointer self-start"
+                >
+                  <LinkIcon size={12} />
+                  <span>{showUrlInput ? 'Ẩn gắn link' : 'Hoặc gắn link ảnh'}</span>
+                </button>
+              )}
+
+              {/* URL Input */}
+              {showUrlInput && !imageSource && (
+                <input
+                  type="url"
+                  disabled={saving}
+                  value={imageUrl}
+                  onChange={(e) => handleImageUrlChange(e.target.value)}
+                  placeholder="https://example.com/photo.jpg"
+                  className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none"
+                />
+              )}
+
+              {/* Image Error */}
+              {imageError && (
+                <div className="flex items-center gap-1.5 text-[11px] text-red-500 font-semibold">
+                  <AlertCircle size={12} />
+                  <span>{imageError}</span>
+                </div>
+              )}
             </div>
           </div>
 

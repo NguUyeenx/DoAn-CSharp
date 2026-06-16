@@ -157,6 +157,7 @@ export default function QuizPage() {
                 selectedOption={selectedOption}
                 onSelectOption={handleSelectOption}
                 disabled={quizResult !== null || submitting}
+                result={quizResult}
               />
             )}
 

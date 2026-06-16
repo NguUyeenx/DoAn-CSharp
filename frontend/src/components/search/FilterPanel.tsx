@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/utils/cn';
 import { api } from '@/api/client';
-import { Heart, MapPin, ArrowUpDown, ChevronDown } from 'lucide-react';
+import { Heart, MapPin, ChevronDown } from 'lucide-react';
 
 interface Category {
   id: string;

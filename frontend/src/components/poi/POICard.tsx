@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import type { POIListItem } from '@/types/poi';
 import { Star, Heart, MapPin } from 'lucide-react';
 import { useTranslation } from 'react-i18next';

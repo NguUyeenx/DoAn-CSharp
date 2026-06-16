@@ -117,5 +117,25 @@ namespace DoAn_CSharp.Controllers
                 .ToListAsync();
             return Ok(qrCodes);
         }
+
+        /// <summary>Xóa QR code không sử dụng (Admin only)</summary>
+        [Authorize(Roles = "admin")]
+        [HttpDelete("~/api/admin/qr/{id:int}")]
+        public async Task<IActionResult> DeleteQR(int id)
+        {
+            try
+            {
+                var success = await _qrCodeService.DeleteQRCodeAsync(id);
+                if (!success)
+                {
+                    return NotFound(new { error = "NotFound", message = "QR code not found." });
+                }
+                return Ok(new { message = "QR code deleted successfully." });
+            }
+            catch (System.InvalidOperationException ex)
+            {
+                return BadRequest(new { error = "BadRequest", message = ex.Message });
+            }
+        }
     }
 }

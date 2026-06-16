@@ -17,7 +17,6 @@ import { useTours } from '@/hooks/useTours';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useMapbox } from '@/hooks/useMapbox';
 import { useFavorites } from '@/hooks/useFavorites';
-import { DEFAULT_CENTER } from '@/utils/constants';
 
 // Helper to calculate distance in meters using Haversine formula
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {

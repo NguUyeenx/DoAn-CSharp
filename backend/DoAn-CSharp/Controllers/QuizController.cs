@@ -22,9 +22,9 @@ namespace DoAn_CSharp.Controllers
             var quiz = await _quizService.GetQuizByPoiIdAsync(poiId, lang);
             if (quiz == null)
             {
-                return NotFound(new { error = "NotFound", message = $"Quiz for POI {poiId} was not found." });
+                return Ok(System.Array.Empty<QuizQuestionDto>());
             }
-            return Ok(quiz);
+            return Ok(new[] { quiz });
         }
 
         [HttpPost("~/api/quiz/submit")]

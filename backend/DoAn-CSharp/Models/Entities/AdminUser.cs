@@ -10,5 +10,7 @@ namespace DoAn_CSharp.Models.Entities
         public string Role { get; set; } = "admin";
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public DateTime? LastLoginAt { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiry { get; set; }
     }
 }

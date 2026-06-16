@@ -12,6 +12,7 @@ interface AudioFileItem {
   filePath: string;
   durationSeconds: number;
   audioType: string;
+  fileExists?: boolean;
 }
 
 export default function AudioListPage() {
@@ -187,20 +188,32 @@ export default function AudioListPage() {
               <tbody className="divide-y divide-border/60">
                 {audios.map((item) => (
                   <tr key={item.id} className="hover:bg-surface-alt/40 transition-colors">
-                    <td className="p-4 font-bold text-text-primary">{item.poiName}</td>
+                    <td className="p-4 font-bold text-text-primary">
+                      <div className="flex flex-col gap-1">
+                        <span>{item.poiName}</span>
+                        {item.fileExists === false && (
+                          <span className="inline-self-start px-1.5 py-0.5 bg-danger/10 text-danger border border-danger/20 rounded-md text-[9px] font-bold uppercase tracking-wider w-fit">
+                            File missing on disk
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="p-4 font-mono font-bold text-primary uppercase">{item.languageCode}</td>
                     <td className="p-4 font-semibold">{formatDuration(item.durationSeconds)}</td>
                     <td className="p-4 font-mono text-text-secondary truncate max-w-xs">{item.filePath}</td>
                     <td className="p-4 text-right flex items-center justify-end gap-2.5">
                       {/* Play / Pause Toggle */}
                       <button
+                        disabled={item.fileExists === false}
                         onClick={() => handlePlay(item)}
-                        className={`p-2 border rounded-lg transition-colors cursor-pointer outline-none ${
-                          playingId === item.id
-                            ? 'bg-accent/10 border-accent text-accent'
-                            : 'border-border bg-card text-text-secondary hover:text-text-primary hover:border-border-hover'
+                        className={`p-2 border rounded-lg transition-colors outline-none ${
+                          item.fileExists === false
+                            ? 'border-border bg-surface-alt text-text-muted opacity-40 cursor-not-allowed'
+                            : playingId === item.id
+                            ? 'bg-accent/10 border-accent text-accent cursor-pointer'
+                            : 'border-border bg-card text-text-secondary hover:text-text-primary hover:border-border-hover cursor-pointer'
                         }`}
-                        title={playingId === item.id ? 'Pause' : 'Play'}
+                        title={item.fileExists === false ? 'Audio file is missing on local server' : (playingId === item.id ? 'Pause' : 'Play')}
                       >
                         {playingId === item.id ? <Pause size={14} /> : <Play size={14} />}
                       </button>

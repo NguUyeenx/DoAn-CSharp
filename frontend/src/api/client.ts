@@ -1,6 +1,14 @@
 import axios from 'axios';
 import type { RefreshTokenRequest } from '@/types/auth';
 
+// Auth state sync event emitter
+type AuthUpdateListener = (data: { accessToken: string; refreshToken: string; role: string; expiresAt: string }) => void;
+const authListeners: AuthUpdateListener[] = [];
+export const authUpdateEmitter = {
+  subscribe: (fn: AuthUpdateListener) => { authListeners.push(fn); return () => { const i = authListeners.indexOf(fn); if (i >= 0) authListeners.splice(i, 1); }; },
+  emit: (data: Parameters<AuthUpdateListener>[0]) => { authListeners.forEach(fn => fn(data)); },
+};
+
 function getAuthKeys() {
   return {
     tokenKey: 'vk_token',
@@ -83,6 +91,13 @@ api.interceptors.response.use(
       if (data.role) {
         localStorage.setItem(roleKey, data.role);
       }
+
+      authUpdateEmitter.emit({
+        accessToken: data.accessToken,
+        refreshToken: data.refreshToken,
+        role: data.role || localStorage.getItem(roleKey) || '',
+        expiresAt: data.expiresAt || '',
+      });
 
       onTokenRefreshed(data.accessToken);
 

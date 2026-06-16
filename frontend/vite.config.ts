@@ -14,19 +14,19 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:5011',
+        target: 'http://127.0.0.1:5012',
         changeOrigin: true,
       },
       '/images': {
-        target: 'http://127.0.0.1:5011',
+        target: 'http://127.0.0.1:5012',
         changeOrigin: true,
       },
       '/audio': {
-        target: 'http://127.0.0.1:5011',
+        target: 'http://127.0.0.1:5012',
         changeOrigin: true,
       },
       '/qrcodes': {
-        target: 'http://127.0.0.1:5011',
+        target: 'http://127.0.0.1:5012',
         changeOrigin: true,
       },
     },

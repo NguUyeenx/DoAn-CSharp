@@ -72,11 +72,14 @@ namespace DoAn_CSharp.Services
             if (admin != null && BCrypt.Net.BCrypt.Verify(dto.Password, admin.PasswordHash))
             {
                 admin.LastLoginAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
 
                 var adminToken = GenerateAdminJwt(admin);
                 var adminRefreshToken = GenerateRefreshToken();
                 var expiryMinutes = _config.GetValue<int>("Jwt:ExpiryMinutes", 60);
+
+                admin.RefreshToken = adminRefreshToken;
+                admin.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
+                await _context.SaveChangesAsync();
 
                 return new AuthResponseDto
                 {
@@ -118,9 +121,15 @@ namespace DoAn_CSharp.Services
             if (admin == null || !BCrypt.Net.BCrypt.Verify(dto.Password, admin.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid admin credentials.");
 
+            admin.LastLoginAt = DateTime.UtcNow;
+
             var token = GenerateAdminJwt(admin);
             var refreshToken = GenerateRefreshToken();
             var expiryMinutes = _config.GetValue<int>("Jwt:ExpiryMinutes", 60);
+
+            admin.RefreshToken = refreshToken;
+            admin.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
+            await _context.SaveChangesAsync();
 
             return new AdminAuthResponseDto
             {
@@ -138,7 +147,30 @@ namespace DoAn_CSharp.Services
                 .FirstOrDefaultAsync(u => u.RefreshToken == refreshToken && u.RefreshTokenExpiry > DateTime.UtcNow);
 
             if (owner == null)
-                throw new UnauthorizedAccessException("Invalid or expired refresh token.");
+            {
+                var admin = await _context.AdminUsers
+                    .FirstOrDefaultAsync(a => a.RefreshToken == refreshToken && a.RefreshTokenExpiry > DateTime.UtcNow);
+
+                if (admin == null)
+                    throw new UnauthorizedAccessException("Invalid or expired refresh token.");
+
+                var newAdminRefreshToken = GenerateRefreshToken();
+                admin.RefreshToken = newAdminRefreshToken;
+                admin.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
+                await _context.SaveChangesAsync();
+
+                var adminToken = GenerateAdminJwt(admin);
+                var expiryMinutes = _config.GetValue<int>("Jwt:ExpiryMinutes", 60);
+
+                return new AuthResponseDto
+                {
+                    AccessToken = adminToken,
+                    RefreshToken = newAdminRefreshToken,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes),
+                    Role = "admin",
+                    Owner = null
+                };
+            }
 
             var newRefreshToken = GenerateRefreshToken();
             owner.RefreshToken = newRefreshToken;
@@ -233,13 +265,14 @@ namespace DoAn_CSharp.Services
             return Convert.ToBase64String(bytes);
         }
 
-        private static AuthResponseDto BuildAuthResponse(Owner owner, string accessToken, string refreshToken)
+        private AuthResponseDto BuildAuthResponse(Owner owner, string accessToken, string refreshToken)
         {
+            var expiryMinutes = _config.GetValue<int>("Jwt:ExpiryMinutes", 60);
             return new AuthResponseDto
             {
                 AccessToken = accessToken,
                 RefreshToken = refreshToken,
-                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                ExpiresAt = DateTime.UtcNow.AddMinutes(expiryMinutes),
                 Role = "owner",
                 Owner = new OwnerDto
                 {
