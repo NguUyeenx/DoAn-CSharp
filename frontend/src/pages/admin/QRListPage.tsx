@@ -84,7 +84,11 @@ export default function QRListPage() {
   };
 
   const handleDeleteQR = async (item: QRCodeItem) => {
-    if (!window.confirm(`Are you sure you want to delete the QR code '${item.code}'? This will break any physical prints.`)) {
+    const confirmMsg = item.scanCount > 0
+      ? `Mã Qr hiện tại có số lượt quét là ${item.scanCount}. Có xác định xóa?`
+      : `Bạn có chắc chắn muốn xóa mã QR này không?`;
+    
+    if (!window.confirm(confirmMsg)) {
       return;
     }
     try {
@@ -212,14 +216,9 @@ export default function QRListPage() {
                         <Download size={14} />
                       </button>
                       <button
-                        disabled={item.scanCount > 0}
                         onClick={() => handleDeleteQR(item)}
-                        className={`p-2 border rounded-lg transition-colors outline-none ${
-                          item.scanCount > 0
-                            ? 'border-border bg-surface-alt text-text-muted opacity-40 cursor-not-allowed'
-                            : 'border-border bg-card text-danger hover:border-danger/40 hover:bg-danger/5 cursor-pointer'
-                        }`}
-                        title={item.scanCount > 0 ? 'Cannot delete QR code with scan history' : 'Delete QR'}
+                        className="p-2 border border-border bg-card text-danger hover:border-danger/40 hover:bg-danger/5 rounded-lg transition-colors cursor-pointer outline-none"
+                        title="Delete QR"
                       >
                         <Trash2 size={14} />
                       </button>

@@ -39,22 +39,40 @@ namespace DoAn_CSharp.Controllers
             if (qr == null || !qr.IsActive)
                 return NotFound(new { error = "NotFound", message = $"QR Code '{code}' was not found or is inactive." });
 
-            // Tăng ScanCount
-            var qrEntity = await _context.QRCodes.FirstOrDefaultAsync(q => q.Code == code);
-            if (qrEntity != null)
+            // Check for duplicate scans within 5 seconds for the same SessionId to prevent double scan count and double logs (e.g. from React StrictMode double rendering)
+            bool isDuplicate = false;
+            if (!string.IsNullOrEmpty(sessionId))
             {
-                qrEntity.ScanCount++;
-                await _context.SaveChangesAsync();
+                var recentLog = await _context.VisitLogs
+                    .Where(v => v.SessionId == sessionId && v.POIId == qr.POIId && v.TriggerType == "qr")
+                    .OrderByDescending(v => v.VisitedAt)
+                    .FirstOrDefaultAsync();
+
+                if (recentLog != null && (DateTime.UtcNow - recentLog.VisitedAt).TotalSeconds < 5)
+                {
+                    isDuplicate = true;
+                }
             }
 
-            // Ghi VisitLog
-            await _analyticsService.LogVisitAsync(new VisitCreateDto
+            if (!isDuplicate)
             {
-                POIId = qr.POIId,
-                SessionId = sessionId,
-                TriggerType = "qr",
-                LanguageCode = lang
-            });
+                // Tăng ScanCount
+                var qrEntity = await _context.QRCodes.FirstOrDefaultAsync(q => q.Code == code);
+                if (qrEntity != null)
+                {
+                    qrEntity.ScanCount++;
+                    await _context.SaveChangesAsync();
+                }
+
+                // Ghi VisitLog
+                await _analyticsService.LogVisitAsync(new VisitCreateDto
+                {
+                    POIId = qr.POIId,
+                    SessionId = sessionId,
+                    TriggerType = "qr",
+                    LanguageCode = lang
+                });
+            }
 
             var poi = await _poiService.GetByIdAsync(qr.POIId, lang);
             if (poi == null)

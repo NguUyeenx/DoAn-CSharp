@@ -16,12 +16,14 @@ namespace DoAn_CSharp.Controllers
         private readonly AppDbContext _context;
         private readonly IPOIService _poiService;
         private readonly ITTSService _ttsService;
+        private readonly ITranslationService _translationService;
 
-        public AdminController(AppDbContext context, IPOIService poiService, ITTSService ttsService)
+        public AdminController(AppDbContext context, IPOIService poiService, ITTSService ttsService, ITranslationService translationService)
         {
             _context = context;
             _poiService = poiService;
             _ttsService = ttsService;
+            _translationService = translationService;
         }
 
         // ── Owner Approvals ───────────────────────────────────────────
@@ -459,66 +461,120 @@ namespace DoAn_CSharp.Controllers
         [HttpPost("audio/regenerate-all")]
         public async Task<IActionResult> RegenerateAllAudio([FromBody] RegenerateAudioRequest? request)
         {
-            var query = _context.AudioFiles
-                .Where(x => x.AudioType == "tts" && x.TranslationType == Models.Entities.TranslationType.POI);
-
-            if (request?.Languages != null && request.Languages.Any())
+            if (request?.Languages == null || !request.Languages.Any())
             {
-                var targetLangs = request.Languages.Select(l => l.ToLowerInvariant()).ToList();
-                query = query.Where(x => targetLangs.Contains(x.LanguageCode.ToLower()));
+                return BadRequest(new { error = "BadRequest", message = "Vui lòng chọn ít nhất một ngôn ngữ để tái tạo." });
             }
 
-            var audios = await query.ToListAsync();
+            var targetLangs = request.Languages.Select(l => l.ToLowerInvariant()).ToList();
+            
+            // Get all active POIs
+            var pois = await _context.POIs
+                .Where(p => p.DeletedAt == null && p.ApprovalStatus == "approved")
+                .ToListAsync();
 
             int successCount = 0;
             int failCount = 0;
 
-            foreach (var audio in audios)
+            foreach (var poi in pois)
             {
-                var translation = await _context.POITranslations.FindAsync(audio.TranslationId);
-                if (translation == null || string.IsNullOrWhiteSpace(translation.AudioText))
-                {
-                    failCount++;
-                    continue;
-                }
-
-                // Delete existing physical file if exists
-                var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audio.FilePath.TrimStart('/'));
-                if (System.IO.File.Exists(physicalPath))
+                foreach (var langCode in targetLangs)
                 {
                     try
                     {
-                        System.IO.File.Delete(physicalPath);
+                        // Check if translation exists
+                        var translation = await _context.POITranslations
+                            .FirstOrDefaultAsync(t => t.POIId == poi.Id && t.LanguageCode.ToLower() == langCode);
+
+                        if (translation == null)
+                        {
+                            // If translation doesn't exist, use translation service to automatically translate on-the-fly
+                            // This translates text and automatically creates/saves POITranslation and AudioFile records
+                            var newTranslationDto = await _translationService.GetTranslationAsync(poi.Id, langCode);
+                            if (newTranslationDto != null)
+                            {
+                                successCount++;
+                            }
+                            else
+                            {
+                                failCount++;
+                            }
+                        }
+                        else
+                        {
+                            if (string.IsNullOrWhiteSpace(translation.AudioText))
+                            {
+                                failCount++;
+                                continue;
+                            }
+
+                            // If translation exists, find its corresponding AudioFile record
+                            var audio = await _context.AudioFiles
+                                .FirstOrDefaultAsync(x => x.TranslationId == translation.Id && x.AudioType == "tts" && x.TranslationType == Models.Entities.TranslationType.POI);
+
+                            if (audio != null)
+                            {
+                                // Delete existing physical file if it exists
+                                var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audio.FilePath.TrimStart('/'));
+                                if (System.IO.File.Exists(physicalPath))
+                                {
+                                    try
+                                    {
+                                        System.IO.File.Delete(physicalPath);
+                                    }
+                                    catch (System.Exception ex)
+                                    {
+                                        System.Console.WriteLine($"Error deleting physical audio file before regeneration: {ex.Message}");
+                                    }
+                                }
+                            }
+
+                            // Generate new audio using edge-tts
+                            string audioUrl = await _ttsService.GenerateAudioAsync(translation.AudioText, langCode, poi.Id);
+                            string newPhysicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audioUrl.TrimStart('/'));
+                            int duration = TTSService.GetMp3Duration(newPhysicalPath);
+
+                            if (audio == null)
+                            {
+                                // Create new AudioFile record if it didn't exist
+                                audio = new AudioFile
+                                {
+                                    TranslationType = Models.Entities.TranslationType.POI,
+                                    TranslationId = translation.Id,
+                                    LanguageCode = langCode,
+                                    FilePath = audioUrl,
+                                    DurationSeconds = duration,
+                                    AudioType = "tts",
+                                    TTSProvider = "edge-tts",
+                                    GeneratedAt = DateTime.UtcNow,
+                                    IsDefault = true
+                                };
+                                await _context.AudioFiles.AddAsync(audio);
+                            }
+                            else
+                            {
+                                // Update existing AudioFile record
+                                audio.FilePath = audioUrl;
+                                audio.DurationSeconds = duration;
+                                audio.GeneratedAt = DateTime.UtcNow;
+                            }
+
+                            await _context.SaveChangesAsync();
+                            successCount++;
+                        }
                     }
                     catch (System.Exception ex)
                     {
-                        System.Console.WriteLine($"Error deleting physical audio file before regeneration: {ex.Message}");
+                        System.Console.WriteLine($"Error regenerating TTS audio for POI ID {poi.Id} and language {langCode}: {ex.Message}");
+                        failCount++;
                     }
-                }
-
-                try
-                {
-                    string audioUrl = await _ttsService.GenerateAudioAsync(translation.AudioText, audio.LanguageCode, translation.POIId);
-                    string newPhysicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audioUrl.TrimStart('/'));
-                    int duration = TTSService.GetMp3Duration(newPhysicalPath);
-
-                    audio.FilePath = audioUrl;
-                    audio.DurationSeconds = duration;
-                    audio.GeneratedAt = DateTime.UtcNow;
-                    await _context.SaveChangesAsync();
-                    successCount++;
-                }
-                catch (System.Exception ex)
-                {
-                    System.Console.WriteLine($"Error regenerating TTS audio ID {audio.Id}: {ex.Message}");
-                    failCount++;
                 }
             }
 
             return Ok(new
             {
-                message = "Regeneration of all TTS audio files completed.",
-                total = audios.Count,
+                message = "Regeneration of selected TTS audio files completed.",
+                total = pois.Count * targetLangs.Count,
                 success = successCount,
                 failed = failCount
             });

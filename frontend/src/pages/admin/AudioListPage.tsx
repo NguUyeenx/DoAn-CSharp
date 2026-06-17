@@ -546,19 +546,31 @@ export default function AudioListPage() {
                 >
                   <ChevronLeft size={14} />
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer outline-none ${
-                      currentPage === page
-                        ? 'border-primary bg-primary text-white shadow-sm'
-                        : 'border-border bg-card hover:bg-surface text-text-secondary'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+                {getPaginationRange(currentPage, totalPages).map((page, index) => {
+                  if (page === '...') {
+                    return (
+                      <span
+                        key={`ellipsis-${index}`}
+                        className="w-8 h-8 flex items-center justify-center text-text-muted select-none font-medium"
+                      >
+                        ...
+                      </span>
+                    );
+                  }
+                  return (
+                    <button
+                      key={`page-${page}`}
+                      onClick={() => setCurrentPage(page as number)}
+                      className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all cursor-pointer outline-none ${
+                        currentPage === page
+                          ? 'border-primary bg-primary text-white shadow-sm'
+                          : 'border-border bg-card hover:bg-surface text-text-secondary'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  );
+                })}
                 <button
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage((prev) => prev + 1)}
@@ -573,5 +585,49 @@ export default function AudioListPage() {
       )}
     </div>
   );
+}
+
+function getPaginationRange(currentPage: number, totalPages: number): (number | string)[] {
+  const delta = 2; // Number of pages to show on either side of current page
+  const range: (number | string)[] = [];
+
+  if (totalPages <= 7) {
+    for (let i = 1; i <= totalPages; i++) {
+      range.push(i);
+    }
+    return range;
+  }
+
+  // Always show page 1
+  range.push(1);
+
+  const left = currentPage - delta;
+  const right = currentPage + delta;
+
+  // Check if we need a left ellipsis
+  if (left > 2) {
+    range.push('...');
+  } else if (left === 2) {
+    range.push(2);
+  }
+
+  // Add middle pages
+  const start = Math.max(2, left);
+  const end = Math.min(totalPages - 1, right);
+  for (let i = start; i <= end; i++) {
+    range.push(i);
+  }
+
+  // Check if we need a right ellipsis
+  if (right < totalPages - 1) {
+    range.push('...');
+  } else if (right === totalPages - 1) {
+    range.push(totalPages - 1);
+  }
+
+  // Always show last page
+  range.push(totalPages);
+
+  return range;
 }
 

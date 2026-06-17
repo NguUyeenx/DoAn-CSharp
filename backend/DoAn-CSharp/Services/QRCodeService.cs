@@ -101,11 +101,6 @@ namespace DoAn_CSharp.Services
                 return false;
             }
 
-            if (qr.ScanCount > 0)
-            {
-                throw new InvalidOperationException("Cannot delete a QR code that has scan history.");
-            }
-
             // Remove physical file
             string qrDir = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "qrcodes");
             string physicalPath = Path.Combine(qrDir, $"{qr.Code}.png");
@@ -128,7 +123,8 @@ namespace DoAn_CSharp.Services
                 Code = entity.Code,
                 QRImageUrl = entity.QRImageUrl,
                 IsActive = entity.IsActive,
-                CreatedAt = entity.CreatedAt
+                CreatedAt = entity.CreatedAt,
+                ScanCount = entity.ScanCount
             };
         }
     }
