@@ -39,8 +39,12 @@ namespace DoAn_CSharp.Controllers
             if (lang == null) return NotFound();
 
             var all = await _context.Languages.ToListAsync();
-            foreach (var l in all) l.IsDefault = (l.Code == code);
-            
+            foreach (var l in all)
+            {
+                l.IsDefault = (l.Code == code);
+                if (l.IsDefault) l.IsActive = true;
+            }
+
             await _context.SaveChangesAsync();
             return Ok(lang);
         }

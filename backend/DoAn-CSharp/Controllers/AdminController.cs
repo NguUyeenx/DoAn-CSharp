@@ -237,7 +237,7 @@ namespace DoAn_CSharp.Controllers
                     c.Color,
                     c.SortOrder,
                     c.IsActive,
-                    PoiCount = c.POIs.Count()
+                    PoiCount = _context.POIs.Count(p => p.Category == c.Slug && p.DeletedAt == null)
                 })
                 .OrderBy(c => c.SortOrder)
                 .ToListAsync();
@@ -265,6 +265,8 @@ namespace DoAn_CSharp.Controllers
 
             _context.POICategories.Add(category);
             await _context.SaveChangesAsync();
+
+            await LogAuditAsync("CREATE_CATEGORY", "Category", category.Id, $"Created category {category.Slug}");
 
             return Ok(category);
         }
@@ -302,6 +304,8 @@ namespace DoAn_CSharp.Controllers
 
             _context.POICategories.Remove(category);
             await _context.SaveChangesAsync();
+
+            await LogAuditAsync("DELETE_CATEGORY", "Category", category.Id, $"Deleted category {category.Slug}");
             return NoContent();
         }
         // ── Phase 4: Analytics & Logging ──────────────────────────────
@@ -613,6 +617,8 @@ namespace DoAn_CSharp.Controllers
             owner.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
+            await LogAuditAsync("LOCK_OWNER", "Owner", owner.Id, $"Locked owner {owner.Username}");
+
             return Ok(new { message = "Owner locked/suspended successfully." });
         }
 
@@ -625,6 +631,8 @@ namespace DoAn_CSharp.Controllers
             owner.OwnerStatus = "approved";
             owner.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            await LogAuditAsync("UNLOCK_OWNER", "Owner", owner.Id, $"Unlocked owner {owner.Username}");
 
             return Ok(new { message = "Owner unlocked/approved successfully." });
         }
@@ -749,6 +757,24 @@ namespace DoAn_CSharp.Controllers
 
             await _context.SaveChangesAsync();
             return Ok(new { message = "Custom audio saved successfully." });
+        }
+
+        private async Task LogAuditAsync(string action, string entityName, int? entityId, string details)
+        {
+            var username = User?.Identity?.Name ?? "admin";
+            var log = new Models.Entities.AuditLog
+            {
+                UserId = 1,
+                UserName = username,
+                UserRole = "admin",
+                Action = action,
+                EntityName = entityName,
+                EntityId = entityId,
+                Details = details,
+                CreatedAt = DateTime.UtcNow
+            };
+            _context.AuditLogs.Add(log);
+            await _context.SaveChangesAsync();
         }
     }
 

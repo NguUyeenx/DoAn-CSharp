@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import i18n from '@/i18n';
 import { api } from '@/api/client';
-
+import type { Language } from '@/types/api';
 interface LanguageContextValue {
   language: string;
   changeLanguage: (lng: string) => Promise<void>;
@@ -30,6 +30,16 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
+    if (!localStorage.getItem(STORAGE_KEY)) {
+      api.get<Language[]>('/admin/languages').then(res => {
+        const defaultLang = res.data.find(l => l.isDefault);
+        if (defaultLang && defaultLang.code !== i18n.language) {
+          i18n.changeLanguage(defaultLang.code);
+          setLanguageState(defaultLang.code);
+        }
+      }).catch(console.error);
+    }
+
     const handleLanguageChanged = (lng: string) => {
       setLanguageState(lng);
     };

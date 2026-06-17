@@ -25,23 +25,7 @@ export default function AuditLogsPage() {
       setLogs(data);
     } catch (err) {
       console.error('Failed to load audit logs:', err);
-      // Mock logs fallback
-      setLogs([
-        {
-          id: 1,
-          userName: 'admin',
-          action: 'APPROVE_OWNER',
-          details: 'Approved owner account "Quan Oc Khanh"',
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-        },
-        {
-          id: 2,
-          userName: 'quanockhanh',
-          action: 'CREATE_POI',
-          details: 'Registered POI "Oc Khanh - Vinh Khanh"',
-          createdAt: new Date(Date.now() - 7200000).toISOString(),
-        },
-      ]);
+      // Remove mock logs fallback
     } finally {
       setLoading(false);
     }

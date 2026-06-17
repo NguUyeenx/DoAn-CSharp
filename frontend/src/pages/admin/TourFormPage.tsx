@@ -137,6 +137,7 @@ export default function TourFormPage() {
       // reload stops
       const { data } = await toursApi.getById(tourId, i18n.language);
       setStops(data.stops || []);
+      setDistanceKm(data.distanceKm);
     } catch (err) {
       console.error('Failed to add stop:', err);
       toastError('Failed to add stop.');
@@ -153,7 +154,9 @@ export default function TourFormPage() {
     try {
       await toursApi.adminRemoveStop(tourId, poiId);
       success('Stop removed.');
-      setStops((prev) => prev.filter((s) => s.poiId !== poiId));
+      const { data } = await toursApi.getById(tourId, i18n.language);
+      setStops(data.stops || []);
+      setDistanceKm(data.distanceKm);
     } catch (err) {
       console.error('Failed to remove stop:', err);
       toastError('Failed to remove stop.');
@@ -183,12 +186,9 @@ export default function TourFormPage() {
     try {
       await toursApi.adminReorderStops(tourId, updatedOrders);
       // Re-update local state with proper order index
-      setStops(
-        newStops.map((s, i) => ({
-          ...s,
-          stopOrder: i + 1,
-        }))
-      );
+      const { data } = await toursApi.getById(tourId, i18n.language);
+      setStops(data.stops || []);
+      setDistanceKm(data.distanceKm);
       success('Route stops reordered!');
     } catch (err) {
       console.error('Failed to reorder stops:', err);
@@ -262,43 +262,17 @@ export default function TourFormPage() {
               />
             </div>
 
-            {/* Grid Mins + Km */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Duration (Minutes)</label>
-                <input
-                  type="number"
-                  disabled={saving}
-                  value={estimatedMinutes}
-                  onChange={(e) => setEstimatedMinutes(parseInt(e.target.value) || 0)}
-                  className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none font-mono"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1">
-                <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Distance (Km)</label>
-                <input
-                  type="number"
-                  step="0.1"
-                  disabled={saving}
-                  value={distanceKm}
-                  onChange={(e) => setDistanceKm(parseFloat(e.target.value) || 0)}
-                  className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none font-mono"
-                />
-              </div>
-            </div>
-
-            {/* Active Checkbox */}
-            <label className="flex items-center gap-2.5 mt-1 select-none cursor-pointer">
+            {/* Distance */}
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">Distance (Km) - Auto Calculated</label>
               <input
-                type="checkbox"
-                disabled={saving}
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
-                className="w-4.5 h-4.5 text-primary border-border bg-card rounded-md focus:ring-primary/10 accent-primary cursor-pointer"
+                type="number"
+                step="0.1"
+                disabled={true}
+                value={distanceKm}
+                className="w-full h-10 px-3 rounded-xl border border-border bg-surface-alt text-text-secondary text-xs sm:text-sm font-mono outline-none"
               />
-              <span className="text-xs font-semibold text-text-secondary">Visible to public visitors</span>
-            </label>
+            </div>
 
             <button
               type="submit"
