@@ -1,14 +1,32 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ownerApi } from '@/api/owner';
-import { Eye, QrCode, Headphones, Store, Loader2, TrendingUp } from 'lucide-react';
+import { Eye, QrCode, Headphones, Store, Loader2, TrendingUp, Heart, ArrowUpDown, Globe } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
+
+interface PoiStatsItem {
+  id: number;
+  name: string;
+  scans: number;
+  views: number;
+  audioPlays: number;
+  bookmarks: number;
+}
+
+interface LanguageMetric {
+  code: string;
+  count: number;
+  percentage: number;
+}
 
 interface DashboardStats {
   totalPOIs: number;
   totalViews: number;
   totalAudioPlays: number;
   totalQrScans: number;
+  totalBookmarks: number;
+  poiStats: PoiStatsItem[];
+  languages: LanguageMetric[];
 }
 
 interface ChartDataItem {
@@ -23,6 +41,10 @@ export default function DashboardPage() {
   const [chartData, setChartData] = useState<ChartDataItem[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Sorting state for POI table
+  const [sortField, setSortField] = useState<keyof PoiStatsItem>('scans');
+  const [sortAsc, setSortAsc] = useState(false);
+
   useEffect(() => {
     let isSubscribed = true;
     const loadDashboardData = async () => {
@@ -31,19 +53,25 @@ export default function DashboardPage() {
         const [statsRes, chartsRes] = await Promise.all([
           ownerApi.getOwnerDashboard().catch((e) => {
             console.warn('Dashboard stats API missing/failed, using fallback:', e);
-            // Fallback mock stats for testing
             return {
               data: {
                 totalPOIs: 1,
                 totalViews: 1420,
                 totalAudioPlays: 843,
                 totalQrScans: 512,
+                totalBookmarks: 250,
+                poiStats: [
+                  { id: 1, name: 'Quán Demo', scans: 512, views: 1420, audioPlays: 843, bookmarks: 250 }
+                ],
+                languages: [
+                  { code: 'vi', count: 1200, percentage: 85 },
+                  { code: 'en', count: 220, percentage: 15 }
+                ]
               },
             };
           }),
           ownerApi.getOwnerDashboardCharts().catch((e) => {
             console.warn('Dashboard charts API missing/failed, using fallback:', e);
-            // Fallback mock charts for testing
             return {
               data: [
                 { date: '06-09', count: 42 },
@@ -76,6 +104,28 @@ export default function DashboardPage() {
       isSubscribed = false;
     };
   }, [t, toastError]);
+
+  const handleSort = (field: keyof PoiStatsItem) => {
+    if (sortField === field) {
+      setSortAsc(!sortAsc);
+    } else {
+      setSortField(field);
+      setSortAsc(false); // Default descending sorting for statistics
+    }
+  };
+
+  const sortedPoiStats = [...(stats?.poiStats || [])].sort((a, b) => {
+    const valA = a[sortField];
+    const valB = b[sortField];
+    
+    if (typeof valA === 'string' && typeof valB === 'string') {
+      return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    }
+    
+    const numA = Number(valA) || 0;
+    const numB = Number(valB) || 0;
+    return sortAsc ? numA - numB : numB - numA;
+  });
 
   // SVG Chart drawing computations
   const renderSvgChart = () => {
@@ -206,7 +256,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* Total POIs */}
         <div className="bg-card border border-border p-4 rounded-2xl shadow-xs flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary flex items-center justify-center shrink-0">
@@ -250,6 +300,17 @@ export default function DashboardPage() {
             <p className="text-xl font-display font-extrabold text-text-primary mt-0.5">{stats?.totalQrScans}</p>
           </div>
         </div>
+
+        {/* Total Bookmarks */}
+        <div className="bg-card border border-border p-4 rounded-2xl shadow-xs flex items-center gap-4 col-span-2 md:col-span-1">
+          <div className="w-10 h-10 rounded-xl bg-danger/10 border border-danger/20 text-danger flex items-center justify-center shrink-0">
+            <Heart size={20} className="fill-current" />
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Lượt Thích</span>
+            <p className="text-xl font-display font-extrabold text-text-primary mt-0.5">{stats?.totalBookmarks || 0}</p>
+          </div>
+        </div>
       </div>
 
       {/* Daily Visitor Chart */}
@@ -258,7 +319,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2">
             <TrendingUp className="text-primary" size={18} />
             <h3 className="font-display font-extrabold text-sm sm:text-base text-text-primary">
-              {t('owner.dashboard.traffic', 'Biểu Đồ Truy Cập (7 ngày qua)')}
+              {t('owner.dashboard.traffic', 'Biêu Đồ Truy Cập (7 ngày qua)')}
             </h3>
           </div>
           <span className="text-[10px] bg-primary/5 text-primary border border-primary/20 px-2 py-0.5 rounded-[var(--radius-sm)] font-bold">
@@ -273,6 +334,116 @@ export default function DashboardPage() {
           ) : (
             <span className="text-xs text-text-muted">Chưa có dữ liệu thống kê biểu đồ.</span>
           )}
+        </div>
+      </div>
+
+      {/* Detailed Table & Language Breakdown Row */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Store Metrics Table */}
+        <div className="xl:col-span-2 bg-card border border-border rounded-2xl shadow-md p-5 sm:p-6 flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <h3 className="font-display font-extrabold text-sm sm:text-base text-text-primary">
+              🏪 Thống kê chi tiết theo Cửa hàng
+            </h3>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-border/60 text-text-muted font-bold">
+                  <th className="py-2.5 px-3">Tên cửa hàng</th>
+                  <th 
+                    className="py-2.5 px-3 cursor-pointer hover:text-primary transition-colors select-none"
+                    onClick={() => handleSort('scans')}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Lượt quét QR</span>
+                      <ArrowUpDown size={12} />
+                    </div>
+                  </th>
+                  <th 
+                    className="py-2.5 px-3 cursor-pointer hover:text-primary transition-colors select-none"
+                    onClick={() => handleSort('views')}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Lượt ghé thăm</span>
+                      <ArrowUpDown size={12} />
+                    </div>
+                  </th>
+                  <th 
+                    className="py-2.5 px-3 cursor-pointer hover:text-primary transition-colors select-none"
+                    onClick={() => handleSort('audioPlays')}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Lượt nghe Audio</span>
+                      <ArrowUpDown size={12} />
+                    </div>
+                  </th>
+                  <th 
+                    className="py-2.5 px-3 cursor-pointer hover:text-primary transition-colors select-none"
+                    onClick={() => handleSort('bookmarks')}
+                  >
+                    <div className="flex items-center gap-1">
+                      <span>Lượt thích</span>
+                      <ArrowUpDown size={12} />
+                    </div>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border/40">
+                {sortedPoiStats.length > 0 ? (
+                  sortedPoiStats.map((item) => (
+                    <tr key={item.id} className="hover:bg-surface-alt/50 transition-colors">
+                      <td className="py-3 px-3 font-semibold text-text-primary">{item.name}</td>
+                      <td className="py-3 px-3 font-mono">{item.scans}</td>
+                      <td className="py-3 px-3 font-mono">{item.views}</td>
+                      <td className="py-3 px-3 font-mono">{item.audioPlays}</td>
+                      <td className="py-3 px-3 font-mono">{item.bookmarks}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-text-muted">
+                      Chưa có dữ liệu thống kê cửa hàng.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Language Breakdown Widget */}
+        <div className="bg-card border border-border rounded-2xl shadow-md p-5 sm:p-6 flex flex-col gap-4">
+          <div className="flex items-center justify-between border-b border-border pb-3">
+            <div className="flex items-center gap-2">
+              <Globe className="text-primary" size={18} />
+              <h3 className="font-display font-extrabold text-sm sm:text-base text-text-primary">
+                🌐 Ngôn ngữ Du khách
+              </h3>
+            </div>
+          </div>
+          <div className="flex flex-col gap-4">
+            {stats?.languages && stats.languages.length > 0 ? (
+              stats.languages.map((lang) => (
+                <div key={lang.code} className="space-y-1">
+                  <div className="flex justify-between text-xs font-semibold">
+                    <span className="uppercase text-text-secondary">{lang.code}</span>
+                    <span className="text-text-primary font-mono">{lang.percentage}% ({lang.count})</span>
+                  </div>
+                  <div className="w-full h-2 bg-surface rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary rounded-full" 
+                      style={{ width: `${lang.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="py-8 text-center text-text-muted text-xs">
+                Chưa có dữ liệu ngôn ngữ.
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

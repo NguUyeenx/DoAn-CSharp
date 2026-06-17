@@ -28,6 +28,20 @@ namespace DoAn_CSharp.Controllers
             _context = context;
         }
 
+        private System.DateTime GetVietnamTime()
+        {
+            try
+            {
+                var tz = System.TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+                return System.TimeZoneInfo.ConvertTimeFromUtc(System.DateTime.UtcNow, tz);
+            }
+            catch
+            {
+                var tz = System.TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+                return System.TimeZoneInfo.ConvertTimeFromUtc(System.DateTime.UtcNow, tz);
+            }
+        }
+
         /// <summary>Quét QR Code - trả về thông tin POI và ghi log</summary>
         [HttpGet("{code}")]
         public async Task<IActionResult> ScanQR(
@@ -39,9 +53,41 @@ namespace DoAn_CSharp.Controllers
             if (qr == null || !qr.IsActive)
                 return NotFound(new { error = "NotFound", message = $"QR Code '{code}' was not found or is inactive." });
 
-            // Check for duplicate scans within 5 seconds for the same SessionId to prevent double scan count and double logs (e.g. from React StrictMode double rendering)
+            // Check activation status of visitor or if user is owner/admin
+            bool isActivated = false;
+            bool isBypassLog = false;
+            if (User.Identity?.IsAuthenticated == true && (User.IsInRole("admin") || User.IsInRole("owner")))
+            {
+                isActivated = true;
+                isBypassLog = true;
+            }
+            else if (!string.IsNullOrEmpty(sessionId))
+            {
+                var vnNow = GetVietnamTime();
+                isActivated = await _context.VisitorActivations
+                    .AnyAsync(a => a.SessionId == sessionId && a.ExpiresAt > vnNow);
+            }
+
+            var poi = await _poiService.GetByIdAsync(qr.POIId, lang);
+            if (poi == null)
+                return NotFound(new { error = "NotFound", message = $"POI not found." });
+
+            if (!isActivated)
+            {
+                // Return payment required basic info
+                return Ok(new
+                {
+                    isActivated = false,
+                    poiId = poi.Id,
+                    poiName = poi.Name,
+                    poiSlug = poi.Slug,
+                    code = code
+                });
+            }
+
+            // Proceed with normal log and redirect since activated
             bool isDuplicate = false;
-            if (!string.IsNullOrEmpty(sessionId))
+            if (!isBypassLog && !string.IsNullOrEmpty(sessionId))
             {
                 var recentLog = await _context.VisitLogs
                     .Where(v => v.SessionId == sessionId && v.POIId == qr.POIId && v.TriggerType == "qr")
@@ -54,7 +100,7 @@ namespace DoAn_CSharp.Controllers
                 }
             }
 
-            if (!isDuplicate)
+            if (!isBypassLog && !isDuplicate)
             {
                 // Tăng ScanCount
                 var qrEntity = await _context.QRCodes.FirstOrDefaultAsync(q => q.Code == code);
@@ -74,11 +120,11 @@ namespace DoAn_CSharp.Controllers
                 });
             }
 
-            var poi = await _poiService.GetByIdAsync(qr.POIId, lang);
-            if (poi == null)
-                return NotFound(new { error = "NotFound", message = $"POI not found." });
-
-            return Ok(poi);
+            return Ok(new
+            {
+                isActivated = true,
+                poi = poi
+            });
         }
 
         /// <summary>Tạo mã QR cho POI (Admin only)</summary>

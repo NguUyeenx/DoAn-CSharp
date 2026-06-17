@@ -63,6 +63,14 @@ namespace DoAn_CSharp.Controllers
             return Ok(new { message = "Profile updated successfully." });
         }
 
+        /// <summary>Thanh toán phí đăng ký cho đối tác</summary>
+        [HttpPost("owner/pay-fee")]
+        public async Task<IActionResult> PayRegistrationFee([FromBody] OwnerPayFeeDto dto)
+        {
+            await _authService.PayRegistrationFeeAsync(dto.Username, dto.CardNumber, dto.CardHolder);
+            return Ok(new { message = "Thanh toán phí đăng ký thành công! Tài khoản đang chờ duyệt." });
+        }
+
         // ── Admin Auth ────────────────────────────────────────────────
 
         /// <summary>Đăng nhập Admin CMS</summary>

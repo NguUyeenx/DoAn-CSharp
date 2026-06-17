@@ -8,11 +8,13 @@ const HomePage = React.lazy(() => import('@/pages/HomePage'));
 const POIDetailPage = React.lazy(() => import('@/pages/POIDetailPage'));
 const QRScanPage = React.lazy(() => import('@/pages/QRScanPage'));
 const QuizPage = React.lazy(() => import('@/pages/QuizPage'));
+const ActivatePage = React.lazy(() => import('@/pages/ActivatePage'));
 
 // --- Lazy Load Owner Pages ---
 const OwnerLayout = React.lazy(() => import('@/components/layout/OwnerLayout'));
 const OwnerLoginPage = React.lazy(() => import('@/pages/owner/LoginPage'));
 const OwnerRegisterPage = React.lazy(() => import('@/pages/owner/RegisterPage'));
+const OwnerPaymentPage = React.lazy(() => import('@/pages/owner/OwnerPaymentPage'));
 const OwnerDashboardPage = React.lazy(() => import('@/pages/owner/DashboardPage'));
 const OwnerPOIListPage = React.lazy(() => import('@/pages/owner/POIListPage'));
 const OwnerPOIFormPage = React.lazy(() => import('@/pages/owner/POIFormPage'));
@@ -35,6 +37,7 @@ const AdminTourFormPage = React.lazy(() => import('@/pages/admin/TourFormPage'))
 const AdminQRListPage = React.lazy(() => import('@/pages/admin/QRListPage'));
 const AdminAudioListPage = React.lazy(() => import('@/pages/admin/AudioListPage'));
 const AdminAuditLogsPage = React.lazy(() => import('@/pages/admin/AuditLogsPage'));
+const AdminTripLogsPage = React.lazy(() => import('@/pages/admin/TripLogsPage'));
 
 // --- Protected Route Wrapper ---
 interface ProtectedRouteProps {
@@ -95,10 +98,12 @@ export default function App() {
         <Route path="/place/detail/quiz/:poiId" element={<QuizPage />} />
         <Route path="/place/:slug/quiz" element={<QuizPage />} />
         <Route path="/qr/:code" element={<QRScanPage />} />
+        <Route path="/activate" element={<ActivatePage />} />
 
         {/* === Owner Panel Routes === */}
         <Route path="/owner/login" element={<OwnerLoginPage />} />
         <Route path="/owner/register" element={<OwnerRegisterPage />} />
+        <Route path="/owner/payment" element={<OwnerPaymentPage />} />
         
         <Route
           path="/owner"
@@ -145,6 +150,7 @@ export default function App() {
           <Route path="qr" element={<AdminQRListPage />} />
           <Route path="audios" element={<AdminAudioListPage />} />
           <Route path="audit-logs" element={<AdminAuditLogsPage />} />
+          <Route path="trip-logs" element={<AdminTripLogsPage />} />
         </Route>
 
         {/* === Catch-All Redirection === */}

@@ -13,6 +13,8 @@
 
 # Agent directories and configuration
 .agent/
+.superpowers/
+docs/
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

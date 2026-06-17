@@ -24,11 +24,14 @@ namespace DoAn_CSharp.Services
         // ── Owner Register ──────────────────────────────────────────────
         public async Task<AuthResponseDto> RegisterAsync(RegisterDto dto)
         {
+            if (string.IsNullOrWhiteSpace(dto.Password) || dto.Password.Length <= 6)
+                throw new ArgumentException("Mật khẩu phải trên 6 ký tự.");
+
             if (await _context.Owners.AnyAsync(u => u.Username == dto.Username))
-                throw new InvalidOperationException("Username already exists.");
+                throw new ArgumentException("Tên đăng nhập đã tồn tại.");
 
             if (await _context.Owners.AnyAsync(u => u.Email == dto.Email))
-                throw new InvalidOperationException("Email already exists.");
+                throw new ArgumentException("Email đã tồn tại.");
 
             var owner = new Owner
             {
@@ -45,17 +48,6 @@ namespace DoAn_CSharp.Services
             owner.RefreshTokenExpiry = DateTime.UtcNow.AddDays(30);
 
             await _context.Owners.AddAsync(owner);
-            await _context.SaveChangesAsync();
-
-            // Send Admin notification for new owner registration
-            _context.Notifications.Add(new Notification
-            {
-                OwnerId = null,
-                Message = $"Tài khoản đối tác mới '{owner.DisplayName}' ({owner.Username}) đã đăng ký và đang chờ duyệt.",
-                Type = "OwnerPending",
-                IsRead = false,
-                CreatedAt = DateTime.UtcNow
-            });
             await _context.SaveChangesAsync();
 
             var accessToken = GenerateUserJwt(owner);
@@ -98,8 +90,11 @@ namespace DoAn_CSharp.Services
             if (owner == null || !BCrypt.Net.BCrypt.Verify(dto.Password, owner.PasswordHash))
                 throw new UnauthorizedAccessException("Invalid credentials.");
 
+            if (!owner.IsPaid)
+                throw new UnauthorizedAccessException("Tài khoản chưa thanh toán phí đăng ký. Vui lòng hoàn tất đóng phí.");
+
             if (owner.OwnerStatus != "approved")
-                throw new UnauthorizedAccessException($"Account status is '{owner.OwnerStatus}'. Access denied.");
+                throw new UnauthorizedAccessException($"Tài khoản đang ở trạng thái '{owner.OwnerStatus}'.");
 
             var refreshToken = GenerateRefreshToken();
             owner.RefreshToken = refreshToken;
@@ -285,6 +280,35 @@ namespace DoAn_CSharp.Services
                     CreatedAt = owner.CreatedAt
                 }
             };
+        }
+
+        public async Task PayRegistrationFeeAsync(string username, string cardNumber, string cardHolder)
+        {
+            var owner = await _context.Owners.FirstOrDefaultAsync(o => o.Username == username);
+            if (owner == null)
+                throw new KeyNotFoundException("Tài khoản đối tác không tồn tại.");
+
+            if (owner.IsPaid)
+                throw new InvalidOperationException("Tài khoản đã hoàn tất đóng phí.");
+
+            if (string.IsNullOrWhiteSpace(cardNumber) || !cardNumber.StartsWith("4242"))
+                throw new ArgumentException("Giao dịch bị từ chối. Vui lòng sử dụng thẻ test (bắt đầu bằng 4242).");
+
+            owner.IsPaid = true;
+            owner.PaidAt = DateTime.UtcNow;
+            owner.OwnerStatus = "pending"; // Chuyển sang chờ duyệt sau khi thanh toán
+
+            // Gửi thông báo đến Admin
+            _context.Notifications.Add(new Notification
+            {
+                OwnerId = null,
+                Message = $"Tài khoản đối tác mới '{owner.DisplayName}' ({owner.Username}) đã đóng phí đăng ký và đang chờ phê duyệt.",
+                Type = "OwnerPending",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
         }
     }
 }

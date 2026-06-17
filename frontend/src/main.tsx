@@ -7,6 +7,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { MapProvider } from '@/contexts/MapContext';
 import { ToastProvider } from '@/components/ui/Toast';
+import { VisitorProvider } from '@/contexts/VisitorContext';
 import '@/i18n';
 import './index.css';
 
@@ -18,7 +19,9 @@ createRoot(document.getElementById('root')!).render(
           <AuthProvider>
             <MapProvider>
               <ToastProvider>
-                <App />
+                <VisitorProvider>
+                  <App />
+                </VisitorProvider>
               </ToastProvider>
             </MapProvider>
           </AuthProvider>

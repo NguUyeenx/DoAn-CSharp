@@ -10,5 +10,6 @@ namespace DoAn_CSharp.Services
         Task<AuthResponseDto> RefreshTokenAsync(string refreshToken);
         Task ChangePasswordAsync(int userId, ChangePasswordDto dto);
         Task UpdateProfileAsync(int userId, UpdateProfileDto dto);
+        Task PayRegistrationFeeAsync(string username, string cardNumber, string cardHolder);
     }
 }

@@ -151,8 +151,8 @@ export default function OwnerApprovalPage() {
   const handleResetPasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!resetPasswordOwnerId) return;
-    if (!newPassword.trim() || newPassword.length < 6) {
-      toastError('Mật khẩu mới phải từ 6 ký tự trở lên.');
+    if (!newPassword.trim() || newPassword.length <= 6) {
+      toastError('Mật khẩu mới phải trên 6 ký tự.');
       return;
     }
 

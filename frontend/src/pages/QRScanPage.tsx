@@ -33,11 +33,17 @@ export default function QRScanPage() {
       try {
         const { data } = await qrApi.scanQRCode(code, sessionId!, i18n.language);
         if (isSubscribed) {
-          // If successful, data is the POI object, redirect to /place/:slug
-          if (data && data.slug) {
-            navigate(`/place/${data.slug}`, { replace: true });
+          if (data && data.isActivated) {
+            if (data.poi && data.poi.slug) {
+              navigate(`/place/${data.poi.slug}`, { replace: true });
+            } else {
+              throw new Error('Invalid POI details received.');
+            }
+          } else if (data && !data.isActivated) {
+            // Redirect to activate page with code
+            navigate(`/activate?code=${code}`, { replace: true });
           } else {
-            throw new Error('Invalid POI details received.');
+            throw new Error('Invalid scan response received.');
           }
         }
       } catch (err: any) {

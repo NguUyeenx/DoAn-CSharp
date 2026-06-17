@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, MapPin, Phone, Compass, FileQuestion, Globe, Share2, Star } from 'lucide-react';
+import { ArrowLeft, MapPin, Phone, Compass, FileQuestion, Globe, Share2, Star, Heart, Clock } from 'lucide-react';
 import { poisApi } from '@/api/pois';
+
+interface OperatingHourItem {
+  day: number;
+  open: string;
+  close: string;
+  closed: boolean;
+}
 import { menuApi } from '@/api/menu';
 import type { POI, MenuItem } from '@/types/poi';
 import POIGallery from '@/components/poi/POIGallery';
@@ -11,6 +18,7 @@ import AudioPlayer from '@/components/poi/AudioPlayer';
 import MapView from '@/components/map/MapView';
 import POIMarker from '@/components/map/POIMarker';
 import { useToast } from '@/components/ui/Toast';
+import { useVisitor } from '@/contexts/VisitorContext';
 
 export default function POIDetailPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -19,6 +27,11 @@ export default function POIDetailPage() {
   const { success } = useToast();
 
   const [poi, setPoi] = useState<POI | null>(null);
+  const { bookmarks, toggleBookmark } = useVisitor();
+  const isBookmarked = poi ? bookmarks.includes(poi.id) : false;
+  const handleToggleBookmark = () => {
+    if (poi) toggleBookmark(poi.id);
+  };
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -118,13 +131,24 @@ export default function POIDetailPage() {
         <h1 className="font-display font-extrabold text-sm tracking-tight text-center truncate max-w-[60vw]">
           {poi.name}
         </h1>
-        <button
-          onClick={handleShare}
-          className="p-1.5 rounded-full hover:bg-surface-alt text-text-secondary hover:text-text-primary transition-colors cursor-pointer outline-none"
-          title="Share"
-        >
-          <Share2 size={18} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={handleToggleBookmark}
+            className={`p-1.5 rounded-full hover:bg-surface-alt transition-colors cursor-pointer outline-none ${
+              isBookmarked ? 'text-danger' : 'text-text-secondary hover:text-text-primary'
+            }`}
+            title={isBookmarked ? 'Bỏ thích' : 'Thích'}
+          >
+            <Heart size={18} className={isBookmarked ? 'fill-current' : ''} />
+          </button>
+          <button
+            onClick={handleShare}
+            className="p-1.5 rounded-full hover:bg-surface-alt text-text-secondary hover:text-text-primary transition-colors cursor-pointer outline-none"
+            title="Share"
+          >
+            <Share2 size={18} />
+          </button>
+        </div>
       </header>
 
       {/* Main Layout Container */}
@@ -223,6 +247,58 @@ export default function POIDetailPage() {
             <MenuList items={menuItems} />
           </div>
         )}
+
+        {/* Operating Hours Section */}
+        {((poi.operatingHours && poi.operatingHours.trim() !== '') && (() => {
+          let parsedHours: OperatingHourItem[] | null = null;
+          try {
+            parsedHours = JSON.parse(poi.operatingHours);
+          } catch {
+            // Not JSON
+          }
+          const getDayName = (dayNum: number) => {
+            const days = [
+              t('days.sunday', 'Chủ Nhật'),
+              t('days.monday', 'Thứ Hai'),
+              t('days.tuesday', 'Thứ Ba'),
+              t('days.wednesday', 'Thứ Tư'),
+              t('days.thursday', 'Thứ Năm'),
+              t('days.friday', 'Thứ Sáu'),
+              t('days.saturday', 'Thứ Bảy')
+            ];
+            return days[dayNum];
+          };
+          return (
+            <div className="flex flex-col gap-2">
+              <h3 className="font-display font-bold text-sm uppercase text-text-secondary border-b border-border pb-1 tracking-wider flex items-center gap-1.5">
+                <Clock size={16} className="text-primary" />
+                <span>{t('poi.operatingHours', 'Giờ hoạt động')}</span>
+              </h3>
+              {parsedHours && Array.isArray(parsedHours) ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2 p-4 bg-surface-alt border border-border rounded-xl text-xs text-text-secondary">
+                  {[1, 2, 3, 4, 5, 6, 0].map((dayNum) => {
+                    const item = parsedHours!.find((h) => h.day === dayNum);
+                    if (!item) return null;
+                    return (
+                      <div key={dayNum} className="flex justify-between py-1 border-b border-border/40 last:border-0 sm:[&:nth-last-child(-n+2)]:border-0">
+                        <span className="font-semibold text-text-secondary">{getDayName(dayNum)}</span>
+                        {item.closed ? (
+                          <span className="text-danger font-medium">{t('owner.pois.closed', 'Đóng cửa')}</span>
+                        ) : (
+                          <span className="font-mono text-text-primary">{item.open} - {item.close}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="p-4 bg-surface-alt border border-border rounded-xl text-xs text-text-secondary">
+                  <p className="font-medium text-text-primary">{poi.operatingHours}</p>
+                </div>
+              )}
+            </div>
+          );
+        })())}
 
         {/* Location Mini Map */}
         <div className="flex flex-col gap-2">

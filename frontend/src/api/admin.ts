@@ -42,6 +42,9 @@ export const adminApi = {
   // Audit logs list
   getAuditLogs: () => api.get<any[]>('/admin/audit-logs'),
 
+  // Visitor trip / visit logs list
+  getVisitLogs: () => api.get<any[]>('/admin/visit-logs'),
+
   // Comprehensive Owner management
   getAllOwners: () => api.get<any[]>('/admin/owners'),
   lockOwner: (id: number) => api.put(`/admin/owners/${id}/lock`),

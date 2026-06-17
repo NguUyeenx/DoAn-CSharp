@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Compass, List, Navigation, ChevronRight } from 'lucide-react';
+import { Compass, List, Navigation, ChevronRight, ChevronDown, Clock } from 'lucide-react';
+import ThemeToggle from '@/components/ui/ThemeToggle';
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
 import MapView from '@/components/map/MapView';
@@ -17,6 +18,8 @@ import { useTours } from '@/hooks/useTours';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useMapbox } from '@/hooks/useMapbox';
 import { useFavorites } from '@/hooks/useFavorites';
+import { useVisitor } from '@/contexts/VisitorContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Helper to calculate distance in meters using Haversine formula
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -35,10 +38,36 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): nu
 }
 
 export default function HomePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const path = location.pathname;
+
+  const [langMenuOpen, setLangMenuOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const LANGUAGES = [
+    { code: 'en', label: 'English', flag: '🇺🇸' },
+    { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
+  ];
+  const currentLang = LANGUAGES.find((l) => l.code === i18n.language) || LANGUAGES[0];
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setLangMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const selectLanguage = (code: string) => {
+    i18n.changeLanguage(code);
+    setLangMenuOpen(false);
+  };
+
+  const isVi = i18n.language === 'vi';
 
   // Custom Hooks
   const { position } = useGeolocation();
@@ -46,6 +75,44 @@ export default function HomePage() {
   const { tours, selectedTour, loading: toursLoading, fetchTours, fetchTourById, setSelectedTour } = useTours();
   const { flyTo } = useMapbox();
   const { favorites, toggleFavorite } = useFavorites();
+  const { isActivated, expiresAt, loading: visitorLoading } = useVisitor();
+  const { isAuthenticated } = useAuth();
+
+  const [timeLeftStr, setTimeLeftStr] = useState('');
+
+  useEffect(() => {
+    if (!isActivated || !expiresAt) {
+      setTimeLeftStr('');
+      return;
+    }
+
+    const updateTimer = () => {
+      const expiryTime = new Date(expiresAt).getTime();
+      const now = Date.now();
+      const diff = expiryTime - now;
+
+      if (diff <= 0) {
+        setTimeLeftStr('Hết hạn');
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      if (hours > 0) {
+        setTimeLeftStr(`${hours}h ${minutes}m`);
+      } else if (minutes > 0) {
+        setTimeLeftStr(`${minutes}m ${seconds}s`);
+      } else {
+        setTimeLeftStr(`${seconds}s`);
+      }
+    };
+
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [isActivated, expiresAt]);
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState('');
@@ -461,40 +528,52 @@ export default function HomePage() {
             )}
           </MapView>
 
-          {/* Floating UI overlay on Map: Active Tour indicator */}
-          {selectedTour && (
-            <div className="absolute top-4 left-4 z-10 bg-card/95 backdrop-blur-xs border border-border p-3 rounded-[var(--radius-lg)] shadow-lg flex items-center justify-between gap-4 max-w-[calc(100vw-32px)] md:max-w-sm animate-slide-in-top">
-              <div className="min-w-0">
-                <span className="text-[10px] uppercase font-bold text-primary tracking-wider font-display">Active Tour</span>
-                <h4 className="font-display font-extrabold text-sm text-text-primary leading-tight line-clamp-1">{selectedTour.name}</h4>
+          {/* Floating Map overlays container - Top Left */}
+          <div className="absolute top-4 left-4 z-10 flex flex-col gap-2.5 max-w-[calc(100vw-32px)] md:max-w-sm pointer-events-none">
+            {/* Active time remaining for visitors */}
+            {!isAuthenticated && isActivated && timeLeftStr && (
+              <div className="pointer-events-auto flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-md)] bg-card/95 backdrop-blur-xs border border-border text-teal-600 dark:text-teal-400 text-xs font-semibold select-none shadow-md w-fit animate-slide-in-top">
+                <Clock size={13} className="text-teal-500 animate-pulse" />
+                <span>{isVi ? 'Còn lại: ' : 'Remaining: '}</span>
+                <strong className="font-mono">{timeLeftStr}</strong>
               </div>
-              <button
-                onClick={handleCloseTour}
-                className="text-xs font-semibold px-2.5 py-1 bg-surface-alt border border-border rounded-md hover:bg-border transition-colors cursor-pointer outline-none shrink-0"
-              >
-                End
-              </button>
-            </div>
-          )}
+            )}
 
-          {/* Floating Directions active bar */}
-          {showDirections && (
-            <div className="absolute top-4 left-4 z-10 bg-card/95 backdrop-blur-xs border border-teal-600/30 p-3 rounded-[var(--radius-lg)] shadow-lg flex items-center justify-between gap-4 max-w-[calc(100vw-32px)] md:max-w-sm animate-slide-in-top">
-              <div className="min-w-0 flex items-center gap-2">
-                <Navigation size={18} className="text-teal-600 fill-current" />
-                <div>
-                  <span className="text-[10px] uppercase font-bold text-teal-600 tracking-wider font-display">Walking Navigation</span>
-                  <h4 className="font-display font-bold text-xs text-text-primary leading-tight">Drawing optimal route...</h4>
+            {/* Active Tour indicator */}
+            {selectedTour && (
+              <div className="pointer-events-auto bg-card/95 backdrop-blur-xs border border-border p-3 rounded-[var(--radius-lg)] shadow-lg flex items-center justify-between gap-4 animate-slide-in-top">
+                <div className="min-w-0">
+                  <span className="text-[10px] uppercase font-bold text-primary tracking-wider font-display">Active Tour</span>
+                  <h4 className="font-display font-extrabold text-sm text-text-primary leading-tight line-clamp-1">{selectedTour.name}</h4>
                 </div>
+                <button
+                  onClick={handleCloseTour}
+                  className="text-xs font-semibold px-2.5 py-1 bg-surface-alt border border-border rounded-md hover:bg-border transition-colors cursor-pointer outline-none shrink-0"
+                >
+                  End
+                </button>
               </div>
-              <button
-                onClick={handleCloseDirections}
-                className="text-xs font-semibold px-2.5 py-1 bg-teal-50 border border-teal-200 text-teal-700 rounded-md hover:bg-teal-100 transition-colors cursor-pointer outline-none shrink-0"
-              >
-                Close
-              </button>
-            </div>
-          )}
+            )}
+
+            {/* Floating Directions active bar */}
+            {showDirections && (
+              <div className="pointer-events-auto bg-card/95 backdrop-blur-xs border border-teal-600/30 p-3 rounded-[var(--radius-lg)] shadow-lg flex items-center justify-between gap-4 animate-slide-in-top">
+                <div className="min-w-0 flex items-center gap-2">
+                  <Navigation size={18} className="text-teal-600 fill-current" />
+                  <div>
+                    <span className="text-[10px] uppercase font-bold text-teal-600 tracking-wider font-display">Walking Navigation</span>
+                    <h4 className="font-display font-bold text-xs text-text-primary leading-tight">Drawing optimal route...</h4>
+                  </div>
+                </div>
+                <button
+                  onClick={handleCloseDirections}
+                  className="text-xs font-semibold px-2.5 py-1 bg-teal-50 border border-teal-200 text-teal-700 rounded-md hover:bg-teal-100 transition-colors cursor-pointer outline-none shrink-0"
+                >
+                  Close
+                </button>
+              </div>
+            )}
+          </div>
         </main>
 
         {/* POI Detail Sheet — mobile bottom sheet / desktop right sidebar */}
@@ -614,6 +693,119 @@ export default function HomePage() {
               </>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Welcome & Activation Lock Screen */}
+      {!isActivated && !visitorLoading && !isAuthenticated && (
+        <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-surface/90 backdrop-blur-md p-6 text-center select-none animate-fade-in">
+          
+          {/* Floating Theme & Language Switcher */}
+          <div className="absolute top-6 right-6 flex items-center gap-3 z-55">
+            <ThemeToggle className="bg-card shadow-md border border-border" />
+            
+            {/* Custom Language Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                type="button"
+                onClick={() => setLangMenuOpen((prev) => !prev)}
+                className="flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-md)] text-sm font-medium border border-border cursor-pointer bg-card text-text-secondary hover:text-text-primary hover:border-border-hover transition-colors select-none outline-none shadow-md"
+              >
+                <span className="text-base" role="img" aria-hidden="true">
+                  {currentLang.flag}
+                </span>
+                <span className="hidden sm:inline">{currentLang.label}</span>
+                <ChevronDown
+                  size={14}
+                  className={`transition-transform duration-200 text-text-muted ${langMenuOpen ? 'rotate-180 text-primary' : ''}`}
+                />
+              </button>
+
+              {langMenuOpen && (
+                <div className="absolute right-0 mt-1.5 w-40 rounded-[var(--radius-md)] border border-border bg-card shadow-lg py-1 z-60 animate-slide-in-top origin-top-right">
+                  {LANGUAGES.map((lang) => (
+                    <button
+                      key={lang.code}
+                      type="button"
+                      onClick={() => selectLanguage(lang.code)}
+                      className={`flex items-center gap-2.5 w-full text-left px-3 py-2 text-sm font-medium cursor-pointer text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors outline-none ${lang.code === i18n.language ? 'text-primary bg-primary/5 font-semibold' : ''}`}
+                    >
+                      <span className="text-base" role="img" aria-hidden="true">
+                        {lang.flag}
+                      </span>
+                      <span>{lang.label}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="w-full max-w-md bg-card border border-border/80 rounded-3xl shadow-2xl p-8 md:p-10 flex flex-col items-center gap-6 relative overflow-hidden">
+            {/* Decorative layout highlights */}
+            <div className="absolute -top-12 -right-12 w-36 h-36 bg-primary/10 rounded-full blur-2xl" />
+            <div className="absolute -bottom-12 -left-12 w-36 h-36 bg-accent/10 rounded-full blur-2xl" />
+
+            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-2 shadow-inner">
+              <Compass size={32} className="animate-spin-slow" />
+            </div>
+
+            <div className="flex flex-col gap-2.5">
+              <h2 className="font-display font-extrabold text-xl md:text-2xl text-text-primary tracking-tight leading-tight">
+                {isVi ? 'Khám Phá Bản Đồ Ẩm Thực' : 'Explore Street Food Map'}
+              </h2>
+              <p className="text-xs md:text-sm text-text-secondary leading-relaxed max-w-sm">
+                {isVi 
+                  ? 'Chào mừng du khách! Bản đồ ẩm thực với thuyết minh âm thanh đa ngôn ngữ (22 thứ tiếng) và câu hỏi trắc nghiệm tương tác đang chờ đón bạn.'
+                  : 'Welcome visitors! Discover street food maps with multi-language audio guides (22 languages) and interactive quizzes.'}
+              </p>
+            </div>
+
+            <div className="w-full p-4 bg-surface-alt border border-border/50 rounded-2xl text-left flex flex-col gap-3">
+              <h4 className="font-bold text-xs text-text-primary uppercase tracking-wider">
+                {isVi ? 'Cách kích hoạt:' : 'How to activate:'}
+              </h4>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">1</div>
+                <p className="text-xs text-text-secondary">
+                  {isVi ? 'Quét mã QR tại các quán ăn trong phố cổ.' : 'Scan QR codes at food spots in the old town.'}
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</div>
+                <p className="text-xs text-text-secondary">
+                  {isVi 
+                    ? 'Thanh toán phí kích hoạt nhỏ (20.000đ) qua cổng giả lập để mở khóa toàn bộ bản đồ.'
+                    : 'Pay a small activation fee (20,000 VND) via our test gateway to unlock the full map.'}
+                </p>
+              </div>
+              <div className="flex items-start gap-3">
+                <div className="w-5 h-5 rounded-full bg-primary/20 text-primary flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">3</div>
+                <p className="text-xs text-text-secondary">
+                  {isVi ? 'Tận hưởng bản đồ không giới hạn trong 24 giờ!' : 'Enjoy unlimited map features for 24 hours!'}
+                </p>
+              </div>
+            </div>
+
+            <div className="w-full flex flex-col gap-3.5 mt-2">
+              <button
+                onClick={() => navigate('/activate')}
+                className="w-full h-11 rounded-xl bg-teal-600 text-white font-semibold text-xs hover:bg-teal-700 active:scale-95 transition-all shadow-lg shadow-teal-600/20 cursor-pointer flex items-center justify-center gap-2"
+              >
+                <span>{isVi ? 'Nhập thẻ kích hoạt trực tiếp (20.000đ)' : 'Enter activation card directly (20,000 VND)'}</span>
+                <ChevronRight size={14} />
+              </button>
+              <div className="text-[10px] text-text-muted">
+                {isVi ? 'Hoặc quét mã QR được dán tại các Food Spot để bắt đầu.' : 'Or scan the QR code posted at Food Spots to start.'}
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate('/owner/login')}
+            className="mt-6 px-6 h-11 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-xs transition-all shadow-lg shadow-red-600/20 cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 border-none outline-none"
+          >
+            {isVi ? 'Đăng nhập / Đăng ký đối tác' : 'Partner Login / Register'}
+          </button>
         </div>
       )}
 

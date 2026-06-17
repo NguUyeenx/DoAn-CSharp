@@ -19,7 +19,9 @@ namespace DoAn_CSharp.Models.Entities
         public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 
         // Owner properties
-        public string OwnerStatus { get; set; } = "pending"; // pending, approved, rejected
+        public string OwnerStatus { get; set; } = "pending_payment"; // pending_payment, pending, approved, rejected
         public string? AdminNote { get; set; }
+        public bool IsPaid { get; set; } = false;
+        public DateTime? PaidAt { get; set; }
     }
 }

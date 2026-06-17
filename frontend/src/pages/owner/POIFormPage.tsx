@@ -75,6 +75,10 @@ export default function POIFormPage() {
   const [imageSource, setImageSource] = useState<'upload' | 'url' | null>(null);
   const [showUrlInput, setShowUrlInput] = useState(false);
 
+  // Space photos states
+  const [spacePhotos, setSpacePhotos] = useState<{ id: number; imageUrl: string }[]>([]);
+  const [uploadingSpacePhoto, setUploadingSpacePhoto] = useState(false);
+
   // Address geocoding states
   const [addressSuggestions, setAddressSuggestions] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -127,6 +131,9 @@ export default function POIFormPage() {
         setImageUrl(data.imageUrl || '');
         if (data.imageUrl) {
           setImageSource(data.imageUrl.startsWith('/') ? 'upload' : 'url');
+        }
+        if (data.images) {
+          setSpacePhotos(data.images.map((img: any) => ({ id: img.id, imageUrl: img.imageUrl })));
         }
         if (data.operatingHours) {
           try {
@@ -356,6 +363,56 @@ export default function POIFormPage() {
     setShowUrlInput(false);
   };
 
+  const handleSpacePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const files = Array.from(e.target.files);
+    
+    setUploadingSpacePhoto(true);
+    try {
+      const urls: string[] = [];
+      for (const file of files) {
+        const { data: uploadRes } = await uploadApi.uploadPOIImage(file);
+        urls.push(uploadRes.url);
+      }
+      
+      if (poiId) {
+        await ownerApi.addPOIImages(poiId, urls);
+        const { data: poiRes } = await ownerApi.getMyPOI(poiId, 'en');
+        if (poiRes.images) {
+          setSpacePhotos(poiRes.images.map((img: any) => ({ id: img.id, imageUrl: img.imageUrl })));
+        }
+      } else {
+        setSpacePhotos((prev) => [
+          ...prev,
+          ...urls.map((url, idx) => ({ id: -Math.random() - idx, imageUrl: url }))
+        ]);
+      }
+      success(t('owner.pois.photosUploaded', 'Tải lên ảnh không gian thành công!'));
+    } catch (err) {
+      console.error('Failed to upload space photos:', err);
+      toastError(t('owner.pois.photosUploadFailed', 'Tải ảnh không gian thất bại.'));
+    } finally {
+      setUploadingSpacePhoto(false);
+    }
+  };
+
+  const handleDeleteSpacePhoto = async (photoId: number, imageUrl: string) => {
+    if (!window.confirm(t('owner.pois.deletePhotoConfirm', 'Xác nhận xoá ảnh này khỏi album?'))) return;
+    
+    try {
+      if (photoId > 0 && poiId) {
+        await ownerApi.deletePOIImage(poiId, photoId);
+        setSpacePhotos((prev) => prev.filter((p) => p.id !== photoId));
+      } else {
+        setSpacePhotos((prev) => prev.filter((p) => p.id !== photoId || p.imageUrl !== imageUrl));
+      }
+      success(t('owner.pois.photoDeleted', 'Đã xoá ảnh thành công.'));
+    } catch (err) {
+      console.error('Failed to delete space photo:', err);
+      toastError(t('owner.pois.photoDeleteFailed', 'Xoá ảnh thất bại.'));
+    }
+  };
+
   const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -415,6 +472,10 @@ export default function POIFormPage() {
       } else {
         const { data } = await ownerApi.createPOI(payload);
         savedPoiId = data.id;
+        if (savedPoiId && spacePhotos.length > 0) {
+          const tempUrls = spacePhotos.map(p => p.imageUrl);
+          await ownerApi.addPOIImages(savedPoiId, tempUrls);
+        }
       }
 
       if (savedPoiId) {
@@ -979,6 +1040,49 @@ export default function POIFormPage() {
                   </label>
                 </div>
               ))}
+            </div>
+          </div>
+
+          {/* Space Photos Gallery Card */}
+          <div className="bg-card border border-border rounded-2xl p-5 sm:p-6 flex flex-col gap-4 shadow-sm">
+            <h3 className="font-display font-bold text-xs uppercase text-text-primary tracking-wider border-b border-border/40 pb-2">
+              📸 Album ảnh Không gian quán
+            </h3>
+
+            <div className="grid grid-cols-3 gap-3">
+              {spacePhotos.map((photo) => (
+                <div key={photo.id} className="relative aspect-video rounded-xl overflow-hidden border border-border group bg-surface-alt">
+                  <img src={photo.imageUrl} alt="Space" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteSpacePhoto(photo.id, photo.imageUrl)}
+                    className="absolute top-1 right-1 p-1 bg-black/60 hover:bg-danger text-white rounded-full transition-colors cursor-pointer outline-none opacity-0 group-hover:opacity-100"
+                    title="Xoá ảnh"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              ))}
+
+              {/* Upload Trigger */}
+              <label className="aspect-video border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer transition-all text-text-secondary select-none">
+                {uploadingSpacePhoto ? (
+                  <Loader2 className="animate-spin text-primary" size={18} />
+                ) : (
+                  <>
+                    <ImagePlus size={20} className="text-text-muted" />
+                    <span className="text-[10px] font-semibold">{t('owner.pois.addPhoto', 'Thêm ảnh')}</span>
+                  </>
+                )}
+                <input
+                  type="file"
+                  multiple
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={uploadingSpacePhoto || saving}
+                  onChange={handleSpacePhotoUpload}
+                  className="hidden"
+                />
+              </label>
             </div>
           </div>
 

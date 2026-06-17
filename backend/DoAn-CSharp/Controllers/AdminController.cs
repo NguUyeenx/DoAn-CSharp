@@ -643,11 +643,38 @@ namespace DoAn_CSharp.Controllers
             var owner = await _context.Owners.FindAsync(id);
             if (owner == null) return NotFound("Owner not found.");
 
+            if (string.IsNullOrWhiteSpace(dto.NewPassword) || dto.NewPassword.Length <= 6)
+                return BadRequest("Mật khẩu phải trên 6 ký tự.");
+
             owner.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
             owner.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "Owner password reset successfully." });
+        }
+
+        /// <summary>Lấy nhật ký chuyến đi / hoạt động của du khách</summary>
+        [HttpGet("visit-logs")]
+        public async Task<IActionResult> GetVisitLogs()
+        {
+            var logs = await _context.VisitLogs
+                .Include(v => v.POI)
+                .OrderByDescending(v => v.VisitedAt)
+                .Select(v => new
+                {
+                    v.Id,
+                    v.POIId,
+                    PoiName = v.POI != null ? v.POI.Name : "N/A",
+                    Latitude = v.POI != null ? v.POI.Latitude : 0.0,
+                    Longitude = v.POI != null ? v.POI.Longitude : 0.0,
+                    v.SessionId,
+                    v.TriggerType,
+                    v.LanguageCode,
+                    v.VisitedAt
+                })
+                .ToListAsync();
+
+            return Ok(logs);
         }
 
         // ── Comprehensive POI Management ─────────────────────────────

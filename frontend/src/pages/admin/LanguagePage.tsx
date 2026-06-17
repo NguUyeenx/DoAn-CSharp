@@ -1,11 +1,9 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/api/admin';
 import type { Language } from '@/types/api';
-import { Loader2, Star } from 'lucide-react';
-import { useToast } from '@/components/ui/Toast';
+import { Loader2 } from 'lucide-react';
 
 export default function LanguagePage() {
-  const { success, error: toastError } = useToast();
 
   const [languages, setLanguages] = useState<Language[]>([]);
   const [loading, setLoading] = useState(true);

@@ -35,6 +35,8 @@ namespace DoAn_CSharp.Data
         // New refactored entities
         public DbSet<AudioPlayLog> AudioPlayLogs { get; set; }
         public DbSet<TranslationJobTracker> TranslationJobTrackers { get; set; }
+        public DbSet<VisitorActivation> VisitorActivations { get; set; }
+        public DbSet<VisitorBookmark> VisitorBookmarks { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -184,6 +186,24 @@ namespace DoAn_CSharp.Data
                 .WithMany()
                 .HasForeignKey(r => r.POIId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // ── VisitorActivation ──────────────────────────────────────────
+            modelBuilder.Entity<VisitorActivation>(entity =>
+            {
+                entity.HasIndex(e => e.SessionId);
+                entity.Property(e => e.AmountPaid)
+                      .HasColumnType("decimal(18, 2)");
+            });
+
+            // ── VisitorBookmark ────────────────────────────────────────────
+            modelBuilder.Entity<VisitorBookmark>(entity =>
+            {
+                entity.HasIndex(e => e.SessionId);
+                entity.HasOne(e => e.POI)
+                      .WithMany()
+                      .HasForeignKey(e => e.POIId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
         }
     }
 }

@@ -8,6 +8,7 @@ import {
   LogOut,
   Menu,
   X,
+  Home,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
@@ -151,7 +152,14 @@ export default function OwnerLayout() {
         </nav>
 
         {/* Sidebar Footer Logout */}
-        <div className="p-4 border-t border-border/80">
+        <div className="p-4 border-t border-border/80 space-y-1">
+          <NavLink
+            to="/"
+            className="flex items-center gap-3 w-full px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors outline-none"
+          >
+            <Home size={18} />
+            <span>Quay lại trang chủ</span>
+          </NavLink>
           <button
             onClick={logout}
             className="flex items-center gap-3 w-full px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium text-danger hover:bg-danger-light/10 transition-colors cursor-pointer outline-none"
@@ -223,7 +231,14 @@ export default function OwnerLayout() {
             </nav>
 
             {/* Drawer Footer Logout */}
-            <div className="p-4 border-t border-border/80">
+            <div className="p-4 border-t border-border/80 space-y-1">
+              <NavLink
+                to="/"
+                className="flex items-center gap-3 w-full px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors outline-none"
+              >
+                <Home size={18} />
+                <span>Quay lại trang chủ</span>
+              </NavLink>
               <button
                 onClick={logout}
                 className="flex items-center gap-3 w-full px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium text-danger hover:bg-danger-light/10 transition-colors cursor-pointer outline-none"

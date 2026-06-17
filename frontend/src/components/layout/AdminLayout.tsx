@@ -16,6 +16,8 @@ import {
   X,
   ClipboardCheck,
   Bell,
+  History,
+  Home,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { adminApi } from '@/api/admin';
@@ -127,6 +129,7 @@ export default function AdminLayout() {
     { label: t('admin.nav.audios', 'Audios'), to: '/admin/audios', icon: Volume2 },
     { label: t('admin.nav.language', 'Language'), to: '/admin/languages', icon: Globe },
     { label: t('admin.nav.auditLog', 'AuditLog'), to: '/admin/audit-logs', icon: FileSpreadsheet },
+    { label: t('admin.nav.tripLogs', 'Nhật ký chuyến đi'), to: '/admin/trip-logs', icon: History },
   ];
 
   return (
@@ -168,7 +171,14 @@ export default function AdminLayout() {
         </nav>
 
         {/* Sidebar Footer Logout */}
-        <div className="p-4 border-t border-border/80">
+        <div className="p-4 border-t border-border/80 space-y-1">
+          <NavLink
+            to="/"
+            className="flex items-center gap-3 w-full px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors outline-none"
+          >
+            <Home size={18} />
+            <span>Quay lại trang chủ</span>
+          </NavLink>
           <button
             onClick={logout}
             className="flex items-center gap-3 w-full px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium text-danger hover:bg-danger-light/10 transition-colors cursor-pointer outline-none"
@@ -233,7 +243,14 @@ export default function AdminLayout() {
             </nav>
 
             {/* Drawer Footer Logout */}
-            <div className="p-4 border-t border-border/80">
+            <div className="p-4 border-t border-border/80 space-y-1">
+              <NavLink
+                to="/"
+                className="flex items-center gap-3 w-full px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium text-text-secondary hover:text-text-primary hover:bg-surface-alt transition-colors outline-none"
+              >
+                <Home size={18} />
+                <span>Quay lại trang chủ</span>
+              </NavLink>
               <button
                 onClick={logout}
                 className="flex items-center gap-3 w-full px-4 py-2.5 rounded-[var(--radius-md)] text-sm font-medium text-danger hover:bg-danger-light/10 transition-colors cursor-pointer outline-none"

@@ -24,6 +24,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (password.length <= 6) {
+      toastError(t('auth.passwordTooShort', 'Mật khẩu phải trên 6 ký tự.'));
+      return;
+    }
+
     if (password !== confirmPassword) {
       toastError(t('auth.passwordsMismatch', 'Mật khẩu xác nhận không khớp'));
       return;
@@ -38,8 +43,8 @@ export default function RegisterPage() {
         password,
       });
 
-      success(t('auth.registerSuccess', 'Đăng ký thành công! Tài khoản của bạn đang chờ quản trị viên phê duyệt.'));
-      navigate('/owner/login');
+      success(t('auth.registerSuccess', 'Đăng ký thành công! Vui lòng thực hiện đóng phí đăng ký.'));
+      navigate(`/owner/payment?username=${username}`);
     } catch (err: any) {
       console.error('Owner registration failed:', err);
       const errMsg = err.response?.data?.message || t('auth.registerFailed', 'Đăng ký thất bại. Tên đăng nhập hoặc email có thể đã được sử dụng.');

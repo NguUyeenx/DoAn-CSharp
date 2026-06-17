@@ -28,5 +28,8 @@ export const authApi = {
 
   updateProfile: (data: UpdateProfileDto) =>
     api.put('/auth/profile', data),
+
+  ownerPayFee: (data: { username: string; cardNumber: string; cardHolder: string }) =>
+    api.post('/auth/owner/pay-fee', data),
 };
 

@@ -72,4 +72,11 @@ namespace DoAn_CSharp.Models.DTOs
         public string? AvatarUrl { get; set; }
         public string? DefaultLanguage { get; set; }
     }
+
+    public class OwnerPayFeeDto
+    {
+        public string Username { get; set; } = string.Empty;
+        public string CardNumber { get; set; } = string.Empty;
+        public string CardHolder { get; set; } = string.Empty;
+    }
 }

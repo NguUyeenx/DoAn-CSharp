@@ -253,7 +253,6 @@ namespace DoAn_CSharp.Controllers
         [HttpGet("dashboard/charts")]
         public async Task<IActionResult> GetDashboardCharts()
         {
-            // Placeholder for charts: aggregate VisitLogs by day for the owner
             var ownerId = GetCurrentOwnerId();
             var charts = await _context.VisitLogs
                 .Where(v => v.POI != null && v.POI.OwnerId == ownerId)
@@ -261,17 +260,65 @@ namespace DoAn_CSharp.Controllers
                 .Select(g => new { Date = g.Key, Count = g.Count() })
                 .OrderBy(g => g.Date)
                 .ToListAsync();
-            return Ok(charts);
+
+            var result = charts.Select(c => new {
+                Date = c.Date.ToString("MM-dd"),
+                Count = c.Count
+            }).ToList();
+
+            return Ok(result);
         }
 
-        /// <summary>Lấy tóm tắt thống kê Analytics (Toàn cục - hiện tại cho Demo)</summary>
+        /// <summary>Lấy tóm tắt thống kê Analytics theo OwnerId</summary>
         [HttpGet("dashboard")]
         public async Task<IActionResult> GetDashboardStats()
         {
-            // Trong thực tế sẽ lọc stats theo OwnerId, 
-            // hiện tại gọi GetSummaryAsync() demo.
-            var summary = await _analyticsService.GetSummaryAsync();
-            return Ok(summary);
+            var ownerId = GetCurrentOwnerId();
+            var totalPOIs = await _context.POIs.CountAsync(p => p.OwnerId == ownerId && p.DeletedAt == null);
+            var totalViews = await _context.VisitLogs.CountAsync(v => v.POI != null && v.POI.OwnerId == ownerId);
+            var totalAudioPlays = await _context.AudioPlayLogs.CountAsync(a => a.TargetType == Models.Entities.TranslationType.POI && _context.POIs.Any(p => p.Id == a.TargetId && p.OwnerId == ownerId));
+            var totalQrScans = await _context.VisitLogs.CountAsync(v => v.POI != null && v.POI.OwnerId == ownerId && v.TriggerType == "qr");
+            var totalBookmarks = await _context.VisitorBookmarks.CountAsync(b => _context.POIs.Any(p => p.Id == b.POIId && p.OwnerId == ownerId));
+
+            // Calculate stats per POI
+            var pois = await _context.POIs
+                .Where(p => p.OwnerId == ownerId && p.DeletedAt == null)
+                .ToListAsync();
+
+            var poiStats = new List<object>();
+            foreach(var p in pois)
+            {
+                var scans = await _context.VisitLogs.CountAsync(v => v.POIId == p.Id && v.TriggerType == "qr");
+                var views = await _context.VisitLogs.CountAsync(v => v.POIId == p.Id);
+                var plays = await _context.AudioPlayLogs.CountAsync(a => a.TargetType == Models.Entities.TranslationType.POI && a.TargetId == p.Id);
+                var likes = await _context.VisitorBookmarks.CountAsync(b => b.POIId == p.Id);
+                poiStats.Add(new { id = p.Id, name = p.Name, scans, views, audioPlays = plays, bookmarks = likes });
+            }
+
+            // Calculate languages percentage
+            var langLogs = await _context.VisitLogs
+                .Where(v => v.POI != null && v.POI.OwnerId == ownerId)
+                .GroupBy(v => v.LanguageCode)
+                .Select(g => new { Code = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            var totalLogs = langLogs.Sum(l => l.Count);
+            var languages = langLogs.Select(l => new {
+                code = l.Code,
+                count = l.Count,
+                percentage = totalLogs > 0 ? (int)Math.Round((double)l.Count / totalLogs * 100) : 0
+            }).OrderByDescending(l => l.count).ToList();
+
+            return Ok(new
+            {
+                totalPOIs,
+                totalViews,
+                totalAudioPlays,
+                totalQrScans,
+                totalBookmarks,
+                poiStats,
+                languages
+            });
         }
 
         // ── Helpers ───────────────────────────────────────────────────
