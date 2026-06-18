@@ -51,6 +51,7 @@ export interface ChangePasswordDto {
 
 export interface UpdateProfileDto {
   displayName?:     string;
+  email?:           string;
   avatarUrl?:       string;
   defaultLanguage?: string;
 }

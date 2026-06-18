@@ -14,6 +14,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/utils/cn';
 import { api } from '@/api/client';
+import { profileUpdateEmitter } from '@/api/client';
+import { ownerApi } from '@/api/owner';
 
 // Helper to safely extract username from JWT token
 function getUsernameFromToken(token: string | null): string {
@@ -45,8 +47,34 @@ export default function OwnerLayout() {
   const { token, logout } = useAuth();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [poiName, setPoiName] = useState<string | null>(null);
   const location = useLocation();
   const username = getUsernameFromToken(token);
+
+  // Fetch owned POI name to display instead of login username
+  useEffect(() => {
+    let isSubscribed = true;
+    ownerApi.getMyPOIs()
+      .then(({ data }) => {
+        if (isSubscribed && data && data.length > 0) {
+          setPoiName(data[0].name);
+        }
+      })
+      .catch((err) => {
+        console.warn('Failed to load owner POI for sidebar/header:', err);
+      });
+    return () => {
+      isSubscribed = false;
+    };
+  }, []);
+
+  // Listen for profile displayName updates and reflect immediately in the header
+  useEffect(() => {
+    const unsubscribe = profileUpdateEmitter.subscribe(({ displayName }) => {
+      setPoiName(displayName);
+    });
+    return unsubscribe;
+  }, []);
 
   // Poll for notifications count
   const getUnreadCount = useCallback(async () => {
@@ -274,11 +302,11 @@ export default function OwnerLayout() {
               <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
                 {t('owner.header.role', 'POI Owner')}
               </p>
-              <p className="text-sm font-medium text-text-primary">{username}</p>
+              <p className="text-sm font-medium text-text-primary">{poiName || username}</p>
             </div>
 
             <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 text-primary flex items-center justify-center font-display font-semibold text-sm">
-              {username[0]?.toUpperCase() || 'O'}
+              {(poiName || username)[0]?.toUpperCase() || 'O'}
             </div>
 
             <button

@@ -9,6 +9,14 @@ export const authUpdateEmitter = {
   emit: (data: Parameters<AuthUpdateListener>[0]) => { authListeners.forEach(fn => fn(data)); },
 };
 
+// Profile update event emitter — notifies layout when displayName changes
+type ProfileUpdateListener = (data: { displayName: string }) => void;
+const profileListeners: ProfileUpdateListener[] = [];
+export const profileUpdateEmitter = {
+  subscribe: (fn: ProfileUpdateListener) => { profileListeners.push(fn); return () => { const i = profileListeners.indexOf(fn); if (i >= 0) profileListeners.splice(i, 1); }; },
+  emit: (data: Parameters<ProfileUpdateListener>[0]) => { profileListeners.forEach(fn => fn(data)); },
+};
+
 function getAuthKeys() {
   return {
     tokenKey: 'vk_token',

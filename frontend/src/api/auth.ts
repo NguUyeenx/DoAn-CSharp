@@ -8,6 +8,7 @@ import type {
   AuthResponseDto,
   ChangePasswordDto,
   UpdateProfileDto,
+  OwnerDto,
 } from '@/types/auth';
 
 export const authApi = {
@@ -28,6 +29,9 @@ export const authApi = {
 
   updateProfile: (data: UpdateProfileDto) =>
     api.put('/auth/profile', data),
+
+  getProfile: () =>
+    api.get<OwnerDto>('/auth/profile'),
 
   ownerPayFee: (data: { username: string; cardNumber: string; cardHolder: string }) =>
     api.post('/auth/owner/pay-fee', data),

@@ -63,6 +63,16 @@ namespace DoAn_CSharp.Controllers
             return Ok(new { message = "Profile updated successfully." });
         }
 
+        /// <summary>Lấy thông tin hồ sơ cá nhân</summary>
+        [Authorize]
+        [HttpGet("profile")]
+        public async Task<IActionResult> GetProfile()
+        {
+            var ownerId = GetCurrentOwnerId();
+            var profile = await _authService.GetProfileAsync(ownerId);
+            return Ok(profile);
+        }
+
         /// <summary>Thanh toán phí đăng ký cho đối tác</summary>
         [HttpPost("owner/pay-fee")]
         public async Task<IActionResult> PayRegistrationFee([FromBody] OwnerPayFeeDto dto)

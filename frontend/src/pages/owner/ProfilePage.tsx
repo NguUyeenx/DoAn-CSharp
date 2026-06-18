@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authApi } from '@/api/auth';
+import { profileUpdateEmitter } from '@/api/client';
 import { useToast } from '@/components/ui/Toast';
 import { User, Lock, Save, Loader2 } from 'lucide-react';
 
@@ -10,6 +11,7 @@ export default function ProfilePage() {
 
   // Profile Form States
   const [displayName, setDisplayName] = useState('');
+  const [email, setEmail] = useState('');
   const [profileSaving, setProfileSaving] = useState(false);
 
   // Password Form States
@@ -18,18 +20,41 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordSaving, setPasswordSaving] = useState(false);
 
+  // Load profile details on mount
+  useEffect(() => {
+    let isSubscribed = true;
+    authApi.getProfile()
+      .then(({ data }) => {
+        if (isSubscribed && data) {
+          setDisplayName(data.displayName || '');
+          setEmail(data.email || '');
+        }
+      })
+      .catch((err) => {
+        console.error('Failed to load profile:', err);
+        toastError(t('owner.profile.loadFailed', 'Không thể tải thông tin hồ sơ'));
+      });
+    return () => {
+      isSubscribed = false;
+    };
+  }, [t, toastError]);
+
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!displayName.trim()) {
-      toastError(t('owner.profile.nameRequired', 'Vui lòng nhập tên hiển thị mới'));
+      toastError(t('owner.profile.nameRequired', 'Vui lòng nhập tên hiển thị'));
+      return;
+    }
+    if (!email.trim()) {
+      toastError(t('owner.profile.emailRequired', 'Vui lòng nhập email'));
       return;
     }
 
     setProfileSaving(true);
     try {
-      await authApi.updateProfile({ displayName });
+      await authApi.updateProfile({ displayName, email });
+      profileUpdateEmitter.emit({ displayName: displayName.trim() });
       success(t('owner.profile.updateSuccess', 'Cập nhật hồ sơ thành công!'));
-      setDisplayName('');
     } catch (err: any) {
       console.error('Failed to update profile:', err);
       toastError(err.response?.data?.message || t('owner.profile.updateFailed', 'Cập nhật hồ sơ thất bại'));
@@ -79,7 +104,7 @@ export default function ProfilePage() {
         <form onSubmit={handleUpdateProfile} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
-              {t('owner.profile.newDisplayName', 'Tên hiển thị mới')}
+              {t('owner.profile.displayName', 'Tên hiển thị')}
             </label>
             <input
               type="text"
@@ -87,6 +112,21 @@ export default function ProfilePage() {
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
               placeholder={t('owner.profile.namePlaceholder', 'Nhập tên hiển thị mới...')}
+              className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none"
+              required
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+              {t('owner.profile.email', 'Email / Gmail')}
+            </label>
+            <input
+              type="email"
+              disabled={profileSaving}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={t('owner.profile.emailPlaceholder', 'Nhập địa chỉ email mới...')}
               className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none"
               required
             />
@@ -102,7 +142,7 @@ export default function ProfilePage() {
             ) : (
               <>
                 <Save size={14} />
-                <span>{t('owner.profile.save', 'Cập nhật tên')}</span>
+                <span>{t('owner.profile.save', 'Lưu thay đổi')}</span>
               </>
             )}
           </button>

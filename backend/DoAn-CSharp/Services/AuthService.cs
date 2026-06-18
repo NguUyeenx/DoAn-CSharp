@@ -197,12 +197,36 @@ namespace DoAn_CSharp.Services
             var owner = await _context.Owners.FindAsync(userId)
                 ?? throw new KeyNotFoundException("Owner not found.");
 
+            if (dto.Email != null && dto.Email.ToLowerInvariant() != owner.Email.ToLowerInvariant())
+            {
+                if (await _context.Owners.AnyAsync(u => u.Email.ToLower() == dto.Email.ToLower() && u.Id != userId))
+                    throw new ArgumentException("Email đã tồn tại.");
+                owner.Email = dto.Email;
+            }
+
             if (dto.DisplayName != null) owner.DisplayName = dto.DisplayName;
             if (dto.AvatarUrl != null) owner.AvatarUrl = dto.AvatarUrl;
             if (dto.DefaultLanguage != null) owner.DefaultLanguage = dto.DefaultLanguage;
             owner.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+        }
+
+        public async Task<OwnerDto> GetProfileAsync(int userId)
+        {
+            var owner = await _context.Owners.FindAsync(userId)
+                ?? throw new KeyNotFoundException("Owner not found.");
+
+            return new OwnerDto
+            {
+                Id = owner.Id,
+                Username = owner.Username,
+                Email = owner.Email,
+                DisplayName = owner.DisplayName,
+                AvatarUrl = owner.AvatarUrl,
+                DefaultLanguage = owner.DefaultLanguage,
+                CreatedAt = owner.CreatedAt
+            };
         }
 
         // ── Helpers ────────────────────────────────────────────────────
