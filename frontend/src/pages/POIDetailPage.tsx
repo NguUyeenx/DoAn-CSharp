@@ -11,6 +11,7 @@ interface OperatingHourItem {
   closed: boolean;
 }
 import { menuApi } from '@/api/menu';
+import { analyticsApi } from '@/api/analytics';
 import type { POI, MenuItem } from '@/types/poi';
 import POIGallery from '@/components/poi/POIGallery';
 import MenuList from '@/components/poi/MenuList';
@@ -73,6 +74,28 @@ export default function POIDetailPage() {
       isSubscribed = false;
     };
   }, [slug, i18n.language]);
+
+  // Update the language of the recent visit log if language changes
+  useEffect(() => {
+    if (!poi) return;
+
+    const updateLogLanguage = async () => {
+      const sessionId = localStorage.getItem('vk_session_id');
+      if (sessionId) {
+        try {
+          await analyticsApi.updateVisitLanguage({
+            poiId: poi.id,
+            sessionId,
+            languageCode: i18n.language,
+          });
+        } catch (err) {
+          console.warn('Failed to update visit language:', err);
+        }
+      }
+    };
+
+    updateLogLanguage();
+  }, [poi?.id, i18n.language]);
 
   const handleShare = async () => {
     if (!poi) return;

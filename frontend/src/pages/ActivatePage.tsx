@@ -4,11 +4,13 @@ import { qrApi } from '@/api/qr';
 import { visitorApi } from '@/api/visitor';
 import { useVisitor } from '@/contexts/VisitorContext';
 import { useToast } from '@/components/ui/Toast';
+import { useTranslation } from 'react-i18next';
 import { CreditCard, Loader2, ArrowLeft, ShieldCheck, Compass } from 'lucide-react';
 
 export default function ActivatePage() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { i18n } = useTranslation();
   const { error: toastError, success: toastSuccess } = useToast();
   const { sessionId, refreshStatus } = useVisitor();
 
@@ -123,6 +125,7 @@ export default function ActivatePage() {
         code: code || undefined,
         cardNumber: cleanCard,
         cardHolder: cardHolder.toUpperCase(),
+        languageCode: i18n.language,
       });
 
       toastSuccess(data.message || 'Kích hoạt thành công!');

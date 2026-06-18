@@ -24,6 +24,14 @@ namespace DoAn_CSharp.Controllers
             return Ok(new { success = true, message = "Visit logged successfully." });
         }
 
+        /// <summary>Cập nhật ngôn ngữ cho lượt quét/truy cập gần đây</summary>
+        [HttpPost("update-language")]
+        public async Task<IActionResult> UpdateLanguage([FromBody] UpdateLanguageDto dto)
+        {
+            await _analyticsService.UpdateVisitLanguageAsync(dto);
+            return Ok(new { success = true, message = "Language updated successfully." });
+        }
+
         /// <summary>Lấy tổng quan thống kê (Admin only)</summary>
         [Authorize(Roles = "admin")]
         [HttpGet("dashboard")]

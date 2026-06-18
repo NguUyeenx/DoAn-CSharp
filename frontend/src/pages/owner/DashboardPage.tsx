@@ -4,6 +4,31 @@ import { ownerApi } from '@/api/owner';
 import { Eye, QrCode, Headphones, Store, Loader2, TrendingUp, Heart, ArrowUpDown, Globe } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
+const LANGUAGE_MAP: Record<string, { name: string; flag: string }> = {
+  vi: { name: 'Tiếng Việt', flag: '🇻🇳' },
+  en: { name: 'English', flag: '🇺🇸' },
+  ja: { name: '日本語', flag: '🇯🇵' },
+  ko: { name: '한국어', flag: '🇰🇷' },
+  zh: { name: '中文', flag: '🇨🇳' },
+  fr: { name: 'Français', flag: '🇫🇷' },
+  es: { name: 'Español', flag: '🇪🇸' },
+  de: { name: 'Deutsch', flag: '🇩🇪' },
+  it: { name: 'Italiano', flag: '🇮🇹' },
+  ru: { name: 'Русский', flag: '🇷🇺' },
+  pt: { name: 'Português', flag: '🇵🇹' },
+  th: { name: 'ภาษาไทย', flag: '🇹🇭' },
+  id: { name: 'Bahasa Indonesia', flag: '🇮🇩' },
+  ms: { name: 'Bahasa Melayu', flag: '🇲🇾' },
+  hi: { name: 'हिन्दी', flag: '🇮🇳' },
+  ar: { name: 'العربية', flag: '🇸🇦' },
+  nl: { name: 'Nederlands', flag: '🇳🇱' },
+  pl: { name: 'Polski', flag: '🇵🇱' },
+  tr: { name: 'Türkçe', flag: '🇹🇷' },
+  sv: { name: 'Svenska', flag: '🇸🇪' },
+  fil: { name: 'Filipino', flag: '🇵🇭' },
+  km: { name: 'ភាសាខ្មែរ', flag: '🇰🇭' },
+};
+
 interface PoiStatsItem {
   id: number;
   name: string;
@@ -424,20 +449,33 @@ export default function DashboardPage() {
           </div>
           <div className="flex flex-col gap-4">
             {stats?.languages && stats.languages.length > 0 ? (
-              stats.languages.map((lang) => (
-                <div key={lang.code} className="space-y-1">
-                  <div className="flex justify-between text-xs font-semibold">
-                    <span className="uppercase text-text-secondary">{lang.code}</span>
-                    <span className="text-text-primary font-mono">{lang.percentage}% ({lang.count})</span>
+              stats.languages.map((lang) => {
+                const rawCode = lang.code.toLowerCase();
+                const baseCode = rawCode.split(/[-_]/)[0];
+                const langInfo = LANGUAGE_MAP[rawCode] || LANGUAGE_MAP[baseCode] || {
+                  name: lang.code.toUpperCase(),
+                  flag: '🌐',
+                };
+                const flag = langInfo.flag;
+                const name = langInfo.name;
+                return (
+                  <div key={lang.code} className="space-y-1">
+                    <div className="flex justify-between items-center text-xs font-semibold text-text-primary">
+                      <span className="flex items-center gap-1.5">
+                        <span className="text-base">{flag}</span>
+                        <span>{name}</span>
+                      </span>
+                      <span className="text-text-primary font-mono">{lang.percentage}% ({lang.count})</span>
+                    </div>
+                    <div className="w-full h-2 bg-surface rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-primary rounded-full" 
+                        style={{ width: `${lang.percentage}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="w-full h-2 bg-surface rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary rounded-full" 
-                      style={{ width: `${lang.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))
+                );
+              })
             ) : (
               <div className="py-8 text-center text-text-muted text-xs">
                 Chưa có dữ liệu ngôn ngữ.

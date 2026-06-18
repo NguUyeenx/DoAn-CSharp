@@ -16,6 +16,31 @@ interface AuditLog {
   createdAt: string;
 }
 
+const LANGUAGE_MAP: Record<string, { name: string; flag: string }> = {
+  vi: { name: 'Tiếng Việt', flag: '🇻🇳' },
+  en: { name: 'English', flag: '🇺🇸' },
+  ja: { name: '日本語', flag: '🇯🇵' },
+  ko: { name: '한국어', flag: '🇰🇷' },
+  zh: { name: '中文', flag: '🇨🇳' },
+  fr: { name: 'Français', flag: '🇫🇷' },
+  es: { name: 'Español', flag: '🇪🇸' },
+  de: { name: 'Deutsch', flag: '🇩🇪' },
+  it: { name: 'Italiano', flag: '🇮🇹' },
+  ru: { name: 'Русский', flag: '🇷🇺' },
+  pt: { name: 'Português', flag: '🇵🇹' },
+  th: { name: 'ภาษาไทย', flag: '🇹🇭' },
+  id: { name: 'Bahasa Indonesia', flag: '🇮🇩' },
+  ms: { name: 'Bahasa Melayu', flag: '🇲🇾' },
+  hi: { name: 'हिन्दी', flag: '🇮🇳' },
+  ar: { name: 'العربية', flag: '🇸🇦' },
+  nl: { name: 'Nederlands', flag: '🇳🇱' },
+  pl: { name: 'Polski', flag: '🇵🇱' },
+  tr: { name: 'Türkçe', flag: '🇹🇷' },
+  sv: { name: 'Svenska', flag: '🇸🇪' },
+  fil: { name: 'Filipino', flag: '🇵🇭' },
+  km: { name: 'ភាសាខ្មែរ', flag: '🇰🇭' },
+};
+
 export default function DashboardPage() {
   const { t } = useTranslation();
   const { error: toastError } = useToast();
@@ -124,7 +149,8 @@ export default function DashboardPage() {
 
     // Calculate (x, y) coordinates for each point
     const points = summary.visitsOverTime.map((d, index) => {
-      const x = padding + (index / (summary.visitsOverTime.length - 1)) * chartWidth;
+      const hasMultiplePoints = summary.visitsOverTime.length > 1;
+      const x = padding + (hasMultiplePoints ? (index / (summary.visitsOverTime.length - 1)) : 0.5) * chartWidth;
       const y = padding + chartHeight - ((d.count - minCount) / countRange) * chartHeight;
       return { x, y, ...d };
     });
@@ -362,8 +388,15 @@ export default function DashboardPage() {
               summary.languageBreakdown.map((item) => {
                 const total = summary.languageBreakdown.reduce((sum, i) => sum + i.count, 0) || 1;
                 const percent = Math.round((item.count / total) * 100);
-                const flag = item.languageCode === 'vi' ? '🇻🇳' : item.languageCode === 'en' ? '🇬🇧' : '🌐';
-                const name = item.languageCode === 'vi' ? 'Tiếng Việt' : item.languageCode === 'en' ? 'English' : item.languageCode.toUpperCase();
+                
+                const rawCode = item.languageCode.toLowerCase();
+                const baseCode = rawCode.split(/[-_]/)[0];
+                const langInfo = LANGUAGE_MAP[rawCode] || LANGUAGE_MAP[baseCode] || {
+                  name: item.languageCode.toUpperCase(),
+                  flag: '🌐',
+                };
+                const flag = langInfo.flag;
+                const name = langInfo.name;
                 return (
                   <div key={item.languageCode} className="space-y-1 text-xs">
                     <div className="flex justify-between items-center font-semibold text-text-primary">

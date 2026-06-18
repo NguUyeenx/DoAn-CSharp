@@ -15,6 +15,12 @@ export interface VisitCreateRequest {
   languageCode: string;
 }
 
+export interface UpdateLanguageRequest {
+  poiId: number;
+  sessionId: string;
+  languageCode: string;
+}
+
 export interface UploadResult {
   url: string;
   fileName: string;

@@ -29,12 +29,27 @@ namespace DoAn_CSharp.Services
             await _context.SaveChangesAsync();
         }
 
+        public async Task UpdateVisitLanguageAsync(UpdateLanguageDto dto)
+        {
+            var cutoff = DateTime.UtcNow.AddMinutes(-30);
+            var log = await _context.VisitLogs
+                .Where(v => v.SessionId == dto.SessionId && v.POIId == dto.POIId && v.VisitedAt >= cutoff)
+                .OrderByDescending(v => v.VisitedAt)
+                .FirstOrDefaultAsync();
+
+            if (log != null)
+            {
+                log.LanguageCode = dto.LanguageCode.ToLowerInvariant();
+                await _context.SaveChangesAsync();
+            }
+        }
+
         public async Task<AnalyticsSummaryDto> GetSummaryAsync()
         {
             var totalVisits = await _context.VisitLogs.CountAsync();
-            var totalQrScans = await _context.QRCodes.SumAsync(q => q.ScanCount);
+            var totalQrScans = await _context.VisitLogs.CountAsync(v => v.TriggerType.ToLower() == "qr");
             var totalAudioPlays = await _context.VisitLogs
-                .Where(v => v.TriggerType == "geofence" || v.TriggerType == "qr")
+                .Where(v => v.TriggerType.ToLower() == "geofence" || v.TriggerType.ToLower() == "manual")
                 .CountAsync();
 
             // Visits over time (last 30 days)

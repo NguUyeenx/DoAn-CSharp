@@ -25,7 +25,7 @@ namespace DoAn_CSharp.Services
         public async Task<QRCodeDto?> GetByCodeAsync(string code)
         {
             var qr = await _context.QRCodes
-                .FirstOrDefaultAsync(q => q.Code == code && q.IsActive);
+                .FirstOrDefaultAsync(q => q.Code.ToLower() == code.ToLower() && q.IsActive);
 
             if (qr == null)
             {

@@ -86,24 +86,10 @@ namespace DoAn_CSharp.Controllers
             }
 
             // Proceed with normal log and redirect since activated
-            bool isDuplicate = false;
-            if (!isBypassLog && !string.IsNullOrEmpty(sessionId))
-            {
-                var recentLog = await _context.VisitLogs
-                    .Where(v => v.SessionId == sessionId && v.POIId == qr.POIId && v.TriggerType == "qr")
-                    .OrderByDescending(v => v.VisitedAt)
-                    .FirstOrDefaultAsync();
-
-                if (recentLog != null && (DateTime.UtcNow - recentLog.VisitedAt).TotalSeconds < 5)
-                {
-                    isDuplicate = true;
-                }
-            }
-
-            if (!isBypassLog && !isDuplicate)
+            if (!isBypassLog)
             {
                 // Tăng ScanCount
-                var qrEntity = await _context.QRCodes.FirstOrDefaultAsync(q => q.Code == code);
+                var qrEntity = await _context.QRCodes.FirstOrDefaultAsync(q => q.Code.ToLower() == code.ToLower());
                 if (qrEntity != null)
                 {
                     qrEntity.ScanCount++;

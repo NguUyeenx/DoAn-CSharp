@@ -6,6 +6,7 @@ namespace DoAn_CSharp.Services
     public interface IAnalyticsService
     {
         Task LogVisitAsync(VisitCreateDto dto);
+        Task UpdateVisitLanguageAsync(UpdateLanguageDto dto);
         Task<AnalyticsSummaryDto> GetSummaryAsync();
     }
 }

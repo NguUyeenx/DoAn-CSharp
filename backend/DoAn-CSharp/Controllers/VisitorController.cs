@@ -93,20 +93,38 @@ namespace DoAn_CSharp.Controllers
             };
 
             await _context.VisitorActivations.AddAsync(activation);
-            await _context.SaveChangesAsync();
 
-            // Get POI slug if QR code was scanned
+            // Get POI slug if QR code was scanned, and increment ScanCount + log Visit
             string? redirectSlug = null;
             if (!string.IsNullOrWhiteSpace(request.Code))
             {
                 var qr = await _context.QRCodes
                     .Include(q => q.POI)
-                    .FirstOrDefaultAsync(q => q.Code == request.Code);
-                if (qr != null && qr.POI != null)
+                    .FirstOrDefaultAsync(q => q.Code.ToLower() == request.Code.ToLower());
+                if (qr != null)
                 {
-                    redirectSlug = qr.POI.Slug;
+                    // Tăng lượt quét mã QR sau khi đã thanh toán thành công
+                    qr.ScanCount++;
+
+                    // Ghi nhận VisitLog cho dashboard và quản trị
+                    var visitLog = new VisitLog
+                    {
+                        POIId = qr.POIId,
+                        SessionId = request.SessionId,
+                        TriggerType = "qr",
+                        LanguageCode = (request.LanguageCode ?? "vi").ToLowerInvariant(),
+                        VisitedAt = DateTime.UtcNow
+                    };
+                    await _context.VisitLogs.AddAsync(visitLog);
+
+                    if (qr.POI != null)
+                    {
+                        redirectSlug = qr.POI.Slug;
+                    }
                 }
             }
+
+            await _context.SaveChangesAsync();
 
             return Ok(new
             {
@@ -167,6 +185,7 @@ namespace DoAn_CSharp.Controllers
         public string? Code { get; set; }
         public string CardNumber { get; set; } = string.Empty;
         public string CardHolder { get; set; } = string.Empty;
+        public string? LanguageCode { get; set; }
     }
 
     public class BookmarkRequest

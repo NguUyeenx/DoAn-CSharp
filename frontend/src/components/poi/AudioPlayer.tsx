@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { audioApi } from '@/api/audio';
 import { translationsApi } from '@/api/translations';
+import { analyticsApi } from '@/api/analytics';
 import { formatDuration } from '@/utils/format';
 import { Play, Pause, Volume2, VolumeX, AlertCircle, Headphones, Globe } from 'lucide-react';
 
@@ -48,6 +49,7 @@ export default function AudioPlayer({
 }: AudioPlayerProps) {
   const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const loggedUrlRef = useRef<string | null>(null);
 
   const [activeLang, setActiveLang] = useState(languageCode);
   const [activeText, setActiveText] = useState(audioText);
@@ -130,6 +132,24 @@ export default function AudioPlayer({
         console.error('Audio play error:', err);
         setError(t('audio.playbackFailed', 'Unable to play audio'));
       });
+    }
+  };
+
+  const handlePlay = async () => {
+    setIsPlaying(true);
+    if (resolvedUrl && loggedUrlRef.current !== resolvedUrl) {
+      loggedUrlRef.current = resolvedUrl;
+      const sessionId = localStorage.getItem('vk_session_id') || undefined;
+      try {
+        await analyticsApi.logVisit({
+          poiId,
+          triggerType: 'manual',
+          languageCode: activeLang,
+          sessionId,
+        });
+      } catch (err) {
+        console.error('Failed to log audio play visit:', err);
+      }
     }
   };
 
@@ -266,7 +286,7 @@ export default function AudioPlayer({
         <audio
           ref={audioRef}
           src={resolvedUrl}
-          onPlay={() => setIsPlaying(true)}
+          onPlay={handlePlay}
           onPause={() => setIsPlaying(false)}
           onTimeUpdate={handleTimeUpdate}
           onLoadedMetadata={handleLoadedMetadata}
