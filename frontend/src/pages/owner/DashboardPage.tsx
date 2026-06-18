@@ -168,7 +168,8 @@ export default function DashboardPage() {
 
     // Calculate (x, y) coordinates for each point
     const points = chartData.map((d, index) => {
-      const x = padding + (index / (chartData.length - 1)) * chartWidth;
+      const hasMultiplePoints = chartData.length > 1;
+      const x = padding + (hasMultiplePoints ? (index / (chartData.length - 1)) : 0.5) * chartWidth;
       const y = padding + chartHeight - ((d.count - minCount) / countRange) * chartHeight;
       return { x, y, ...d };
     });

@@ -31,6 +31,15 @@ namespace DoAn_CSharp.Controllers
             return Ok(notifs);
         }
 
+        [HttpGet("unread-count")]
+        public async Task<IActionResult> GetUnreadCount()
+        {
+            var ownerId = GetCurrentOwnerId();
+            var count = await _context.Notifications
+                .CountAsync(n => n.OwnerId == ownerId && !n.IsRead);
+            return Ok(new { count = count });
+        }
+
         [HttpPut("{id:int}/read")]
         public async Task<IActionResult> MarkAsRead(int id)
         {

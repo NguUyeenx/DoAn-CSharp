@@ -103,19 +103,30 @@ namespace DoAn_CSharp.Controllers
                     .FirstOrDefaultAsync(q => q.Code.ToLower() == request.Code.ToLower());
                 if (qr != null)
                 {
-                    // Tăng lượt quét mã QR sau khi đã thanh toán thành công
-                    qr.ScanCount++;
+                    // Prevent duplicate logs within 5 seconds for same session and POI
+                    var cutoff = DateTime.UtcNow.AddSeconds(-5);
+                    var isDuplicate = await _context.VisitLogs.AnyAsync(v =>
+                        v.SessionId == request.SessionId &&
+                        v.POIId == qr.POIId &&
+                        v.TriggerType.ToLower() == "qr" &&
+                        v.VisitedAt >= cutoff);
 
-                    // Ghi nhận VisitLog cho dashboard và quản trị
-                    var visitLog = new VisitLog
+                    if (!isDuplicate)
                     {
-                        POIId = qr.POIId,
-                        SessionId = request.SessionId,
-                        TriggerType = "qr",
-                        LanguageCode = (request.LanguageCode ?? "vi").ToLowerInvariant(),
-                        VisitedAt = DateTime.UtcNow
-                    };
-                    await _context.VisitLogs.AddAsync(visitLog);
+                        // Tăng lượt quét mã QR sau khi đã thanh toán thành công
+                        qr.ScanCount++;
+
+                        // Ghi nhận VisitLog cho dashboard và quản trị
+                        var visitLog = new VisitLog
+                        {
+                            POIId = qr.POIId,
+                            SessionId = request.SessionId,
+                            TriggerType = "qr",
+                            LanguageCode = (request.LanguageCode ?? "vi").ToLowerInvariant(),
+                            VisitedAt = DateTime.UtcNow
+                        };
+                        await _context.VisitLogs.AddAsync(visitLog);
+                    }
 
                     if (qr.POI != null)
                     {

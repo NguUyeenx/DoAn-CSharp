@@ -93,11 +93,7 @@ export default function MenuList({ items }: MenuListProps) {
                     {formatPrice(item.price, item.currency)}
                   </span>
                   
-                  {isAvailable ? (
-                    <span className="text-[10px] text-accent font-semibold bg-accent/5 border border-accent-light px-1.5 py-0.5 rounded-[var(--radius-sm)] capitalize">
-                      {t('menu.available', 'Còn món')}
-                    </span>
-                  ) : (
+                  {!isAvailable && (
                     <span className="text-[10px] text-text-muted font-semibold bg-surface px-1.5 py-0.5 rounded-[var(--radius-sm)]">
                       {t('menu.unavailable', 'Hết món')}
                     </span>

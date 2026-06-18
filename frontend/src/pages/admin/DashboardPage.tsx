@@ -395,13 +395,12 @@ export default function DashboardPage() {
                   name: item.languageCode.toUpperCase(),
                   flag: '🌐',
                 };
-                const flag = langInfo.flag;
                 const name = langInfo.name;
                 return (
                   <div key={item.languageCode} className="space-y-1 text-xs">
                     <div className="flex justify-between items-center font-semibold text-text-primary">
                       <span className="flex items-center gap-1.5">
-                        <span className="text-base">{flag}</span>
+                        <span className="text-base">🌐</span>
                         <span>{name}</span>
                       </span>
                       <span className="font-mono text-primary font-bold">{percent}% ({item.count})</span>

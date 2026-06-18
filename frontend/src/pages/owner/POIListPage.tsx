@@ -1,42 +1,47 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ownerApi } from '@/api/owner';
 import type { POI } from '@/types/poi';
-import { Plus, Edit3, UtensilsCrossed, Loader2, Image } from 'lucide-react';
+import { Plus, Edit3, UtensilsCrossed, Loader2, Image, Trash2, QrCode } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
 export default function POIListPage() {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
-  const { error: toastError } = useToast();
+  const { success, error: toastError } = useToast();
 
   const [pois, setPois] = useState<POI[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let isSubscribed = true;
-    const fetchPOIs = async () => {
-      setLoading(true);
-      try {
-        const { data } = await ownerApi.getMyPOIs(i18n.language);
-        if (isSubscribed) {
-          setPois(data);
-        }
-      } catch (err: any) {
-        console.error('Failed to load owner POIs:', err);
-        toastError(t('owner.poisLoadError', 'Không thể tải danh sách địa điểm'));
-      } finally {
-        if (isSubscribed) setLoading(false);
-      }
-    };
-
-    fetchPOIs();
-
-    return () => {
-      isSubscribed = false;
-    };
+  const fetchPOIs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { data } = await ownerApi.getMyPOIs(i18n.language);
+      setPois(data);
+    } catch (err: any) {
+      console.error('Failed to load owner POIs:', err);
+      toastError(t('owner.poisLoadError', 'Không thể tải danh sách địa điểm'));
+    } finally {
+      setLoading(false);
+    }
   }, [i18n.language, t, toastError]);
+
+  useEffect(() => {
+    fetchPOIs();
+  }, [fetchPOIs]);
+
+  const handleDelete = async (id: number) => {
+    if (!window.confirm(t('owner.pois.deleteConfirm', 'Bạn có chắc chắn muốn xóa địa điểm này không?'))) return;
+    try {
+      await ownerApi.deletePOI(id);
+      success(t('owner.pois.deleteSuccess', 'Xóa địa điểm thành công!'));
+      fetchPOIs();
+    } catch (err) {
+      console.error('Failed to delete POI:', err);
+      toastError(t('owner.pois.deleteError', 'Xóa địa điểm thất bại.'));
+    }
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
@@ -165,24 +170,46 @@ export default function POIListPage() {
                 </div>
 
                 {/* Grid Action controls */}
-                <div className="grid grid-cols-2 gap-2.5 border-t border-border/40 pt-3 text-xs">
-                  {/* Edit details */}
-                  <button
-                    onClick={() => navigate(`/owner/pois/${poi.id}/edit`)}
-                    className="h-9 rounded-lg border border-border bg-card text-text-primary font-semibold flex items-center justify-center gap-1.5 hover:bg-surface-alt active:scale-95 transition-all outline-none cursor-pointer"
-                  >
-                    <Edit3 size={13} />
-                    <span>{t('owner.pois.editDetails', 'Sửa tin')}</span>
-                  </button>
+                <div className="space-y-2 border-t border-border/40 pt-3 text-xs">
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Edit details */}
+                    <button
+                      onClick={() => navigate(`/owner/pois/${poi.id}/edit`)}
+                      className="h-9 rounded-lg border border-border bg-card text-text-primary font-semibold flex items-center justify-center gap-1.5 hover:bg-surface-alt active:scale-95 transition-all outline-none cursor-pointer"
+                    >
+                      <Edit3 size={13} />
+                      <span>{t('owner.pois.editDetails', 'Sửa tin')}</span>
+                    </button>
 
-                  {/* Menu items CRUD */}
-                  <button
-                    onClick={() => navigate(`/owner/pois/${poi.id}/menu`)}
-                    className="h-9 rounded-lg bg-primary text-white font-semibold flex items-center justify-center gap-1.5 hover:bg-primary-hover active:scale-95 transition-all shadow-xs outline-none cursor-pointer"
-                  >
-                    <UtensilsCrossed size={13} />
-                    <span>{t('owner.pois.manageMenu', 'Thực đơn')}</span>
-                  </button>
+                    {/* Menu items CRUD */}
+                    <button
+                      onClick={() => navigate(`/owner/pois/${poi.id}/menu`)}
+                      className="h-9 rounded-lg bg-primary text-white font-semibold flex items-center justify-center gap-1.5 hover:bg-primary-hover active:scale-95 transition-all shadow-xs outline-none cursor-pointer"
+                    >
+                      <UtensilsCrossed size={13} />
+                      <span>{t('owner.pois.manageMenu', 'Thực đơn')}</span>
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    {/* Manage QR Code */}
+                    <button
+                      onClick={() => navigate(`/owner/pois/${poi.id}/qr`)}
+                      className="h-9 rounded-lg border border-primary/35 bg-primary/5 text-primary font-semibold flex items-center justify-center gap-1.5 hover:bg-primary/10 active:scale-95 transition-all outline-none cursor-pointer"
+                    >
+                      <QrCode size={13} />
+                      <span>{t('owner.pois.manageQR', 'Mã QR')}</span>
+                    </button>
+
+                    {/* Delete POI */}
+                    <button
+                      onClick={() => handleDelete(poi.id)}
+                      className="h-9 rounded-lg border border-danger/30 bg-card text-danger font-semibold flex items-center justify-center gap-1.5 hover:bg-danger/5 active:scale-95 transition-all outline-none cursor-pointer"
+                    >
+                      <Trash2 size={13} />
+                      <span>{t('owner.pois.delete', 'Xóa')}</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

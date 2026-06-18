@@ -19,6 +19,7 @@ const OwnerDashboardPage = React.lazy(() => import('@/pages/owner/DashboardPage'
 const OwnerPOIListPage = React.lazy(() => import('@/pages/owner/POIListPage'));
 const OwnerPOIFormPage = React.lazy(() => import('@/pages/owner/POIFormPage'));
 const OwnerMenuListPage = React.lazy(() => import('@/pages/owner/MenuListPage'));
+const OwnerQRPage = React.lazy(() => import('@/pages/owner/QRPage'));
 const OwnerNotificationListPage = React.lazy(() => import('@/pages/owner/NotificationListPage'));
 const OwnerProfilePage = React.lazy(() => import('@/pages/owner/ProfilePage'));
 
@@ -119,6 +120,7 @@ export default function App() {
           <Route path="pois/new" element={<OwnerPOIFormPage />} />
           <Route path="pois/:id/edit" element={<OwnerPOIFormPage />} />
           <Route path="pois/:id/menu" element={<OwnerMenuListPage />} />
+          <Route path="pois/:id/qr" element={<OwnerQRPage />} />
           <Route path="notifications" element={<OwnerNotificationListPage />} />
           <Route path="profile" element={<OwnerProfilePage />} />
         </Route>

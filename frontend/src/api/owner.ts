@@ -59,4 +59,16 @@ export const ownerApi = {
 
   saveCustomAudio: (poiId: number, data: { languageCode: string; filePath: string; durationSeconds: number }) =>
     api.post(`/owner/pois/${poiId}/custom-audio`, data),
+
+  deletePOI: (id: number) =>
+    api.delete(`/owner/pois/${id}`),
+
+  getPOIQRs: (poiId: number) =>
+    api.get<any[]>(`/owner/pois/${poiId}/qr`),
+
+  generatePOIQR: (poiId: number) =>
+    api.post<any>(`/owner/pois/${poiId}/generate-qr`),
+
+  deletePOIQR: (id: number) =>
+    api.delete(`/owner/qr/${id}`),
 };

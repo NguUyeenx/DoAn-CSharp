@@ -138,8 +138,25 @@ namespace DoAn_CSharp.Controllers
             if (dto.Status != "approved" && dto.Status != "rejected" && dto.Status != "pending")
                 return BadRequest("Invalid status.");
 
+            var poi = await _context.POIs.FindAsync(id);
+            if (poi == null) return NotFound("POI not found.");
+
             var success = await _poiService.UpdateApprovalStatusAsync(id, dto.Status);
             if (!success) return NotFound("POI not found.");
+
+            if (poi.OwnerId.HasValue)
+            {
+                string statusText = dto.Status == "approved" ? "được duyệt" : (dto.Status == "rejected" ? "bị từ chối" : "đưa về trạng thái chờ duyệt");
+                _context.Notifications.Add(new DoAn_CSharp.Models.Entities.Notification
+                {
+                    OwnerId = poi.OwnerId.Value,
+                    Message = $"Địa điểm '{poi.Name}' của bạn đã {statusText} bởi Admin.",
+                    Type = "POIStatusChanged",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
 
             return Ok(new { message = $"POI status updated to {dto.Status}." });
         }
@@ -693,6 +710,19 @@ namespace DoAn_CSharp.Controllers
 
             poi.OwnerId = dto.OwnerId;
             poi.UpdatedAt = DateTime.UtcNow;
+
+            // Notify new owner if assigned
+            if (dto.OwnerId.HasValue)
+            {
+                _context.Notifications.Add(new DoAn_CSharp.Models.Entities.Notification
+                {
+                    OwnerId = dto.OwnerId.Value,
+                    Message = $"Bạn đã được gán quyền sở hữu địa điểm '{poi.Name}' bởi Admin.",
+                    Type = "POIOwnerAssigned",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
             await _context.SaveChangesAsync();
 
             return Ok(new { message = "POI owner updated successfully." });
@@ -701,8 +731,24 @@ namespace DoAn_CSharp.Controllers
         [HttpPost("pois/{id:int}/restore")]
         public async Task<IActionResult> RestorePOI(int id)
         {
+            var poi = await _context.POIs.FindAsync(id);
+            if (poi == null) return NotFound("POI not found.");
+
             var success = await _poiService.RestoreAsync(id);
             if (!success) return NotFound("POI not found or not deleted.");
+
+            if (poi.OwnerId.HasValue)
+            {
+                _context.Notifications.Add(new DoAn_CSharp.Models.Entities.Notification
+                {
+                    OwnerId = poi.OwnerId.Value,
+                    Message = $"Địa điểm '{poi.Name}' của bạn đã được khôi phục bởi Admin.",
+                    Type = "POIRestored",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
 
             return Ok(new { message = "POI restored successfully." });
         }

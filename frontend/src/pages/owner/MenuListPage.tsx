@@ -3,8 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ownerApi } from '@/api/owner';
 import { menuApi } from '@/api/menu';
+import { uploadApi } from '@/api/upload';
 import type { MenuItem, POI } from '@/types/poi';
-import { ArrowLeft, Plus, Edit2, Trash2, Loader2, Save, ToggleLeft, ToggleRight } from 'lucide-react';
+import { ArrowLeft, Plus, Edit2, Trash2, Loader2, Save, ToggleLeft, ToggleRight, Upload } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
 import { formatPrice } from '@/utils/format';
@@ -28,6 +29,33 @@ export default function MenuListPage() {
   const [price, setPrice] = useState<number>(35000);
   const [imageUrl, setImageUrl] = useState('');
   const [isAvailable, setIsAvailable] = useState(true);
+  const [uploadingImage, setUploadingImage] = useState(false);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      toastError(t('owner.menu.imageTypeError', 'Chỉ hỗ trợ ảnh dạng JPEG, PNG hoặc WebP'));
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toastError(t('owner.menu.imageSizeError', 'Kích thước ảnh tối đa là 5MB'));
+      return;
+    }
+
+    setUploadingImage(true);
+    try {
+      const { data } = await uploadApi.uploadMenuImage(file);
+      setImageUrl(data.url);
+      success(t('owner.menu.imageUploadSuccess', 'Tải lên hình ảnh món ăn thành công!'));
+    } catch (err: any) {
+      console.error('Failed to upload menu image:', err);
+      toastError(t('owner.menu.imageUploadError', 'Tải lên hình ảnh thất bại.'));
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // 1. Fetch POI and Menu items
   const loadData = async () => {
@@ -112,6 +140,11 @@ export default function MenuListPage() {
     e.preventDefault();
     if (!name.trim()) {
       toastError(t('owner.menu.nameRequired', 'Vui lòng điền tên món ăn'));
+      return;
+    }
+
+    if (!imageUrl) {
+      toastError(t('owner.menu.imageRequired', 'Vui lòng tải lên hình ảnh món ăn của quán từ máy của bạn'));
       return;
     }
 
@@ -315,19 +348,57 @@ export default function MenuListPage() {
             />
           </div>
 
-          {/* Image URL */}
+          {/* Image Upload box */}
           <div className="flex flex-col gap-1.5">
             <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
-              {t('owner.menu.fieldImage', 'Link hình ảnh món ăn')}
+              {t('owner.menu.fieldImage', 'Hình ảnh món ăn')} *
             </label>
-            <input
-              type="url"
-              disabled={saving}
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://example.com/food.jpg"
-              className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none"
-            />
+            
+            {imageUrl ? (
+              <div className="relative aspect-video w-full rounded-xl overflow-hidden border border-border bg-surface-alt flex items-center justify-center group shadow-sm">
+                <img src={imageUrl} alt="Menu Item Preview" className="w-full h-full object-cover" />
+                {uploadingImage ? (
+                  <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white gap-2">
+                    <Loader2 className="animate-spin text-primary" size={24} />
+                    <span className="text-[11px] font-semibold">Đang tải ảnh...</span>
+                  </div>
+                ) : (
+                  <label className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-white gap-1.5 transition-all cursor-pointer">
+                    <Upload size={18} />
+                    <span className="text-[11px] font-bold">Thay đổi hình ảnh</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={uploadingImage || saving}
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-border hover:border-primary/50 hover:bg-primary/5 rounded-xl p-6 transition-all text-text-secondary select-none relative cursor-pointer min-h-[120px]">
+                {uploadingImage ? (
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader2 className="animate-spin text-primary" size={24} />
+                    <span className="text-xs font-semibold">Đang tải ảnh lên...</span>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center gap-2 cursor-pointer w-full h-full justify-center">
+                    <Upload size={24} className="text-text-muted" />
+                    <span className="text-xs font-bold text-primary">Tải lên hình ảnh món ăn</span>
+                    <span className="text-[10px] text-text-muted">Chấp nhận JPG, PNG, WebP (Tối đa 5MB)</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={uploadingImage || saving}
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Available Checkbox */}

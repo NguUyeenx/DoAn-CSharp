@@ -17,13 +17,20 @@ namespace DoAn_CSharp.Controllers
         private readonly IPOIService _poiService;
         private readonly IAnalyticsService _analyticsService;
         private readonly IMenuService _menuService;
+        private readonly IQRCodeService _qrCodeService;
         private readonly AppDbContext _context;
 
-        public OwnerController(IPOIService poiService, IAnalyticsService analyticsService, IMenuService menuService, AppDbContext context)
+        public OwnerController(
+            IPOIService poiService,
+            IAnalyticsService analyticsService,
+            IMenuService menuService,
+            IQRCodeService qrCodeService,
+            AppDbContext context)
         {
             _poiService = poiService;
             _analyticsService = analyticsService;
             _menuService = menuService;
+            _qrCodeService = qrCodeService;
             _context = context;
         }
 
@@ -101,6 +108,62 @@ namespace DoAn_CSharp.Controllers
             await _context.SaveChangesAsync();
 
             return Ok(result);
+        }
+
+        /// <summary>Xóa POI (chỉ xóa POI của chính mình)</summary>
+        [HttpDelete("pois/{id:int}")]
+        public async Task<IActionResult> DeletePOI(int id)
+        {
+            var poi = await _poiService.GetByIdAsync(id, "en");
+            if (poi == null)
+                return NotFound(new { error = "NotFound", message = "POI not found." });
+
+            if (poi.OwnerId != GetCurrentOwnerId())
+                return Forbid();
+
+            var success = await _poiService.DeleteAsync(id);
+            if (!success)
+                return NotFound(new { error = "NotFound", message = "POI was not found or already deleted." });
+
+            // Send Admin notification
+            _context.Notifications.Add(new DoAn_CSharp.Models.Entities.Notification
+            {
+                OwnerId = null,
+                Message = $"Địa điểm '{poi.Name}' đã bị chủ quán xóa.",
+                Type = "POIDeleted",
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            });
+            await _context.SaveChangesAsync();
+
+            return NoContent();
+        }
+
+        /// <summary>Lấy danh sách file audio của POI</summary>
+        [HttpGet("pois/{id:int}/audio")]
+        public async Task<IActionResult> GetPOIAudioFiles(int id)
+        {
+            var poi = await _poiService.GetByIdAsync(id, "en");
+            if (poi == null) return NotFound();
+            if (poi.OwnerId != GetCurrentOwnerId()) return Forbid();
+
+            var audios = await _context.AudioFiles
+                .Where(a => a.TranslationType == Models.Entities.TranslationType.POI && a.TranslationId == id)
+                .ToListAsync();
+
+            var dtos = audios.Select(x => new
+            {
+                x.Id,
+                POIId = id,
+                x.LanguageCode,
+                x.FilePath,
+                x.DurationSeconds,
+                x.AudioType,
+                x.GeneratedAt,
+                x.IsDefault
+            }).ToList();
+
+            return Ok(dtos);
         }
 
         /// <summary>Upload audio thuyết minh riêng cho POI</summary>
@@ -276,8 +339,8 @@ namespace DoAn_CSharp.Controllers
             var ownerId = GetCurrentOwnerId();
             var totalPOIs = await _context.POIs.CountAsync(p => p.OwnerId == ownerId && p.DeletedAt == null);
             var totalViews = await _context.VisitLogs.CountAsync(v => v.POI != null && v.POI.OwnerId == ownerId);
-            var totalAudioPlays = await _context.AudioPlayLogs.CountAsync(a => a.TargetType == Models.Entities.TranslationType.POI && _context.POIs.Any(p => p.Id == a.TargetId && p.OwnerId == ownerId));
-            var totalQrScans = await _context.VisitLogs.CountAsync(v => v.POI != null && v.POI.OwnerId == ownerId && v.TriggerType == "qr");
+            var totalAudioPlays = await _context.VisitLogs.CountAsync(v => v.POI != null && v.POI.OwnerId == ownerId && (v.TriggerType.ToLower() == "geofence" || v.TriggerType.ToLower() == "manual"));
+            var totalQrScans = await _context.VisitLogs.CountAsync(v => v.POI != null && v.POI.OwnerId == ownerId && v.TriggerType.ToLower() == "qr");
             var totalBookmarks = await _context.VisitorBookmarks.CountAsync(b => _context.POIs.Any(p => p.Id == b.POIId && p.OwnerId == ownerId));
 
             // Calculate stats per POI
@@ -288,9 +351,9 @@ namespace DoAn_CSharp.Controllers
             var poiStats = new List<object>();
             foreach(var p in pois)
             {
-                var scans = await _context.VisitLogs.CountAsync(v => v.POIId == p.Id && v.TriggerType == "qr");
+                var scans = await _context.VisitLogs.CountAsync(v => v.POIId == p.Id && v.TriggerType.ToLower() == "qr");
                 var views = await _context.VisitLogs.CountAsync(v => v.POIId == p.Id);
-                var plays = await _context.AudioPlayLogs.CountAsync(a => a.TargetType == Models.Entities.TranslationType.POI && a.TargetId == p.Id);
+                var plays = await _context.VisitLogs.CountAsync(v => v.POIId == p.Id && (v.TriggerType.ToLower() == "geofence" || v.TriggerType.ToLower() == "manual"));
                 var likes = await _context.VisitorBookmarks.CountAsync(b => b.POIId == p.Id);
                 poiStats.Add(new { id = p.Id, name = p.Name, scans, views, audioPlays = plays, bookmarks = likes });
             }
@@ -319,6 +382,85 @@ namespace DoAn_CSharp.Controllers
                 poiStats,
                 languages
             });
+        }
+
+        // ── QR Code Management ────────────────────────────────────────
+
+        /// <summary>Lấy danh sách mã QR của POI (chỉ lấy POI của chính mình)</summary>
+        [HttpGet("pois/{poiId:int}/qr")]
+        public async Task<IActionResult> GetMyPOIQRs(int poiId)
+        {
+            var poi = await _poiService.GetByIdAsync(poiId, "en");
+            if (poi == null)
+                return NotFound(new { error = "NotFound", message = "POI not found." });
+
+            if (poi.OwnerId != GetCurrentOwnerId())
+                return Forbid();
+
+            var qrCodes = await _context.QRCodes
+                .Where(q => q.POIId == poiId)
+                .Select(q => new QRCodeDto
+                {
+                    Id = q.Id,
+                    POIId = q.POIId,
+                    Code = q.Code,
+                    QRImageUrl = q.QRImageUrl,
+                    ScanCount = q.ScanCount,
+                    IsActive = q.IsActive,
+                    CreatedAt = q.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(qrCodes);
+        }
+
+        /// <summary>Tạo mới mã QR cho POI (chỉ thực hiện với POI của chính mình)</summary>
+        [HttpPost("pois/{poiId:int}/generate-qr")]
+        public async Task<IActionResult> GenerateMyPOIQR(int poiId)
+        {
+            var poi = await _poiService.GetByIdAsync(poiId, "en");
+            if (poi == null)
+                return NotFound(new { error = "NotFound", message = "POI not found." });
+
+            if (poi.OwnerId != GetCurrentOwnerId())
+                return Forbid();
+
+            try
+            {
+                var result = await _qrCodeService.GenerateQRCodeAsync(poiId);
+                return Ok(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return NotFound(new { error = "NotFound", message = ex.Message });
+            }
+        }
+
+        /// <summary>Xóa mã QR (chỉ cho phép nếu mã QR thuộc POI của owner hiện tại)</summary>
+        [HttpDelete("qr/{id:int}")]
+        public async Task<IActionResult> DeleteMyPOIQR(int id)
+        {
+            var qr = await _context.QRCodes.FindAsync(id);
+            if (qr == null)
+                return NotFound(new { error = "NotFound", message = "QR code not found." });
+
+            var poi = await _poiService.GetByIdAsync(qr.POIId, "en");
+            if (poi == null || poi.OwnerId != GetCurrentOwnerId())
+                return Forbid();
+
+            try
+            {
+                var success = await _qrCodeService.DeleteQRCodeAsync(id);
+                if (!success)
+                {
+                    return NotFound(new { error = "NotFound", message = "QR code not found." });
+                }
+                return Ok(new { message = "QR code deleted successfully." });
+            }
+            catch (System.InvalidOperationException ex)
+            {
+                return BadRequest(new { error = "BadRequest", message = ex.Message });
+            }
         }
 
         // ── Helpers ───────────────────────────────────────────────────

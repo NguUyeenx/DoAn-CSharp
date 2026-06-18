@@ -150,7 +150,7 @@ export default function POIFormPage() {
         ]);
 
         // Fetch custom audios if any
-        const audiosRes = await api.get<any[]>('/admin/audio').catch(() => ({ data: [] }));
+        const audiosRes = await api.get<any[]>(`/owner/pois/${poiId}/audio`).catch(() => ({ data: [] }));
         const customAudios = audiosRes.data.filter((a: any) => a.poiId === poiId && a.audioType === 'custom');
         const viAudio = customAudios.find((a: any) => a.languageCode === 'vi')?.filePath || '';
         const enAudio = customAudios.find((a: any) => a.languageCode === 'en')?.filePath || '';
@@ -962,7 +962,7 @@ export default function POIFormPage() {
                 </div>
                 {/* Pin Icon */}
                 <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-primary border-2 border-white shadow-xl text-white">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path>
                     <circle cx="12" cy="10" r="3"></circle>
                   </svg>

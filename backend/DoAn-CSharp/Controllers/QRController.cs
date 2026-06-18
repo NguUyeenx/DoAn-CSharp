@@ -88,22 +88,33 @@ namespace DoAn_CSharp.Controllers
             // Proceed with normal log and redirect since activated
             if (!isBypassLog)
             {
-                // Tăng ScanCount
-                var qrEntity = await _context.QRCodes.FirstOrDefaultAsync(q => q.Code.ToLower() == code.ToLower());
-                if (qrEntity != null)
-                {
-                    qrEntity.ScanCount++;
-                    await _context.SaveChangesAsync();
-                }
+                // Prevent duplicate logs within 5 seconds for same session and POI
+                var cutoff = DateTime.UtcNow.AddSeconds(-5);
+                var isDuplicate = await _context.VisitLogs.AnyAsync(v =>
+                    v.SessionId == sessionId &&
+                    v.POIId == qr.POIId &&
+                    v.TriggerType.ToLower() == "qr" &&
+                    v.VisitedAt >= cutoff);
 
-                // Ghi VisitLog
-                await _analyticsService.LogVisitAsync(new VisitCreateDto
+                if (!isDuplicate)
                 {
-                    POIId = qr.POIId,
-                    SessionId = sessionId,
-                    TriggerType = "qr",
-                    LanguageCode = lang
-                });
+                    // Tăng ScanCount
+                    var qrEntity = await _context.QRCodes.FirstOrDefaultAsync(q => q.Code.ToLower() == code.ToLower());
+                    if (qrEntity != null)
+                    {
+                        qrEntity.ScanCount++;
+                        await _context.SaveChangesAsync();
+                    }
+
+                    // Ghi VisitLog
+                    await _analyticsService.LogVisitAsync(new VisitCreateDto
+                    {
+                        POIId = qr.POIId,
+                        SessionId = sessionId,
+                        TriggerType = "qr",
+                        LanguageCode = lang
+                    });
+                }
             }
 
             return Ok(new

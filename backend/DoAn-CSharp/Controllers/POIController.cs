@@ -4,6 +4,8 @@ using System.Security.Claims;
 using DoAn_CSharp.Services;
 using DoAn_CSharp.Models.DTOs;
 
+using DoAn_CSharp.Data;
+
 namespace DoAn_CSharp.Controllers
 {
     [ApiController]
@@ -11,10 +13,12 @@ namespace DoAn_CSharp.Controllers
     public class POIController : ControllerBase
     {
         private readonly IPOIService _poiService;
+        private readonly AppDbContext _context;
 
-        public POIController(IPOIService poiService)
+        public POIController(IPOIService poiService, AppDbContext context)
         {
             _poiService = poiService;
+            _context = context;
         }
 
         /// <summary>Lấy danh sách POI (lọc theo category, tìm kiếm theo tên)</summary>
@@ -134,9 +138,27 @@ namespace DoAn_CSharp.Controllers
         [HttpDelete("{id:int}")]
         public async Task<IActionResult> Delete(int id)
         {
+            var poi = await _context.POIs.FindAsync(id);
+            if (poi == null)
+                return NotFound(new { error = "NotFound", message = $"POI with ID {id} was not found." });
+
             var success = await _poiService.DeleteAsync(id);
             if (!success)
                 return NotFound(new { error = "NotFound", message = $"POI with ID {id} was not found." });
+
+            if (poi.OwnerId.HasValue)
+            {
+                _context.Notifications.Add(new DoAn_CSharp.Models.Entities.Notification
+                {
+                    OwnerId = poi.OwnerId.Value,
+                    Message = $"Địa điểm '{poi.Name}' của bạn đã bị xóa bởi Admin.",
+                    Type = "POIDeletedByAdmin",
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+
             return NoContent();
         }
 
