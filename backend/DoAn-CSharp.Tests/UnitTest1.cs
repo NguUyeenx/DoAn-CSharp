@@ -1,1 +1,0 @@
-// Deleted default template file

@@ -6,12 +6,6 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>DoAn_CSharp</RootNamespace>
   </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="DoAn-CSharp.Tests\**" />
-    <Content Remove="DoAn-CSharp.Tests\**" />
-    <EmbeddedResource Remove="DoAn-CSharp.Tests\**" />
-    <None Remove="DoAn-CSharp.Tests\**" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
