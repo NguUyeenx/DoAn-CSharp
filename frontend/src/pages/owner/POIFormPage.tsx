@@ -445,6 +445,13 @@ export default function POIFormPage() {
       toastError(t('owner.pois.nameRequired', 'Vui lòng nhập tên địa điểm'));
       return;
     }
+    if (phone.trim() !== '') {
+      const phoneRegex = /^(?:\+84|0)\d{9,10}$/;
+      if (!phoneRegex.test(phone.trim().replace(/\s+/g, ''))) {
+        toastError(t('owner.pois.invalidPhone', 'Số điện thoại không hợp lệ. Vui lòng nhập số điện thoại gồm 10-11 chữ số bắt đầu bằng 0 hoặc +84.'));
+        return;
+      }
+    }
     if (!latitude || !longitude) {
       toastError(t('owner.pois.coordsRequired', 'Vui lòng chấm tọa độ trên bản đồ'));
       return;
@@ -791,7 +798,7 @@ export default function POIFormPage() {
                     activeLangTab === 'vi' ? 'bg-card text-primary shadow-xs' : 'text-text-secondary hover:text-text-primary'
                   }`}
                 >
-                  🇻🇳 Tiếng Việt
+                  VN Tiếng Việt
                 </button>
                 <button
                   type="button"
@@ -800,7 +807,7 @@ export default function POIFormPage() {
                     activeLangTab === 'en' ? 'bg-card text-primary shadow-xs' : 'text-text-secondary hover:text-text-primary'
                   }`}
                 >
-                  🇬🇧 English
+                  EN English
                 </button>
               </div>
             </div>

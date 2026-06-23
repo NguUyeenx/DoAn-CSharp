@@ -400,7 +400,9 @@ export default function DashboardPage() {
                   <div key={item.languageCode} className="space-y-1 text-xs">
                     <div className="flex justify-between items-center font-semibold text-text-primary">
                       <span className="flex items-center gap-1.5">
-                        <span className="text-base">🌐</span>
+                        <span className="text-[10px] font-mono font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded tracking-wide shrink-0">
+                          {item.languageCode.toUpperCase()}
+                        </span>
                         <span>{name}</span>
                       </span>
                       <span className="font-mono text-primary font-bold">{percent}% ({item.count})</span>
