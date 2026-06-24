@@ -40,14 +40,12 @@ namespace DoAn_CSharp.Controllers
 
                 if (customAudio != null)
                 {
-                    var fullCustomUrl = $"{Request.Scheme}://{Request.Host}{customAudio.FilePath}";
-                    return Ok(new { url = fullCustomUrl });
+                    return Ok(new { url = customAudio.FilePath });
                 }
 
                 // If not found, call TTS
                 string audioUrl = await _ttsService.GenerateAudioAsync(text, lang, poiId);
-                var fullUrl = $"{Request.Scheme}://{Request.Host}{audioUrl}";
-                return Ok(new { url = fullUrl });
+                return Ok(new { url = audioUrl });
             }
             catch (Exception ex)
             {

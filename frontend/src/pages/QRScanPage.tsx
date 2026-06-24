@@ -35,7 +35,7 @@ export default function QRScanPage() {
         if (isSubscribed) {
           if (data && data.isActivated) {
             if (data.poi && data.poi.slug) {
-              navigate(`/place/${data.poi.slug}`, { replace: true });
+              navigate(`/place/${data.poi.slug}`, { replace: true, state: { fromQR: true } });
             } else {
               throw new Error('Invalid POI details received.');
             }

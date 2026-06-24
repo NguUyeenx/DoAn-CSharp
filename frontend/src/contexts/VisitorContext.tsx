@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { visitorApi } from '@/api/visitor';
+import { analyticsApi } from '@/api/analytics';
 
 interface VisitorContextType {
   sessionId: string;
@@ -47,6 +48,23 @@ export function VisitorProvider({ children }: { children: React.ReactNode }) {
     if (sessionId) {
       refreshStatus();
     }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (!sessionId) return;
+
+    // Send initial heartbeat
+    analyticsApi.ping(sessionId).catch((err) => {
+      console.warn('Failed to send initial heartbeat:', err);
+    });
+
+    const interval = setInterval(() => {
+      analyticsApi.ping(sessionId).catch((err) => {
+        console.warn('Failed to send heartbeat:', err);
+      });
+    }, 5000); // ping every 5 seconds
+
+    return () => clearInterval(interval);
   }, [sessionId]);
 
   const toggleBookmark = async (poiId: number) => {

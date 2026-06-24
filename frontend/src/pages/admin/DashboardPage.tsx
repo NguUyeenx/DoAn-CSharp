@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { adminApi } from '@/api/admin';
 import { analyticsApi } from '@/api/analytics';
 import type { AnalyticsSummary } from '@/types/api';
-import { Eye, QrCode, Headphones, Store, Loader2, RefreshCw, FileText } from 'lucide-react';
+import { Eye, QrCode, Headphones, Store, Loader2, RefreshCw, FileText, Users } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 
 interface AuditLog {
@@ -49,8 +49,8 @@ export default function DashboardPage() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const loadDashboard = async () => {
-    setLoading(true);
+  const loadDashboard = async (silent = false) => {
+    if (!silent) setLoading(true);
     try {
       const [sumRes, logsRes] = await Promise.all([
         analyticsApi.getDashboard().catch((e) => {
@@ -60,6 +60,7 @@ export default function DashboardPage() {
               totalVisits: 14890,
               totalQrScans: 4890,
               totalAudioPlays: 7210,
+              activeVisitors: 3,
               visitsOverTime: [
                 { date: '06-09', count: 120 },
                 { date: '06-10', count: 250 },
@@ -115,14 +116,23 @@ export default function DashboardPage() {
       setLogs(logsRes.data);
     } catch (err) {
       console.error('Failed to load admin dashboard:', err);
-      toastError(t('admin.dashboardLoadError', 'Failed to fetch administrative metrics'));
+      if (!silent) {
+        toastError(t('admin.dashboardLoadError', 'Failed to fetch administrative metrics'));
+      }
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   };
 
   useEffect(() => {
-    loadDashboard();
+    loadDashboard(false);
+
+    // Auto-refresh stats every 5 seconds silently
+    const interval = setInterval(() => {
+      loadDashboard(true);
+    }, 5000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const formatTime = (dateStr: string) => {
@@ -251,7 +261,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <button
-          onClick={loadDashboard}
+          onClick={() => loadDashboard(false)}
           className="p-2 border border-border bg-card rounded-xl hover:bg-surface-alt transition-all cursor-pointer outline-none"
         >
           <RefreshCw size={16} />
@@ -259,7 +269,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {/* Total Views */}
         <div className="bg-card border border-border p-4 rounded-2xl shadow-xs flex items-center gap-4">
           <div className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 text-accent flex items-center justify-center shrink-0">
@@ -290,6 +300,21 @@ export default function DashboardPage() {
           <div>
             <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Quét mã QR</span>
             <p className="text-xl font-display font-extrabold text-text-primary mt-0.5">{summary?.totalQrScans}</p>
+          </div>
+        </div>
+
+        {/* Active Visitors */}
+        <div className="bg-card border border-border p-4 rounded-2xl shadow-xs flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center shrink-0 relative">
+            <Users size={20} />
+            <span className="absolute -top-1 -right-1 flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+          </div>
+          <div>
+            <span className="text-[10px] uppercase font-bold text-text-muted tracking-wider">Đang hoạt động</span>
+            <p className="text-xl font-display font-extrabold text-text-primary mt-0.5">{summary?.activeVisitors ?? 0}</p>
           </div>
         </div>
 

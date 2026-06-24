@@ -37,6 +37,7 @@ namespace DoAn_CSharp.Models.DTOs
         public string ShortDescription { get; set; } = string.Empty;
         public string FullDescription { get; set; } = string.Empty;
         public string AudioText { get; set; } = string.Empty;
+        public string LanguageCode { get; set; } = string.Empty;
 
         public string? QRCode { get; set; }
         public int MenuItemCount { get; set; }

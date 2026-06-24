@@ -26,6 +26,7 @@ export interface POI {
   shortDescription: string;
   fullDescription: string;
   audioText: string;
+  languageCode?: string;
   qrCode?: string;
   menuItemCount: number;
   distanceMeters?: number;

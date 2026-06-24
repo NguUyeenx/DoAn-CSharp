@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, MapPin, Phone, Compass, FileQuestion, Globe, Share2, Star, Heart, Clock } from 'lucide-react';
 import { poisApi } from '@/api/pois';
@@ -24,6 +24,8 @@ import { useVisitor } from '@/contexts/VisitorContext';
 export default function POIDetailPage() {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromQR = !!(location.state as any)?.fromQR;
   const { t, i18n } = useTranslation();
   const { success } = useToast();
 
@@ -222,6 +224,8 @@ export default function POIDetailPage() {
               poiId={poi.id}
               audioText={poi.audioText}
               languageCode={i18n.language}
+              poiLanguageCode={poi.languageCode}
+              autoPlay={fromQR}
             />
           )}
         </div>

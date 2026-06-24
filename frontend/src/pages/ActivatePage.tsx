@@ -38,7 +38,7 @@ export default function ActivatePage() {
             setPoiSlug(data.poiSlug);
           } else if (data && data.isActivated) {
             // If already activated, redirect to place detail
-            navigate(`/place/${data.poi?.slug || ''}`, { replace: true });
+            navigate(`/place/${data.poi?.slug || data.poiSlug || ''}`, { replace: true, state: { fromQR: true } });
           }
         })
         .catch((err) => {
@@ -134,7 +134,7 @@ export default function ActivatePage() {
       // Navigate to destination POI or homepage
       const targetSlug = code ? (data.redirectSlug || poiSlug) : null;
       if (targetSlug) {
-        navigate(`/place/${targetSlug}`, { replace: true });
+        navigate(`/place/${targetSlug}`, { replace: true, state: { fromQR: true } });
       } else {
         navigate('/', { replace: true });
       }

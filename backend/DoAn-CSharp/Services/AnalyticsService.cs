@@ -8,10 +8,19 @@ namespace DoAn_CSharp.Services
     public class AnalyticsService : IAnalyticsService
     {
         private readonly AppDbContext _context;
+        private static readonly System.Collections.Concurrent.ConcurrentDictionary<string, DateTime> ActiveSessions = 
+            new System.Collections.Concurrent.ConcurrentDictionary<string, DateTime>();
 
         public AnalyticsService(AppDbContext context)
         {
             _context = context;
+        }
+
+        public void RegisterHeartbeat(string sessionId)
+        {
+            if (string.IsNullOrWhiteSpace(sessionId)) return;
+            var cleanSessionId = sessionId.Trim();
+            ActiveSessions.AddOrUpdate(cleanSessionId, DateTime.UtcNow, (key, oldVal) => DateTime.UtcNow);
         }
 
         public async Task LogVisitAsync(VisitCreateDto dto)
@@ -46,6 +55,15 @@ namespace DoAn_CSharp.Services
 
         public async Task<AnalyticsSummaryDto> GetSummaryAsync()
         {
+            // Prune expired sessions (older than 10 seconds)
+            var threshold = DateTime.UtcNow.AddSeconds(-5);
+            var expiredKeys = ActiveSessions.Where(kv => kv.Value < threshold).Select(kv => kv.Key).ToList();
+            foreach (var key in expiredKeys)
+            {
+                ActiveSessions.TryRemove(key, out _);
+            }
+            var activeVisitorsCount = ActiveSessions.Count;
+
             var totalVisits = await _context.VisitLogs.CountAsync();
             var totalQrScans = await _context.VisitLogs.CountAsync(v => v.TriggerType.ToLower() == "qr");
             var totalAudioPlays = await _context.VisitLogs
@@ -105,6 +123,7 @@ namespace DoAn_CSharp.Services
                 TotalVisits = totalVisits,
                 TotalQrScans = totalQrScans,
                 TotalAudioPlays = totalAudioPlays,
+                ActiveVisitors = activeVisitorsCount,
                 VisitsOverTime = visitsOverTime,
                 PopularPOIs = popularPOIs,
                 LanguageBreakdown = langBreakdown

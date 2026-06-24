@@ -10,7 +10,9 @@ interface AudioPlayerProps {
   poiId: number;
   audioText?: string;
   languageCode?: string;
+  poiLanguageCode?: string;
   audioUrl?: string;
+  autoPlay?: boolean;
 }
 
 // Fixed pseudo-random idle bar heights (seeded by index) to look organic, not all flat
@@ -45,11 +47,14 @@ export default function AudioPlayer({
   poiId,
   audioText = '',
   languageCode = 'en',
+  poiLanguageCode = 'en',
   audioUrl,
+  autoPlay = false,
 }: AudioPlayerProps) {
   const { t } = useTranslation();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const loggedUrlRef = useRef<string | null>(null);
+  const autoPlayedRef = useRef(false);
 
   const [activeLang, setActiveLang] = useState(languageCode);
   const [activeText, setActiveText] = useState(audioText);
@@ -63,14 +68,44 @@ export default function AudioPlayer({
   const [isMuted, setIsMuted] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
 
-  // Sync props when POI or global app language changes
+  const currentTextLangRef = useRef(poiLanguageCode);
+
+  // Sync state when props change
   useEffect(() => {
     setActiveLang(languageCode);
   }, [languageCode]);
 
   useEffect(() => {
     setActiveText(audioText);
-  }, [audioText]);
+    currentTextLangRef.current = poiLanguageCode;
+  }, [audioText, poiLanguageCode]);
+
+  // Fetch translation for activeLang if it differs from the actual text language
+  useEffect(() => {
+    if (activeLang === currentTextLangRef.current) return;
+
+    let isSubscribed = true;
+    const fetchTranslation = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await translationsApi.getTranslation(poiId, activeLang);
+        if (isSubscribed) {
+          setActiveText(response.data.audioText || '');
+          currentTextLangRef.current = activeLang;
+        }
+      } catch (err) {
+        console.warn('Could not fetch translation for active language, using fallback:', err);
+        // Keep current text as fallback but mark language so we don't repeat
+        currentTextLangRef.current = activeLang;
+      } finally {
+        if (isSubscribed) setLoading(false);
+      }
+    };
+
+    fetchTranslation();
+    return () => { isSubscribed = false; };
+  }, [poiId, activeLang]);
 
   // 1. Resolve Audio URL from backend API if text and language are set
   useEffect(() => {
@@ -121,6 +156,48 @@ export default function AudioPlayer({
     setCurrentTime(0);
     setDuration(0);
   }, [resolvedUrl]);
+
+  // Auto-play when arriving from QR scan (only once)
+  useEffect(() => {
+    if (autoPlay && resolvedUrl && !autoPlayedRef.current && audioRef.current && !loading) {
+      autoPlayedRef.current = true;
+      
+      const playAudio = () => {
+        if (!audioRef.current) return;
+        audioRef.current.play()
+          .then(() => {
+            setIsPlaying(true);
+          })
+          .catch((err) => {
+            console.warn('Autoplay blocked by browser, listening for first user touch/click to play:', err);
+            
+            const unlockPlay = () => {
+              if (audioRef.current) {
+                audioRef.current.play()
+                  .then(() => {
+                    setIsPlaying(true);
+                    cleanup();
+                  })
+                  .catch((e) => {
+                    console.error('Failed to play audio on interaction:', e);
+                  });
+              }
+            };
+            
+            const cleanup = () => {
+              document.removeEventListener('click', unlockPlay);
+              document.removeEventListener('touchstart', unlockPlay);
+            };
+            
+            document.addEventListener('click', unlockPlay);
+            document.addEventListener('touchstart', unlockPlay);
+          });
+      };
+
+      const timer = setTimeout(playAudio, 300);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPlay, resolvedUrl, loading]);
 
   // 3. Audio Controls
   const togglePlay = () => {
@@ -204,6 +281,7 @@ export default function AudioPlayer({
     try {
       const response = await translationsApi.getTranslation(poiId, newLang);
       setActiveText(response.data.audioText || '');
+      currentTextLangRef.current = newLang;
       setActiveLang(newLang);
     } catch (err) {
       console.error('Error changing audio language:', err);

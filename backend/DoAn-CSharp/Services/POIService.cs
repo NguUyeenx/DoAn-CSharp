@@ -348,6 +348,7 @@ namespace DoAn_CSharp.Services
                 ShortDescription = translation?.ShortDescription ?? string.Empty,
                 FullDescription = translation?.FullDescription ?? string.Empty,
                 AudioText = translation?.AudioText ?? string.Empty,
+                LanguageCode = translation?.LanguageCode ?? "vi",
                 QRCode = activeQrCode,
                 MenuItemCount = poi.MenuItems?.Count ?? 0,
                 OperatingHours = poi.OperatingHours,

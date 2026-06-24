@@ -24,6 +24,18 @@ namespace DoAn_CSharp.Controllers
             return Ok(new { success = true, message = "Visit logged successfully." });
         }
 
+        /// <summary>Ping ghi nhận thiết bị đang hoạt động</summary>
+        [HttpPost("ping")]
+        public IActionResult Ping([FromQuery] string sessionId)
+        {
+            if (string.IsNullOrWhiteSpace(sessionId))
+            {
+                return BadRequest("SessionId is required.");
+            }
+            _analyticsService.RegisterHeartbeat(sessionId);
+            return Ok(new { success = true });
+        }
+
         /// <summary>Cập nhật ngôn ngữ cho lượt quét/truy cập gần đây</summary>
         [HttpPost("update-language")]
         public async Task<IActionResult> UpdateLanguage([FromBody] UpdateLanguageDto dto)

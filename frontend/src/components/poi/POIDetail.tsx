@@ -495,6 +495,7 @@ function SheetContent({
           poiId={poi.id}
           audioText={poi.audioText}
           languageCode={languageCode}
+          poiLanguageCode={poi.languageCode}
         />
       )}
 
