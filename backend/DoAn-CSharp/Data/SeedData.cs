@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using DoAn_CSharp.Models.Entities;
+using Microsoft.Extensions.DependencyInjection;
+using DoAn_CSharp.Services;
 
 namespace DoAn_CSharp.Data
 {
@@ -104,6 +106,116 @@ namespace DoAn_CSharp.Data
                 var pois = GetPoisToSeed();
                 await context.POIs.AddRangeAsync(pois);
                 await context.SaveChangesAsync();
+            }
+
+            // Pre-generate English translations and Vietnamese/English AudioFiles if missing
+            try
+            {
+                var translationService = serviceProvider.GetRequiredService<ITranslationService>();
+                var ttsService = serviceProvider.GetRequiredService<ITTSService>();
+
+                var activePois = await context.POIs
+                    .Include(p => p.Translations)
+                    .Where(p => p.DeletedAt == null)
+                    .ToListAsync();
+
+                foreach (var poi in activePois)
+                {
+                    // 1. Check and generate Vietnamese audio
+                    var viTranslation = poi.Translations.FirstOrDefault(t => t.LanguageCode.ToLower() == "vi");
+                    if (viTranslation != null)
+                    {
+                        var hasViAudio = await context.AudioFiles.AnyAsync(a =>
+                            a.TranslationType == TranslationType.POI &&
+                            a.TranslationId == viTranslation.Id &&
+                            a.LanguageCode == "vi" &&
+                            a.AudioType == "tts");
+
+                        if (!hasViAudio && !string.IsNullOrWhiteSpace(viTranslation.AudioText))
+                        {
+                            try
+                            {
+                                System.Console.WriteLine($"[SeedData] Pre-generating VI audio for POI {poi.Id} ({poi.Name})...");
+                                var ttsResult = await ttsService.GenerateAudioAsync(viTranslation.AudioText, "vi", poi.Id);
+                                
+                                var audioFile = new AudioFile
+                                {
+                                    TranslationType = TranslationType.POI,
+                                    TranslationId = viTranslation.Id,
+                                    LanguageCode = "vi",
+                                    FilePath = ttsResult.Url,
+                                    DurationSeconds = ttsResult.DurationSeconds,
+                                    AudioType = "tts",
+                                    TTSProvider = "edge-tts",
+                                    GeneratedAt = DateTime.UtcNow,
+                                    IsDefault = true
+                                };
+                                await context.AudioFiles.AddAsync(audioFile);
+                                await context.SaveChangesAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Console.WriteLine($"[SeedData] Failed to pre-generate VI audio for POI {poi.Id}: {ex.Message}");
+                            }
+                        }
+                    }
+
+                    // 2. Check and generate English translation and audio
+                    var enTranslation = poi.Translations.FirstOrDefault(t => t.LanguageCode.ToLower() == "en");
+                    if (enTranslation == null)
+                    {
+                        try
+                        {
+                            System.Console.WriteLine($"[SeedData] Pre-translating and generating EN translation & audio for POI {poi.Id} ({poi.Name})...");
+                            // This translates using Google Translate and automatically creates the POITranslation and AudioFile records
+                            await translationService.GetTranslationAsync(poi.Id, "en");
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Console.WriteLine($"[SeedData] Failed to pre-generate EN translation for POI {poi.Id}: {ex.Message}");
+                        }
+                    }
+                    else
+                    {
+                        var hasEnAudio = await context.AudioFiles.AnyAsync(a =>
+                            a.TranslationType == TranslationType.POI &&
+                            a.TranslationId == enTranslation.Id &&
+                            a.LanguageCode == "en" &&
+                            a.AudioType == "tts");
+
+                        if (!hasEnAudio && !string.IsNullOrWhiteSpace(enTranslation.AudioText))
+                        {
+                            try
+                            {
+                                System.Console.WriteLine($"[SeedData] Pre-generating EN audio for POI {poi.Id} ({poi.Name})...");
+                                var ttsResult = await ttsService.GenerateAudioAsync(enTranslation.AudioText, "en", poi.Id);
+                                
+                                var audioFile = new AudioFile
+                                {
+                                    TranslationType = TranslationType.POI,
+                                    TranslationId = enTranslation.Id,
+                                    LanguageCode = "en",
+                                    FilePath = ttsResult.Url,
+                                    DurationSeconds = ttsResult.DurationSeconds,
+                                    AudioType = "tts",
+                                    TTSProvider = "edge-tts",
+                                    GeneratedAt = DateTime.UtcNow,
+                                    IsDefault = true
+                                };
+                                await context.AudioFiles.AddAsync(audioFile);
+                                await context.SaveChangesAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                System.Console.WriteLine($"[SeedData] Failed to pre-generate EN audio for POI {poi.Id}: {ex.Message}");
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Console.WriteLine($"[SeedData] Pre-generation overall error: {ex.Message}");
             }
 
             if (!await context.Tours.AnyAsync())

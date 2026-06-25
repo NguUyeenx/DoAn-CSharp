@@ -39,6 +39,7 @@ namespace DoAn_CSharp.Extensions
             services.AddScoped<IAnalyticsService, AnalyticsService>();
             services.AddScoped<ITourService, TourService>();
             services.AddScoped<IQuizService, QuizService>();
+            services.AddScoped<ICloudStorageService, CloudinaryStorageService>();
             services.AddScoped<IUploadService, UploadService>();
             services.AddScoped<ITTSService, TTSService>();
 

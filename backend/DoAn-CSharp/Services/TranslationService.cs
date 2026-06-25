@@ -75,17 +75,15 @@ namespace DoAn_CSharp.Services
             {
                 try
                 {
-                    string audioUrl = await _ttsService.GenerateAudioAsync(translatedAudioText, targetLang, poiId);
-                    string physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audioUrl.TrimStart('/'));
-                    int duration = TTSService.GetMp3Duration(physicalPath);
+                    var ttsResult = await _ttsService.GenerateAudioAsync(translatedAudioText, targetLang, poiId);
 
                     var audioFile = new AudioFile
                     {
                         TranslationType = TranslationType.POI,
                         TranslationId = translation.Id,
                         LanguageCode = targetLang,
-                        FilePath = audioUrl,
-                        DurationSeconds = duration,
+                        FilePath = ttsResult.Url,
+                        DurationSeconds = ttsResult.DurationSeconds,
                         AudioType = "tts",
                         TTSProvider = "edge-tts",
                         GeneratedAt = DateTime.UtcNow,
@@ -194,9 +192,7 @@ namespace DoAn_CSharp.Services
             {
                 try
                 {
-                    var audioUrl = await _ttsService.GenerateAudioAsync(textToGenerate, targetLang, dto.POIId);
-                    string physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audioUrl.TrimStart('/'));
-                    int duration = TTSService.GetMp3Duration(physicalPath);
+                    var ttsResult = await _ttsService.GenerateAudioAsync(textToGenerate, targetLang, dto.POIId);
                     
                     var existingAudio = await _context.AudioFiles.FirstOrDefaultAsync(a => a.TranslationType == TranslationType.POI && a.TranslationId == translation.Id && a.LanguageCode == targetLang && a.AudioType == "tts");
                     if (existingAudio == null)
@@ -206,8 +202,8 @@ namespace DoAn_CSharp.Services
                             TranslationType = TranslationType.POI,
                             TranslationId = translation.Id,
                             LanguageCode = targetLang,
-                            FilePath = audioUrl,
-                            DurationSeconds = duration,
+                            FilePath = ttsResult.Url,
+                            DurationSeconds = ttsResult.DurationSeconds,
                             AudioType = "tts",
                             TTSProvider = "edge-tts",
                             GeneratedAt = DateTime.UtcNow,
@@ -217,8 +213,8 @@ namespace DoAn_CSharp.Services
                     }
                     else
                     {
-                        existingAudio.FilePath = audioUrl;
-                        existingAudio.DurationSeconds = duration;
+                        existingAudio.FilePath = ttsResult.Url;
+                        existingAudio.DurationSeconds = ttsResult.DurationSeconds;
                         existingAudio.GeneratedAt = DateTime.UtcNow;
                     }
                     await _context.SaveChangesAsync();

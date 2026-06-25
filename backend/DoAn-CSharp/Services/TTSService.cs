@@ -10,43 +10,32 @@ namespace DoAn_CSharp.Services
 {
     public class TTSService : ITTSService
     {
-        private readonly IWebHostEnvironment _env;
+        private readonly ICloudStorageService _cloudStorageService;
         
-        public TTSService(IWebHostEnvironment env)
+        public TTSService(ICloudStorageService cloudStorageService)
         {
-            _env = env;
+            _cloudStorageService = cloudStorageService;
         }
 
-        public async Task<string> GenerateAudioAsync(string text, string languageCode, int poiId)
+        public async Task<TTSResult> GenerateAudioAsync(string text, string languageCode, int poiId)
         {
             string voice = GetVoiceForLanguage(languageCode);
             string textHash = ComputeMd5Hash(text);
             string fileName = $"poi_{poiId}_{languageCode}_{textHash}.mp3";
-            string uploadDir = Path.Combine(_env.WebRootPath ?? Path.Combine(Directory.GetCurrentDirectory(), "wwwroot"), "audio");
             
-            if (!Directory.Exists(uploadDir))
-            {
-                Directory.CreateDirectory(uploadDir);
-            }
-            
-            string filePath = Path.Combine(uploadDir, fileName);
-
-            if (File.Exists(filePath) && new FileInfo(filePath).Length > 0)
-            {
-                return $"/audio/{fileName}";
-            }
-
-            // Write text to a temporary file in UTF-8 without BOM to avoid argument length, character encoding, and edge-tts BOM parsing errors on Windows
+            // Paths for temporary local files used by edge-tts
+            string tempLocalPath = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.mp3");
             string tempTextFile = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid()}.txt");
+            
+            // Write text to a temporary file in UTF-8 without BOM to avoid argument length, character encoding, and edge-tts BOM parsing errors on Windows
             await File.WriteAllTextAsync(tempTextFile, text, new UTF8Encoding(false));
 
-            Console.WriteLine($"[TTSService] voice={voice}, tempFile={tempTextFile}, filePath={filePath}, textLength={text.Length}");
-            Console.WriteLine($"[TTSService] fileExists={File.Exists(tempTextFile)}, content='{await File.ReadAllTextAsync(tempTextFile)}'");
+            Console.WriteLine($"[TTSService] voice={voice}, tempFile={tempTextFile}, tempLocalPath={tempLocalPath}, textLength={text.Length}");
 
             var processInfo = new ProcessStartInfo
             {
                 FileName = "edge-tts",
-                Arguments = $"--voice {voice} --file \"{tempTextFile}\" --write-media \"{filePath}\"",
+                Arguments = $"--voice {voice} --file \"{tempTextFile}\" --write-media \"{tempLocalPath}\"",
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 UseShellExecute = false,
@@ -65,10 +54,26 @@ namespace DoAn_CSharp.Services
                         throw new Exception($"TTS Generation failed: {error}");
                     }
                 }
+
+                // Get MP3 duration from local temporary file
+                int duration = GetMp3Duration(tempLocalPath);
+
+                // Upload the generated MP3 file to Cloudinary
+                string cloudUrl;
+                using (var fileStream = new FileStream(tempLocalPath, FileMode.Open, FileAccess.Read))
+                {
+                    cloudUrl = await _cloudStorageService.UploadAudioAsync(fileStream, fileName);
+                }
+
+                return new TTSResult
+                {
+                    Url = cloudUrl,
+                    DurationSeconds = duration
+                };
             }
             catch (Exception ex)
             {
-                throw new Exception($"Could not run edge-tts. Make sure it is installed. Error: {ex.Message}");
+                throw new Exception($"Could not run edge-tts or upload to Cloudinary. Error: {ex.Message}");
             }
             finally
             {
@@ -78,14 +83,16 @@ namespace DoAn_CSharp.Services
                     {
                         File.Delete(tempTextFile);
                     }
+                    if (File.Exists(tempLocalPath))
+                    {
+                        File.Delete(tempLocalPath);
+                    }
                 }
                 catch
                 {
                     // Ignore temp file deletion errors
                 }
             }
-            
-            return $"/audio/{fileName}";
         }
 
         private string GetVoiceForLanguage(string langCode)
