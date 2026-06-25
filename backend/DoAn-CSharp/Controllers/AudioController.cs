@@ -44,8 +44,8 @@ namespace DoAn_CSharp.Controllers
                 }
 
                 // If not found, call TTS
-                string audioUrl = await _ttsService.GenerateAudioAsync(text, lang, poiId);
-                return Ok(new { url = audioUrl });
+                var ttsResult = await _ttsService.GenerateAudioAsync(text, lang, poiId);
+                return Ok(new { url = ttsResult.Url });
             }
             catch (Exception ex)
             {
