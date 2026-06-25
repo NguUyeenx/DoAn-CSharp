@@ -7,7 +7,7 @@ export const qrApi = {
   },
 
   adminGenerateQR: (poiId: number) =>
-    api.post(`/admin/pois/${poiId}/generate-qr`),
+    api.post(`/admin/pois/${poiId}/generate-qr?baseUrl=${encodeURIComponent(window.location.origin)}`),
 
   adminGetPOIQR: (poiId: number) =>
     api.get(`/admin/pois/${poiId}/qr`),

@@ -416,7 +416,7 @@ namespace DoAn_CSharp.Controllers
 
         /// <summary>Tạo mới mã QR cho POI (chỉ thực hiện với POI của chính mình)</summary>
         [HttpPost("pois/{poiId:int}/generate-qr")]
-        public async Task<IActionResult> GenerateMyPOIQR(int poiId)
+        public async Task<IActionResult> GenerateMyPOIQR(int poiId, [FromQuery] string? baseUrl = null)
         {
             var poi = await _poiService.GetByIdAsync(poiId, "en");
             if (poi == null)
@@ -427,7 +427,26 @@ namespace DoAn_CSharp.Controllers
 
             try
             {
-                var result = await _qrCodeService.GenerateQRCodeAsync(poiId);
+                var origin = baseUrl;
+                if (string.IsNullOrEmpty(origin))
+                {
+                    origin = Request.Headers["Origin"];
+                    if (string.IsNullOrEmpty(origin))
+                    {
+                        string? referer = Request.Headers["Referer"];
+                        if (!string.IsNullOrEmpty(referer))
+                        {
+                            try
+                            {
+                                var uri = new Uri(referer);
+                                origin = $"{uri.Scheme}://{uri.Authority}";
+                            }
+                            catch { }
+                        }
+                    }
+                }
+
+                var result = await _qrCodeService.GenerateQRCodeAsync(poiId, origin);
                 return Ok(result);
             }
             catch (ArgumentException ex)

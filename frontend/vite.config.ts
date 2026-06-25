@@ -13,12 +13,17 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:5011',
         changeOrigin: true,
       },
       '/images': {
+        target: 'http://127.0.0.1:5011',
+        changeOrigin: true,
+      },
+      '/imgs': {
         target: 'http://127.0.0.1:5011',
         changeOrigin: true,
       },

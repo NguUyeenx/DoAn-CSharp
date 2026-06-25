@@ -35,7 +35,7 @@ namespace DoAn_CSharp.Services
             return MapToDto(qr);
         }
 
-        public async Task<QRCodeDto> GenerateQRCodeAsync(int poiId)
+        public async Task<QRCodeDto> GenerateQRCodeAsync(int poiId, string? customBaseUrl = null)
         {
             var poi = await _context.POIs.FindAsync(poiId);
             if (poi == null)
@@ -59,7 +59,11 @@ namespace DoAn_CSharp.Services
             }
 
             // Generate QR Code bytes using QRCoder
-            var baseUrl = _config.GetValue<string>("App:BaseUrl") ?? "http://localhost:5173";
+            var baseUrl = customBaseUrl;
+            if (string.IsNullOrEmpty(baseUrl))
+            {
+                baseUrl = _config.GetValue<string>("App:BaseUrl") ?? "http://localhost:5173";
+            }
             baseUrl = baseUrl.TrimEnd('/');
 
             using var qrGenerator = new QRCodeGenerator();

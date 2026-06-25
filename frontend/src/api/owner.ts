@@ -67,7 +67,7 @@ export const ownerApi = {
     api.get<any[]>(`/owner/pois/${poiId}/qr`),
 
   generatePOIQR: (poiId: number) =>
-    api.post<any>(`/owner/pois/${poiId}/generate-qr`),
+    api.post<any>(`/owner/pois/${poiId}/generate-qr?baseUrl=${encodeURIComponent(window.location.origin)}`),
 
   deletePOIQR: (id: number) =>
     api.delete(`/owner/qr/${id}`),

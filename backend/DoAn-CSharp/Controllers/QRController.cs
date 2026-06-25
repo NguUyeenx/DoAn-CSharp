@@ -127,11 +127,30 @@ namespace DoAn_CSharp.Controllers
         /// <summary>Tạo mã QR cho POI (Admin only)</summary>
         [Authorize(Roles = "admin")]
         [HttpPost("~/api/admin/pois/{poiId:int}/generate-qr")]
-        public async Task<IActionResult> GenerateQR(int poiId)
+        public async Task<IActionResult> GenerateQR(int poiId, [FromQuery] string? baseUrl = null)
         {
             try
             {
-                var result = await _qrCodeService.GenerateQRCodeAsync(poiId);
+                var origin = baseUrl;
+                if (string.IsNullOrEmpty(origin))
+                {
+                    origin = Request.Headers["Origin"];
+                    if (string.IsNullOrEmpty(origin))
+                    {
+                        string? referer = Request.Headers["Referer"];
+                        if (!string.IsNullOrEmpty(referer))
+                        {
+                            try
+                            {
+                                var uri = new Uri(referer);
+                                origin = $"{uri.Scheme}://{uri.Authority}";
+                            }
+                            catch { }
+                        }
+                    }
+                }
+
+                var result = await _qrCodeService.GenerateQRCodeAsync(poiId, origin);
                 return Ok(result);
             }
             catch (ArgumentException ex)

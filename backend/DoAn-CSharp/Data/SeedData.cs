@@ -48,6 +48,48 @@ namespace DoAn_CSharp.Data
                 await context.SaveChangesAsync();
             }
 
+            // Clean up legacy absolute localhost image URLs in database for POIs, POIImages, and MenuItems
+            var poisWithLocalhost = await context.POIs
+                .Where(p => p.ImageUrl != null && (p.ImageUrl.Contains("localhost:5011") || p.ImageUrl.Contains("127.0.0.1:5011")))
+                .ToListAsync();
+            foreach (var poi in poisWithLocalhost)
+            {
+                poi.ImageUrl = poi.ImageUrl?
+                    .Replace("http://localhost:5011", "")
+                    .Replace("https://localhost:5011", "")
+                    .Replace("http://127.0.0.1:5011", "")
+                    .Replace("https://127.0.0.1:5011", "");
+            }
+
+            var poiImagesWithLocalhost = await context.POIImages
+                .Where(pi => pi.ImageUrl != null && (pi.ImageUrl.Contains("localhost:5011") || pi.ImageUrl.Contains("127.0.0.1:5011")))
+                .ToListAsync();
+            foreach (var pi in poiImagesWithLocalhost)
+            {
+                pi.ImageUrl = pi.ImageUrl
+                    .Replace("http://localhost:5011", "")
+                    .Replace("https://localhost:5011", "")
+                    .Replace("http://127.0.0.1:5011", "")
+                    .Replace("https://127.0.0.1:5011", "");
+            }
+
+            var menuItemsWithLocalhost = await context.MenuItems
+                .Where(m => m.ImageUrl != null && (m.ImageUrl.Contains("localhost:5011") || m.ImageUrl.Contains("127.0.0.1:5011")))
+                .ToListAsync();
+            foreach (var m in menuItemsWithLocalhost)
+            {
+                m.ImageUrl = m.ImageUrl?
+                    .Replace("http://localhost:5011", "")
+                    .Replace("https://localhost:5011", "")
+                    .Replace("http://127.0.0.1:5011", "")
+                    .Replace("https://127.0.0.1:5011", "");
+            }
+
+            if (poisWithLocalhost.Any() || poiImagesWithLocalhost.Any() || menuItemsWithLocalhost.Any())
+            {
+                await context.SaveChangesAsync();
+            }
+
 
             var supportedLanguages = new System.Collections.Generic.List<Language>
             {
@@ -102,6 +144,28 @@ namespace DoAn_CSharp.Data
             if (!await context.POIs.AnyAsync())
             {
                 var pois = GetPoisToSeed();
+                // Clean up absolute dev server URLs to relative paths on seeding
+                foreach (var poi in pois)
+                {
+                    if (poi.ImageUrl != null && (poi.ImageUrl.StartsWith("http://localhost:5011") || poi.ImageUrl.StartsWith("http://127.0.0.1:5011")))
+                    {
+                        poi.ImageUrl = poi.ImageUrl
+                            .Replace("http://localhost:5011", "")
+                            .Replace("http://127.0.0.1:5011", "");
+                    }
+                    if (poi.Images != null)
+                    {
+                        foreach (var img in poi.Images)
+                        {
+                            if (img.ImageUrl != null && (img.ImageUrl.StartsWith("http://localhost:5011") || img.ImageUrl.StartsWith("http://127.0.0.1:5011")))
+                            {
+                                img.ImageUrl = img.ImageUrl
+                                    .Replace("http://localhost:5011", "")
+                                    .Replace("http://127.0.0.1:5011", "");
+                            }
+                        }
+                    }
+                }
                 await context.POIs.AddRangeAsync(pois);
                 await context.SaveChangesAsync();
             }

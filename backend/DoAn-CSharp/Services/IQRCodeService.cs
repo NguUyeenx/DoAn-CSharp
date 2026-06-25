@@ -6,7 +6,7 @@ namespace DoAn_CSharp.Services
     public interface IQRCodeService
     {
         Task<QRCodeDto?> GetByCodeAsync(string code);
-        Task<QRCodeDto> GenerateQRCodeAsync(int poiId);
+        Task<QRCodeDto> GenerateQRCodeAsync(int poiId, string? baseUrl = null);
         Task<bool> DeleteQRCodeAsync(int id);
     }
 }
