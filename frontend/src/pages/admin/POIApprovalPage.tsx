@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { adminApi } from '@/api/admin';
-import { Loader2, Check, X, ShieldAlert, Eye } from 'lucide-react';
+import { Loader2, Check, X, ShieldAlert, Eye, Edit3 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import POIDetail from '@/components/poi/POIDetail';
 
@@ -16,6 +17,7 @@ interface POIPending {
 }
 
 export default function POIApprovalPage() {
+  const navigate = useNavigate();
   const { success, error: toastError } = useToast();
 
   const [pois, setPois] = useState<POIPending[]>([]);
@@ -133,6 +135,16 @@ export default function POIApprovalPage() {
                 >
                   <Eye size={13} />
                   <span>Chi tiết</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => navigate(`/admin/pois/${poi.id}/edit`)}
+                  className="px-3 h-9 rounded-lg border border-border bg-card text-text-secondary hover:text-text-primary hover:border-border-hover transition-all outline-none cursor-pointer flex items-center gap-1 shrink-0"
+                  title="Chỉnh sửa thông tin"
+                >
+                  <Edit3 size={13} />
+                  <span>Sửa</span>
                 </button>
                 
                 <button

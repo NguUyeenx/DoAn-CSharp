@@ -47,6 +47,8 @@ export const adminApi = {
 
   // Comprehensive Owner management
   getAllOwners: () => api.get<any[]>('/admin/owners'),
+  createOwner: (data: any) => api.post('/admin/owners', data),
+  deleteOwner: (id: number) => api.delete(`/admin/owners/${id}`),
   lockOwner: (id: number) => api.put(`/admin/owners/${id}/lock`),
   unlockOwner: (id: number) => api.put(`/admin/owners/${id}/unlock`),
   resetOwnerPassword: (id: number, data: { newPassword: string }) => api.put(`/admin/owners/${id}/reset-password`, data),

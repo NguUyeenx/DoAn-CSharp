@@ -17,13 +17,20 @@ namespace DoAn_CSharp.Controllers
         private readonly IPOIService _poiService;
         private readonly ITTSService _ttsService;
         private readonly ITranslationService _translationService;
+        private readonly ICloudStorageService _cloudStorageService;
 
-        public AdminController(AppDbContext context, IPOIService poiService, ITTSService ttsService, ITranslationService translationService)
+        public AdminController(
+            AppDbContext context, 
+            IPOIService poiService, 
+            ITTSService ttsService, 
+            ITranslationService translationService,
+            ICloudStorageService cloudStorageService)
         {
             _context = context;
             _poiService = poiService;
             _ttsService = ttsService;
             _translationService = translationService;
+            _cloudStorageService = cloudStorageService;
         }
 
         // ── Owner Approvals ───────────────────────────────────────────
@@ -363,8 +370,15 @@ namespace DoAn_CSharp.Controllers
 
                 pois.TryGetValue(poiId, out var poiName);
 
-                var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", x.FilePath.TrimStart('/'));
-                var fileExists = System.IO.File.Exists(physicalPath);
+                bool isCloudUrl = x.FilePath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
+                                  x.FilePath.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+                
+                bool fileExists = isCloudUrl;
+                if (!isCloudUrl)
+                {
+                    var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", x.FilePath.TrimStart('/'));
+                    fileExists = System.IO.File.Exists(physicalPath);
+                }
 
                 return new
                 {
@@ -392,17 +406,34 @@ namespace DoAn_CSharp.Controllers
             var audio = await _context.AudioFiles.FindAsync(id);
             if (audio == null) return NotFound();
 
-            // Delete physical file if exists
-            var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audio.FilePath.TrimStart('/'));
-            if (System.IO.File.Exists(physicalPath))
+            bool isCloudUrl = audio.FilePath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) || 
+                              audio.FilePath.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+
+            if (isCloudUrl)
             {
                 try
                 {
-                    System.IO.File.Delete(physicalPath);
+                    await _cloudStorageService.DeleteFileAsync(audio.FilePath, "audio");
                 }
                 catch (System.Exception ex)
                 {
-                    System.Console.WriteLine($"Error deleting physical audio file: {ex.Message}");
+                    System.Console.WriteLine($"Error deleting cloud audio file: {ex.Message}");
+                }
+            }
+            else
+            {
+                // Delete physical file if exists
+                var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audio.FilePath.TrimStart('/'));
+                if (System.IO.File.Exists(physicalPath))
+                {
+                    try
+                    {
+                        System.IO.File.Delete(physicalPath);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        System.Console.WriteLine($"Error deleting physical audio file: {ex.Message}");
+                    }
                 }
             }
 
@@ -666,6 +697,85 @@ namespace DoAn_CSharp.Controllers
             return Ok(new { message = "Owner password reset successfully." });
         }
 
+        [HttpPost("owners")]
+        public async Task<IActionResult> CreateOwner([FromBody] CreateOwnerAdminDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Username) || string.IsNullOrWhiteSpace(dto.Password) || 
+                string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.DisplayName))
+            {
+                return BadRequest("Tất cả các thông tin là bắt buộc.");
+            }
+
+            if (dto.Password.Length <= 6)
+            {
+                return BadRequest("Mật khẩu phải trên 6 ký tự.");
+            }
+
+            if (await _context.Owners.AnyAsync(o => o.Username == dto.Username))
+            {
+                return BadRequest("Tên đăng nhập đã tồn tại.");
+            }
+
+            if (await _context.Owners.AnyAsync(o => o.Email == dto.Email))
+            {
+                return BadRequest("Email đã tồn tại.");
+            }
+
+            var owner = new Owner
+            {
+                Username = dto.Username,
+                Email = dto.Email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
+                DisplayName = dto.DisplayName,
+                OwnerStatus = "approved",
+                IsPaid = true,
+                PaidAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            await _context.Owners.AddAsync(owner);
+            await _context.SaveChangesAsync();
+
+            await LogAuditAsync("CREATE_OWNER", "Owner", owner.Id, $"Created owner {owner.Username}");
+
+            return CreatedAtAction(nameof(GetAllOwners), new { id = owner.Id }, new
+            {
+                owner.Id,
+                owner.Username,
+                owner.Email,
+                owner.DisplayName,
+                owner.OwnerStatus,
+                owner.CreatedAt
+            });
+        }
+
+        [HttpDelete("owners/{id:int}")]
+        public async Task<IActionResult> DeleteOwner(int id)
+        {
+            var owner = await _context.Owners.FindAsync(id);
+            if (owner == null) return NotFound("Owner not found.");
+
+            // Set OwnerId to null for all POIs owned by this owner
+            var pois = await _context.POIs.Where(p => p.OwnerId == id).ToListAsync();
+            foreach (var poi in pois)
+            {
+                poi.OwnerId = null;
+            }
+
+            // Delete notifications for this owner
+            var notifications = await _context.Notifications.Where(n => n.OwnerId == id).ToListAsync();
+            _context.Notifications.RemoveRange(notifications);
+
+            // Delete the owner
+            _context.Owners.Remove(owner);
+            await _context.SaveChangesAsync();
+
+            await LogAuditAsync("DELETE_OWNER", "Owner", id, $"Deleted owner {owner.Username}");
+
+            return NoContent();
+        }
+
         /// <summary>Lấy nhật ký chuyến đi / hoạt động của du khách</summary>
         [HttpGet("visit-logs")]
         public async Task<IActionResult> GetVisitLogs()
@@ -877,6 +987,14 @@ namespace DoAn_CSharp.Controllers
     public class ChangePOIOwnerDto
     {
         public int? OwnerId { get; set; }
+    }
+
+    public class CreateOwnerAdminDto
+    {
+        public string Username { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+        public string DisplayName { get; set; } = string.Empty;
     }
 
     public class RegenerateAudioRequest

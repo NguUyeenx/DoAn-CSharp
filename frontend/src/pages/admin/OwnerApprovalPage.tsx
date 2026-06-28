@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { adminApi } from '@/api/admin';
-import { Loader2, Check, X, ShieldAlert, Lock, Unlock, KeyRound } from 'lucide-react';
+import { Loader2, Check, X, ShieldAlert, Lock, Unlock, KeyRound, Plus, Trash2 } from 'lucide-react';
 import { useToast } from '@/components/ui/Toast';
 import Modal from '@/components/ui/Modal';
 
@@ -33,6 +33,14 @@ export default function OwnerApprovalPage() {
   const [allOwners, setAllOwners] = useState<OwnerListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [allOwnersLoading, setAllOwnersLoading] = useState(false);
+
+  // Create Owner Modal states
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [newEmail, setNewEmail] = useState('');
+  const [newDisplayName, setNewDisplayName] = useState('');
+  const [newOwnerPassword, setNewOwnerPassword] = useState('');
+  const [createSubmitting, setCreateSubmitting] = useState(false);
 
   // Reject Modal state
   const [isRejectModalOpen, setIsRejectModalOpen] = useState(false);
@@ -169,16 +177,73 @@ export default function OwnerApprovalPage() {
     }
   };
 
+  const handleCreateOwner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUsername.trim() || !newEmail.trim() || !newDisplayName.trim() || !newOwnerPassword.trim()) {
+      toastError('Vui lòng điền đầy đủ thông tin.');
+      return;
+    }
+    if (newOwnerPassword.length <= 6) {
+      toastError('Mật khẩu phải lớn hơn 6 ký tự.');
+      return;
+    }
+    setCreateSubmitting(true);
+    try {
+      await adminApi.createOwner({
+        username: newUsername,
+        email: newEmail,
+        displayName: newDisplayName,
+        password: newOwnerPassword,
+      });
+      success('Thêm tài khoản đối tác thành công!');
+      setIsCreateModalOpen(false);
+      setNewUsername('');
+      setNewEmail('');
+      setNewDisplayName('');
+      setNewOwnerPassword('');
+      loadAllOwners();
+    } catch (err: any) {
+      console.error('Failed to create owner:', err);
+      toastError(err.response?.data || 'Không thể tạo tài khoản đối tác.');
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
+
+  const handleDeleteOwner = async (id: number, displayName: string) => {
+    if (!window.confirm(`Bạn có chắc chắn muốn xóa vĩnh viễn tài khoản đối tác '${displayName}'? Mọi địa điểm sở hữu bởi tài khoản này sẽ được chuyển về quyền sở hữu của Hệ thống.`)) {
+      return;
+    }
+    try {
+      await adminApi.deleteOwner(id);
+      success('Xóa tài khoản đối tác thành công!');
+      loadAllOwners();
+    } catch (err) {
+      console.error('Failed to delete owner:', err);
+      toastError('Xóa tài khoản đối tác thất bại.');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Title */}
-      <div>
-        <h2 className="font-display font-extrabold text-xl tracking-tight text-text-primary">
-          Quản Lý Đối Tác (Owners)
-        </h2>
-        <p className="text-xs text-text-secondary">
-          Duyệt đăng ký đối tác mới, quản lý trạng thái hoạt động và đặt lại mật khẩu
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="font-display font-extrabold text-xl tracking-tight text-text-primary">
+            Quản Lý Đối Tác (Owners)
+          </h2>
+          <p className="text-xs text-text-secondary">
+            Duyệt đăng ký đối tác mới, quản lý trạng thái hoạt động và đặt lại mật khẩu
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsCreateModalOpen(true)}
+          className="h-10 px-4 rounded-xl bg-primary text-white font-semibold text-xs flex items-center justify-center gap-1.5 hover:bg-primary-hover active:scale-95 transition-all shadow-md outline-none cursor-pointer self-start sm:self-center"
+        >
+          <Plus size={16} />
+          <span>Thêm đối tác</span>
+        </button>
       </div>
 
       {/* Tabs */}
@@ -349,6 +414,15 @@ export default function OwnerApprovalPage() {
                         >
                           <KeyRound size={13} />
                         </button>
+
+                        {/* Delete Owner */}
+                        <button
+                          onClick={() => handleDeleteOwner(owner.id, owner.displayName)}
+                          className="p-1.5 border border-border bg-card text-danger hover:border-danger/5 hover:border-danger/20 rounded-lg transition-colors cursor-pointer outline-none"
+                          title="Xóa tài khoản đối tác"
+                        >
+                          <Trash2 size={13} />
+                        </button>
                       </td>
                     </tr>
                   ))}
@@ -440,6 +514,94 @@ export default function OwnerApprovalPage() {
             >
               {resetPasswordSubmitting ? <Loader2 className="animate-spin" size={14} /> : <KeyRound size={14} />}
               <span>Cập nhật mật khẩu</span>
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* CREATE OWNER MODAL */}
+      <Modal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        title="Thêm tài khoản đối tác mới"
+        size="sm"
+      >
+        <form onSubmit={handleCreateOwner} className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+              Tên hiển thị / Tên quán *
+            </label>
+            <input
+              type="text"
+              disabled={createSubmitting}
+              value={newDisplayName}
+              onChange={(e) => setNewDisplayName(e.target.value)}
+              placeholder="e.g. Ốc Oanh"
+              className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none"
+              required
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+              Tên đăng nhập *
+            </label>
+            <input
+              type="text"
+              disabled={createSubmitting}
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
+              placeholder="e.g. ocoanh"
+              className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none"
+              required
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+              Email *
+            </label>
+            <input
+              type="email"
+              disabled={createSubmitting}
+              value={newEmail}
+              onChange={(e) => setNewEmail(e.target.value)}
+              placeholder="e.g. contact@ocoanh.com"
+              className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none"
+              required
+            />
+          </div>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-bold text-text-secondary uppercase tracking-wider">
+              Mật khẩu đăng nhập *
+            </label>
+            <input
+              type="password"
+              disabled={createSubmitting}
+              value={newOwnerPassword}
+              onChange={(e) => setNewOwnerPassword(e.target.value)}
+              placeholder="Nhập mật khẩu từ 6 ký tự..."
+              className="w-full h-10 px-3 rounded-xl border border-border bg-card text-xs sm:text-sm focus:border-primary focus:ring-2 focus:ring-primary/10 transition-all outline-none"
+              required
+            />
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4 border-t border-border/40 pt-4">
+            <button
+              type="button"
+              onClick={() => setIsCreateModalOpen(false)}
+              className="px-4 py-2 border border-border text-text-secondary rounded-xl hover:bg-surface-alt font-semibold text-xs transition-colors cursor-pointer"
+            >
+              Hủy
+            </button>
+            <button
+              type="submit"
+              disabled={createSubmitting}
+              className="px-4 py-2 bg-primary text-white font-semibold text-xs rounded-xl hover:opacity-90 active:scale-95 transition-all shadow-xs cursor-pointer flex items-center gap-1.5"
+            >
+              {createSubmitting ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />}
+              <span>Lưu tài khoản</span>
             </button>
           </div>
         </form>
