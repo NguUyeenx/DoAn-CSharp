@@ -456,7 +456,32 @@ namespace DoAn_CSharp.Services
             var targetLang = lang.ToLowerInvariant();
             foreach (var poi in pois)
             {
-                if (!poi.Translations.Any(t => t.LanguageCode.ToLowerInvariant() == targetLang))
+                if (poi.Translations == null) continue;
+
+                var baseTranslation = poi.Translations.FirstOrDefault(t => t.LanguageCode.ToLowerInvariant() == "vi")
+                    ?? poi.Translations.FirstOrDefault(t => t.LanguageCode.ToLowerInvariant() == "en")
+                    ?? poi.Translations.FirstOrDefault();
+
+                if (baseTranslation == null) continue;
+
+                var existingTranslation = poi.Translations.FirstOrDefault(t => t.LanguageCode.ToLowerInvariant() == targetLang);
+
+                bool isOutdated = false;
+                if (existingTranslation != null && baseTranslation.LanguageCode.ToLowerInvariant() != targetLang)
+                {
+                    using var sha256 = System.Security.Cryptography.SHA256.Create();
+                    var rawText = $"{baseTranslation.Name ?? ""}|{baseTranslation.ShortDescription ?? ""}|{baseTranslation.FullDescription ?? ""}|{baseTranslation.AudioText ?? ""}";
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(rawText);
+                    var hashBytes = sha256.ComputeHash(bytes);
+                    string baseHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+
+                    if (existingTranslation.OriginalTextHash != baseHash)
+                    {
+                        isOutdated = true;
+                    }
+                }
+
+                if (existingTranslation == null || isOutdated)
                 {
                     var newTransDto = await _translationService.GetTranslationAsync(poi.Id, targetLang);
                     if (newTransDto != null)
@@ -464,6 +489,10 @@ namespace DoAn_CSharp.Services
                         var newTrans = await _context.POITranslations.FindAsync(newTransDto.Id);
                         if (newTrans != null)
                         {
+                            if (existingTranslation != null)
+                            {
+                                poi.Translations.Remove(existingTranslation);
+                            }
                             poi.Translations.Add(newTrans);
                         }
                     }
