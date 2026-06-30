@@ -63,7 +63,10 @@ namespace DoAn_CSharp.Services
                 .FirstOrDefaultAsync(p => p.Slug == slug && p.IsActive && p.DeletedAt == null && p.ApprovalStatus == "approved");
             if (poi == null) return null;
             await EnsureTranslationsExistAsync(new[] { poi }, lang);
+            // Reload translations from DB to get the latest data (bypasses EF Core in-memory cache)
+            await _context.Entry(poi).Collection(p => p.Translations).LoadAsync();
             return MapToPOIDto(poi, lang);
+
         }
 
         public async Task<POIDto?> GetByIdAsync(int id, string lang)
@@ -77,7 +80,10 @@ namespace DoAn_CSharp.Services
 
             if (poi == null) return null;
             await EnsureTranslationsExistAsync(new[] { poi }, lang);
+            // Reload translations from DB to get the latest data (bypasses EF Core in-memory cache)
+            await _context.Entry(poi).Collection(p => p.Translations).LoadAsync();
             return MapToPOIDto(poi, lang);
+
         }
 
         public async Task<IEnumerable<POIListDto>> GetNearbyAsync(double lat, double lng, int radiusMeters, string lang)
