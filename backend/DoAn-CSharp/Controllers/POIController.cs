@@ -59,6 +59,7 @@ namespace DoAn_CSharp.Controllers
         }
 
         /// <summary>Lấy chi tiết một POI theo ID</summary>
+
         [HttpGet("{id:int}")]
         public async Task<IActionResult> GetById(int id, [FromQuery] string lang = "en")
         {

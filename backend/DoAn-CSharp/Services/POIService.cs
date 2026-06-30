@@ -63,8 +63,17 @@ namespace DoAn_CSharp.Services
                 .FirstOrDefaultAsync(p => p.Slug == slug && p.IsActive && p.DeletedAt == null && p.ApprovalStatus == "approved");
             if (poi == null) return null;
             await EnsureTranslationsExistAsync(new[] { poi }, lang);
-            // Reload translations from DB to get the latest data (bypasses EF Core in-memory cache)
-            await _context.Entry(poi).Collection(p => p.Translations).LoadAsync();
+            // Detach existing translations to force EF Core to fetch fresh values from DB
+            foreach (var trans in poi.Translations.ToList())
+            {
+                _context.Entry(trans).State = EntityState.Detached;
+            }
+            await _context.Entry(poi).Collection(p => p.Translations).Query().AsNoTracking().LoadAsync();
+            
+            // Re-fetch translations without tracking
+            var freshTranslations = await _context.POITranslations.AsNoTracking().Where(t => t.POIId == poi.Id).ToListAsync();
+            poi.Translations = freshTranslations;
+
             return MapToPOIDto(poi, lang);
 
         }
@@ -80,8 +89,17 @@ namespace DoAn_CSharp.Services
 
             if (poi == null) return null;
             await EnsureTranslationsExistAsync(new[] { poi }, lang);
-            // Reload translations from DB to get the latest data (bypasses EF Core in-memory cache)
-            await _context.Entry(poi).Collection(p => p.Translations).LoadAsync();
+            // Detach existing translations to force EF Core to fetch fresh values from DB
+            foreach (var trans in poi.Translations.ToList())
+            {
+                _context.Entry(trans).State = EntityState.Detached;
+            }
+            await _context.Entry(poi).Collection(p => p.Translations).Query().AsNoTracking().LoadAsync();
+
+            // Re-fetch translations without tracking
+            var freshTranslations = await _context.POITranslations.AsNoTracking().Where(t => t.POIId == poi.Id).ToListAsync();
+            poi.Translations = freshTranslations;
+
             return MapToPOIDto(poi, lang);
 
         }
