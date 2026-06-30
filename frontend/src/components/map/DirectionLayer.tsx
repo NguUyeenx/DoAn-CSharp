@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { useMap } from '@/contexts/MapContext';
 import { MAPBOX_TOKEN } from '@/utils/constants';
@@ -12,6 +12,7 @@ export default function DirectionLayer({ origin, destination }: DirectionLayerPr
   const { map } = useMap();
   const routeLayerId = 'direction-route-line';
   const routeSourceId = 'direction-route-source';
+  const prevDestinationRef = useRef<[number, number] | null>(null);
 
   const cleanup = () => {
     if (!map) return;
@@ -30,7 +31,17 @@ export default function DirectionLayer({ origin, destination }: DirectionLayerPr
   useEffect(() => {
     if (!map || !origin || !destination) {
       cleanup();
+      prevDestinationRef.current = null;
       return;
+    }
+
+    const isNewDestination =
+      !prevDestinationRef.current ||
+      prevDestinationRef.current[0] !== destination[0] ||
+      prevDestinationRef.current[1] !== destination[1];
+
+    if (isNewDestination) {
+      prevDestinationRef.current = destination;
     }
 
     let isSubscribed = true;
@@ -67,17 +78,19 @@ export default function DirectionLayer({ origin, destination }: DirectionLayerPr
           geometry: route,
         });
 
-        // Fit map bounds to show the route
-        const coordinates = route.coordinates;
-        const bounds = coordinates.reduce(
-          (acc: mapboxgl.LngLatBounds, coord: [number, number]) => acc.extend(coord),
-          new mapboxgl.LngLatBounds(coordinates[0], coordinates[0])
-        );
+        if (isNewDestination) {
+          // Fit map bounds to show the route only when the destination changes
+          const coordinates = route.coordinates;
+          const bounds = coordinates.reduce(
+            (acc: mapboxgl.LngLatBounds, coord: [number, number]) => acc.extend(coord),
+            new mapboxgl.LngLatBounds(coordinates[0], coordinates[0])
+          );
 
-        map.fitBounds(bounds, {
-          padding: { top: 60, bottom: 100, left: 60, right: 60 },
-          maxZoom: 17,
-        });
+          map.fitBounds(bounds, {
+            padding: { top: 60, bottom: 100, left: 60, right: 60 },
+            maxZoom: 17,
+          });
+        }
       } catch (err) {
         console.error('Directions fetch error, falling back to direct line:', err);
         if (!isSubscribed) return;

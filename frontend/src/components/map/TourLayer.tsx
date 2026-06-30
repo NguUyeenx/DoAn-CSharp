@@ -65,10 +65,15 @@ export default function TourLayer({ tour, activeStopIndex, onStopClick }: TourLa
     }
 
     let isSubscribed = true;
-    const stops = [...tour.stops].sort((a, b) => a.stopOrder - b.stopOrder);
+    const allStops = [...tour.stops].sort((a, b) => a.stopOrder - b.stopOrder);
+    const stops = activeStopIndex !== null ? allStops.slice(activeStopIndex) : allStops;
 
     // 1. Fetch tour walking route
     const fetchTourRoute = async () => {
+      if (stops.length < 2) {
+        cleanupLayer();
+        return;
+      }
       try {
         // Mapbox supports up to 25 coordinates in a directions request
         const coordinatesString = stops
@@ -166,7 +171,7 @@ export default function TourLayer({ tour, activeStopIndex, onStopClick }: TourLa
     // 2. Render HTML numbered markers for stops
     cleanupMarkers();
     
-    stops.forEach((stop, index) => {
+    allStops.forEach((stop, index) => {
       const el = document.createElement('div');
       el.className = 'tour-stop-marker cursor-pointer relative';
 

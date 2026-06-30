@@ -21,6 +21,11 @@ export default function MapView({ children, onMapClick }: MapViewProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const currentThemeRef = useRef<'light' | 'dark'>(theme);
   const [mapLoaded, setMapLoaded] = useState(false);
+  const onMapClickRef = useRef(onMapClick);
+
+  useEffect(() => {
+    onMapClickRef.current = onMapClick;
+  }, [onMapClick]);
 
   // Determine Mapbox style based on theme
   const getStyleByTheme = (currentTheme: 'light' | 'dark') => {
@@ -96,16 +101,17 @@ export default function MapView({ children, onMapClick }: MapViewProps) {
       }
     });
 
-    if (onMapClick) {
-      mapInstance.on('click', (e) => {
-        // Prevent click events if clicking on markers/popups
-        const target = e.originalEvent.target as HTMLElement;
-        if (target.closest('.mapboxgl-marker') || target.closest('.mapboxgl-popup')) {
-          return;
-        }
-        onMapClick([e.lngLat.lng, e.lngLat.lat]);
-      });
-    }
+    mapInstance.on('click', (e) => {
+      // Prevent click events if clicking on markers/popups
+      const target = e.originalEvent.target as HTMLElement;
+      if (target.closest('.mapboxgl-marker') || target.closest('.mapboxgl-popup')) {
+        return;
+      }
+      console.log('MapView mapInstance click:', [e.lngLat.lng, e.lngLat.lat]);
+      if (onMapClickRef.current) {
+        onMapClickRef.current([e.lngLat.lng, e.lngLat.lat]);
+      }
+    });
 
     return () => {
       setMap(null);

@@ -4,9 +4,14 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useMap } from '@/contexts/MapContext';
 import { useGeolocation } from '@/hooks/useGeolocation';
 
-export default function UserLocation() {
+interface UserLocationProps {
+  overridePosition?: { latitude: number; longitude: number } | null;
+}
+
+export default function UserLocation({ overridePosition }: UserLocationProps) {
   const { map } = useMap();
-  const { position } = useGeolocation();
+  const { position: realPosition } = useGeolocation();
+  const position = overridePosition !== undefined ? overridePosition : realPosition;
   
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const rootRef = useRef<Root | null>(null);

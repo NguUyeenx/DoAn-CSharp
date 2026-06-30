@@ -492,11 +492,21 @@ namespace DoAn_CSharp.Controllers
 
             try
             {
+                // Compute MD5 hash of the text to store
+                string textHash = "";
+                using (var md5 = System.Security.Cryptography.MD5.Create())
+                {
+                    var bytes = System.Text.Encoding.UTF8.GetBytes(translation.AudioText ?? "");
+                    var hashBytes = md5.ComputeHash(bytes);
+                    textHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                }
+
                 // Generate new audio via edge-tts
                 var ttsResult = await _ttsService.GenerateAudioAsync(translation.AudioText, audio.LanguageCode, translation.POIId);
 
                 audio.FilePath = ttsResult.Url;
                 audio.DurationSeconds = ttsResult.DurationSeconds;
+                audio.TranslatedTextHash = textHash;
                 audio.GeneratedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
@@ -578,6 +588,15 @@ namespace DoAn_CSharp.Controllers
                             }
                         }
 
+                        // Compute MD5 hash of the text to store
+                        string textHash = "";
+                        using (var md5 = System.Security.Cryptography.MD5.Create())
+                        {
+                            var bytes = System.Text.Encoding.UTF8.GetBytes(translation.AudioText ?? "");
+                            var hashBytes = md5.ComputeHash(bytes);
+                            textHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                        }
+
                         // Generate new audio using edge-tts
                         var ttsResult = await _ttsService.GenerateAudioAsync(translation.AudioText, langCode, poi.Id);
 
@@ -593,6 +612,7 @@ namespace DoAn_CSharp.Controllers
                                 DurationSeconds = ttsResult.DurationSeconds,
                                 AudioType = "tts",
                                 TTSProvider = "edge-tts",
+                                TranslatedTextHash = textHash,
                                 GeneratedAt = DateTime.UtcNow,
                                 IsDefault = true
                             };
@@ -602,6 +622,7 @@ namespace DoAn_CSharp.Controllers
                         {
                             audio.FilePath = ttsResult.Url;
                             audio.DurationSeconds = ttsResult.DurationSeconds;
+                            audio.TranslatedTextHash = textHash;
                             audio.GeneratedAt = DateTime.UtcNow;
                         }
 

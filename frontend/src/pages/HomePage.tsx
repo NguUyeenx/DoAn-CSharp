@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Compass, List, Navigation, ChevronRight, ChevronDown, Clock } from 'lucide-react';
 import ThemeToggle from '@/components/ui/ThemeToggle';
+import Modal from '@/components/ui/Modal';
 import Header from '@/components/layout/Header';
 import MobileNav from '@/components/layout/MobileNav';
 import MapView from '@/components/map/MapView';
@@ -70,7 +71,14 @@ export default function HomePage() {
   const isVi = i18n.language === 'vi';
 
   // Custom Hooks
-  const { position } = useGeolocation();
+  const { position: realPosition } = useGeolocation();
+  const [simulatedPosition, setSimulatedPosition] = useState<{ latitude: number; longitude: number } | null>(null);
+  const position = simulatedPosition || realPosition;
+  const [isTourCompletedModalOpen, setIsTourCompletedModalOpen] = useState(false);
+  const [isTourPanelCollapsed, setIsTourPanelCollapsed] = useState(false);
+  const tourCollapseTimeoutRef = useRef<any>(null);
+  const [isPositionPanelCollapsed, setIsPositionPanelCollapsed] = useState(false);
+  const positionCollapseTimeoutRef = useRef<any>(null);
   const { pois, loading: poisLoading, fetchPOIs } = usePOIs();
   const { tours, selectedTour, loading: toursLoading, fetchTours, fetchTourById, setSelectedTour } = useTours();
   const { flyTo } = useMapbox();
@@ -284,6 +292,97 @@ export default function HomePage() {
     setDirectionsDest(null);
   };
 
+  // Sync navigation/directions with active tour stop
+  useEffect(() => {
+    if (selectedTour && activeTourStopIndex !== null) {
+      const sortedStops = [...selectedTour.stops].sort((a, b) => a.stopOrder - b.stopOrder);
+      const activeStop = sortedStops[activeTourStopIndex];
+      if (activeStop) {
+        setDirectionsDest([activeStop.longitude, activeStop.latitude]);
+        setShowDirections(true);
+      }
+    } else if (!selectedTour) {
+      // Clear directions when tour is closed
+      setShowDirections(false);
+      setDirectionsDest(null);
+      setSimulatedPosition(null);
+    }
+  }, [selectedTour, activeTourStopIndex]);
+
+  // Auto-advance active tour stop when user arrives near the current stop
+  useEffect(() => {
+    if (position && selectedTour && activeTourStopIndex !== null) {
+      const sortedStops = [...selectedTour.stops].sort((a, b) => a.stopOrder - b.stopOrder);
+      const activeStop = sortedStops[activeTourStopIndex];
+      if (activeStop) {
+        const dist = getDistance(
+          position.latitude,
+          position.longitude,
+          activeStop.latitude,
+          activeStop.longitude
+        );
+        // If user is within 25 meters, advance to the next stop
+        if (dist < 25) {
+          if (activeTourStopIndex < sortedStops.length - 1) {
+            setActiveTourStopIndex(activeTourStopIndex + 1);
+            const nextStop = sortedStops[activeTourStopIndex + 1];
+            flyTo([nextStop.longitude, nextStop.latitude], 16.5);
+            setPopupPoiId(nextStop.poiId);
+          } else if (!isTourCompletedModalOpen) {
+            console.log('Tour completed! All stops visited.');
+            setIsTourCompletedModalOpen(true);
+          }
+        }
+      }
+    }
+  }, [position, selectedTour, activeTourStopIndex, isTourCompletedModalOpen]);
+
+  // Auto-collapse Active Tour panel after 5 seconds of selection or stop change
+  useEffect(() => {
+    if (selectedTour) {
+      setIsTourPanelCollapsed(false);
+
+      if (tourCollapseTimeoutRef.current) {
+        clearTimeout(tourCollapseTimeoutRef.current);
+      }
+
+      tourCollapseTimeoutRef.current = setTimeout(() => {
+        setIsTourPanelCollapsed(true);
+      }, 5000);
+    } else {
+      setIsTourPanelCollapsed(false);
+    }
+
+    return () => {
+      if (tourCollapseTimeoutRef.current) {
+        clearTimeout(tourCollapseTimeoutRef.current);
+      }
+    };
+  }, [selectedTour, activeTourStopIndex]);
+
+  // Auto-collapse Position panel after 5 seconds of selection or simulated position change
+  useEffect(() => {
+    if (selectedTour) {
+      setIsPositionPanelCollapsed(false);
+
+      if (positionCollapseTimeoutRef.current) {
+        clearTimeout(positionCollapseTimeoutRef.current);
+      }
+
+      positionCollapseTimeoutRef.current = setTimeout(() => {
+        setIsPositionPanelCollapsed(true);
+      }, 5000);
+    } else {
+      setIsPositionPanelCollapsed(false);
+    }
+
+    return () => {
+      if (positionCollapseTimeoutRef.current) {
+        clearTimeout(positionCollapseTimeoutRef.current);
+      }
+    };
+  }, [selectedTour, simulatedPosition]);
+
   return (
     <div className="flex flex-col h-screen w-screen overflow-hidden bg-surface text-text-primary">
       {/* Top Header */}
@@ -491,9 +590,21 @@ export default function HomePage() {
 
         {/* MAP CONTAINER - Full screen */}
         <main className="flex-1 h-full relative">
-          <MapView>
+          <MapView onMapClick={(lngLat) => {
+            console.log('HomePage onMapClick triggered with:', lngLat);
+            setSimulatedPosition((prev) => {
+              console.log('HomePage setSimulatedPosition updater. Current prev:', prev);
+              if (prev !== null) {
+                return {
+                  latitude: lngLat[1],
+                  longitude: lngLat[0],
+                };
+              }
+              return null;
+            });
+          }}>
             {/* User GPS Dot */}
-            <UserLocation />
+            <UserLocation overridePosition={position} />
 
             {/* Render POIs markers */}
             {filteredPOIs.map((poi) => (
@@ -528,8 +639,8 @@ export default function HomePage() {
             )}
           </MapView>
 
-          {/* Floating Map overlays container - Top Left */}
-          <div className="absolute top-4 left-4 z-10 flex flex-col gap-2.5 max-w-[calc(100vw-32px)] md:max-w-sm pointer-events-none">
+          {/* Floating Map overlays container - Bottom Left */}
+          <div className="absolute bottom-20 left-4 md:bottom-6 md:left-4 z-10 flex flex-col gap-2.5 max-w-[calc(100vw-32px)] md:max-w-sm pointer-events-none">
             {/* Active time remaining for visitors */}
             {!isAuthenticated && isActivated && timeLeftStr && (
               <div className="pointer-events-auto flex items-center gap-1.5 h-9 px-3 rounded-[var(--radius-md)] bg-card/95 backdrop-blur-xs border border-border text-teal-600 dark:text-teal-400 text-xs font-semibold select-none shadow-md w-fit animate-slide-in-top">
@@ -539,24 +650,174 @@ export default function HomePage() {
               </div>
             )}
 
+            {/* Simulation Location Control */}
+            {selectedTour && (
+              <div
+                onClick={() => {
+                  if (isPositionPanelCollapsed) {
+                    setIsPositionPanelCollapsed(false);
+                    // Re-start 5s collapse timer
+                    if (positionCollapseTimeoutRef.current) clearTimeout(positionCollapseTimeoutRef.current);
+                    positionCollapseTimeoutRef.current = setTimeout(() => {
+                      setIsPositionPanelCollapsed(true);
+                    }, 5000);
+                  }
+                }}
+                className={`pointer-events-auto bg-card/95 backdrop-blur-xs border border-border shadow-lg transition-all duration-300 ease-in-out cursor-pointer flex items-center overflow-hidden h-12 ${
+                  isPositionPanelCollapsed
+                    ? 'w-12 rounded-full justify-center p-0 hover:bg-surface-alt'
+                    : 'w-80 max-w-[calc(100vw-32px)] px-3 py-2 justify-between rounded-[var(--radius-lg)]'
+                }`}
+                title={isPositionPanelCollapsed ? (isVi ? 'Nhấp để cấu hình định vị' : 'Click to configure positioning') : undefined}
+              >
+                {/* Collapsed View: Pulsing GPS / Simulated dot */}
+                <div
+                  className={`flex items-center justify-center transition-all duration-300 shrink-0 ${
+                    isPositionPanelCollapsed
+                      ? 'opacity-100 scale-100 w-12 h-12'
+                      : 'opacity-0 scale-75 w-0 h-0 pointer-events-none overflow-hidden'
+                  }`}
+                >
+                  <div className="relative flex items-center justify-center w-8 h-8">
+                    <div className={`absolute w-5 h-5 rounded-full animate-ping ${
+                      simulatedPosition ? 'bg-amber-500/35' : 'bg-teal-500/35'
+                    }`} />
+                    <div className={`relative w-3.5 h-3.5 border-2 border-white rounded-full shadow-md ${
+                      simulatedPosition ? 'bg-amber-500' : 'bg-teal-500'
+                    }`} />
+                  </div>
+                </div>
+
+                {/* Expanded Content: Faded out when collapsed */}
+                <div
+                  className={`flex items-center justify-between shrink-0 transition-all duration-300 ${
+                    isPositionPanelCollapsed 
+                      ? 'opacity-0 w-0 pointer-events-none overflow-hidden' 
+                      : 'opacity-100 w-[294px] max-w-[calc(100vw-58px)]'
+                  }`}
+                >
+                  <span className="font-semibold text-text-secondary flex items-center gap-1.5 min-w-0 flex-1 pr-2">
+                    <span className={`w-2 h-2 rounded-full shrink-0 animate-ping ${
+                      simulatedPosition ? 'bg-amber-500' : 'bg-teal-500'
+                    }`} />
+                    <span className="truncate text-[10px]">
+                      {simulatedPosition ? (isVi ? 'Giả lập (Click bản đồ để đi)' : 'Simulated (Click map to walk)') : (isVi ? 'Vị trí: GPS thật' : 'Position: Real GPS')}
+                    </span>
+                  </span>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (simulatedPosition) {
+                          setSimulatedPosition(null);
+                        } else {
+                          const sortedStops = [...selectedTour.stops].sort((a, b) => a.stopOrder - b.stopOrder);
+                          const firstStop = sortedStops[activeTourStopIndex || 0];
+                          if (firstStop) {
+                            setSimulatedPosition({
+                              latitude: firstStop.latitude - 0.0005,
+                              longitude: firstStop.longitude - 0.0005,
+                            });
+                            flyTo([firstStop.longitude - 0.0005, firstStop.latitude - 0.0005], 16.5);
+                          }
+                        }
+                      }}
+                      className="px-2 py-1 rounded-md bg-amber-500 hover:bg-amber-600 text-white font-bold transition-colors cursor-pointer shrink-0 leading-none h-7 flex items-center justify-center text-[10px]"
+                    >
+                      {simulatedPosition ? (isVi ? 'Tắt' : 'Disable') : (isVi ? 'Giả lập' : 'Simulate')}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsPositionPanelCollapsed(true);
+                        if (positionCollapseTimeoutRef.current) clearTimeout(positionCollapseTimeoutRef.current);
+                      }}
+                      className="p-1 text-text-muted hover:text-text-primary rounded hover:bg-surface-alt transition-colors shrink-0"
+                      title={isVi ? 'Thu gọn' : 'Collapse'}
+                    >
+                      <ChevronDown size={14} className="rotate-90" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Active Tour indicator */}
             {selectedTour && (
-              <div className="pointer-events-auto bg-card/95 backdrop-blur-xs border border-border p-3 rounded-[var(--radius-lg)] shadow-lg flex items-center justify-between gap-4 animate-slide-in-top">
-                <div className="min-w-0">
-                  <span className="text-[10px] uppercase font-bold text-primary tracking-wider font-display">Active Tour</span>
-                  <h4 className="font-display font-extrabold text-sm text-text-primary leading-tight line-clamp-1">{selectedTour.name}</h4>
-                </div>
-                <button
-                  onClick={handleCloseTour}
-                  className="text-xs font-semibold px-2.5 py-1 bg-surface-alt border border-border rounded-md hover:bg-border transition-colors cursor-pointer outline-none shrink-0"
+              <div
+                onClick={() => {
+                  if (isTourPanelCollapsed) {
+                    setIsTourPanelCollapsed(false);
+                    // Re-start 5s collapse timer
+                    if (tourCollapseTimeoutRef.current) clearTimeout(tourCollapseTimeoutRef.current);
+                    tourCollapseTimeoutRef.current = setTimeout(() => {
+                      setIsTourPanelCollapsed(true);
+                    }, 5000);
+                  }
+                }}
+                className={`pointer-events-auto bg-card/95 backdrop-blur-xs border border-border shadow-lg transition-all duration-300 ease-in-out cursor-pointer flex items-center overflow-hidden h-12 ${
+                  isTourPanelCollapsed
+                    ? 'w-12 rounded-full justify-center p-0 hover:bg-surface-alt'
+                    : 'w-80 max-w-[calc(100vw-32px)] px-3 py-2 justify-between rounded-[var(--radius-lg)]'
+                }`}
+                title={isTourPanelCollapsed ? (isVi ? 'Nhấp để mở rộng bảng Tour' : 'Click to expand Tour panel') : undefined}
+              >
+                {/* Collapsed View: Pulsing compass icon */}
+                <div
+                  className={`flex items-center justify-center transition-all duration-300 shrink-0 ${
+                    isTourPanelCollapsed
+                      ? 'opacity-100 scale-100 w-12 h-12'
+                      : 'opacity-0 scale-75 w-0 h-0 pointer-events-none overflow-hidden'
+                  }`}
                 >
-                  End
-                </button>
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 text-primary shrink-0 animate-pulse">
+                    <Compass size={16} />
+                  </div>
+                </div>
+
+                {/* Expanded Content: Faded out when collapsed */}
+                <div
+                  className={`flex items-center justify-between shrink-0 transition-all duration-300 ${
+                    isTourPanelCollapsed 
+                      ? 'opacity-0 w-0 pointer-events-none overflow-hidden' 
+                      : 'opacity-100 w-[294px] max-w-[calc(100vw-58px)]'
+                  }`}
+                >
+                  <div className="min-w-0 flex-1 pr-2">
+                    <div className="flex items-center gap-1.5 leading-none">
+                      <span className="text-[9px] uppercase font-bold text-primary tracking-wider font-display font-extrabold">Active Tour</span>
+                      <span className="text-[9px] text-text-muted">• {(activeTourStopIndex ?? 0) + 1}/{selectedTour.stops.length}</span>
+                    </div>
+                    <h4 className="font-display font-extrabold text-xs text-text-primary leading-tight line-clamp-1 mt-0.5">{selectedTour.name}</h4>
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleCloseTour();
+                      }}
+                      className="text-[10px] font-bold px-2 py-1 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 rounded-md transition-colors cursor-pointer outline-none shrink-0"
+                    >
+                      {isVi ? 'Dừng' : 'End'}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsTourPanelCollapsed(true);
+                        if (tourCollapseTimeoutRef.current) clearTimeout(tourCollapseTimeoutRef.current);
+                      }}
+                      className="p-1 text-text-muted hover:text-text-primary rounded hover:bg-surface-alt transition-colors shrink-0"
+                      title={isVi ? 'Thu gọn' : 'Collapse'}
+                    >
+                      <ChevronDown size={14} className="rotate-90" />
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
             {/* Floating Directions active bar */}
-            {showDirections && (
+            {showDirections && !selectedTour && (
               <div className="pointer-events-auto bg-card/95 backdrop-blur-xs border border-teal-600/30 p-3 rounded-[var(--radius-lg)] shadow-lg flex items-center justify-between gap-4 animate-slide-in-top">
                 <div className="min-w-0 flex items-center gap-2">
                   <Navigation size={18} className="text-teal-600 fill-current" />
@@ -647,7 +908,6 @@ export default function HomePage() {
                       onClick={() => {
                         setActiveTourStopIndex(index);
                         setPopupPoiId(stop.poiId);
-                        handleCloseTour();
                         flyTo([stop.longitude, stop.latitude], 16.5);
                         navigate('/');
                       }}
@@ -808,6 +1068,36 @@ export default function HomePage() {
           </button>
         </div>
       )}
+
+      {/* Tour Completion Modal */}
+      <Modal
+        isOpen={isTourCompletedModalOpen}
+        onClose={() => setIsTourCompletedModalOpen(false)}
+        size="sm"
+      >
+        <div className="flex flex-col items-center text-center p-2">
+          <div className="w-16 h-16 rounded-full bg-teal-50 dark:bg-teal-950/30 flex items-center justify-center text-3xl mb-4 animate-bounce">
+            🎉
+          </div>
+          <h3 className="font-display font-extrabold text-lg text-text-primary mb-2">
+            {isVi ? 'Chúc mừng!' : 'Congratulations!'}
+          </h3>
+          <p className="text-xs text-text-secondary leading-relaxed mb-6">
+            {isVi 
+              ? `Bạn đã hoàn thành xuất sắc tour đi bộ ẩm thực "${selectedTour?.name}". Hy vọng bạn đã có những trải nghiệm tuyệt vời!`
+              : `You have successfully completed the food walking tour "${selectedTour?.name}". We hope you had a wonderful experience!`}
+          </p>
+          <button
+            onClick={() => {
+              setIsTourCompletedModalOpen(false);
+              handleCloseTour();
+            }}
+            className="w-full h-10 rounded-lg bg-teal-600 hover:bg-teal-700 active:scale-95 text-white font-bold transition-all text-xs cursor-pointer shadow-md"
+          >
+            {isVi ? 'Hoàn thành' : 'Done'}
+          </button>
+        </div>
+      </Modal>
 
       {/* Mobile Bottom Navigation Bar */}
       <MobileNav />
