@@ -86,60 +86,7 @@ namespace DoAn_CSharp.Services
             
             await _context.SaveChangesAsync();
 
-            // Pre-generate or update audio for the translation
-            if (!string.IsNullOrWhiteSpace(translatedAudioText))
-            {
-                try
-                {
-                    var ttsResult = await _ttsService.GenerateAudioAsync(translatedAudioText, targetLang, poiId);
-
-                    var existingAudio = await _context.AudioFiles.FirstOrDefaultAsync(a => 
-                        a.TranslationType == TranslationType.POI && 
-                        a.TranslationId == translation.Id && 
-                        a.LanguageCode == targetLang && 
-                        a.AudioType == "tts");
-
-                    if (existingAudio == null)
-                    {
-                        var audioFile = new AudioFile
-                        {
-                            TranslationType = TranslationType.POI,
-                            TranslationId = translation.Id,
-                            LanguageCode = targetLang,
-                            FilePath = ttsResult.Url,
-                            DurationSeconds = ttsResult.DurationSeconds,
-                            AudioType = "tts",
-                            TTSProvider = "edge-tts",
-                            GeneratedAt = DateTime.UtcNow,
-                            IsDefault = true
-                        };
-                        await _context.AudioFiles.AddAsync(audioFile);
-                    }
-                    else
-                    {
-                        // Delete old file if it exists and is local
-                        var isCloudUrl = existingAudio.FilePath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-                                         existingAudio.FilePath.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
-                        if (!isCloudUrl)
-                        {
-                            var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", existingAudio.FilePath.TrimStart('/'));
-                            if (System.IO.File.Exists(physicalPath))
-                            {
-                                try { System.IO.File.Delete(physicalPath); } catch {}
-                            }
-                        }
-                        
-                        existingAudio.FilePath = ttsResult.Url;
-                        existingAudio.DurationSeconds = ttsResult.DurationSeconds;
-                        existingAudio.GeneratedAt = DateTime.UtcNow;
-                    }
-                    await _context.SaveChangesAsync();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error pre-generating TTS for {targetLang}: {ex.Message}");
-                }
-            }
+            // Pre-generation of TTS audio removed to avoid automatic Edge-TTS generation during translation updates.
 
             return MapToDto(translation);
         }
@@ -213,9 +160,6 @@ namespace DoAn_CSharp.Services
                 baseHash = ComputeTextHash(baseTranslation.Name, baseTranslation.ShortDescription, baseTranslation.FullDescription, baseTranslation.AudioText);
             }
 
-            bool shouldGenerateAudio = false;
-            string textToGenerate = string.Empty;
-
             if (translation == null)
             {
                 // Create new
@@ -230,67 +174,29 @@ namespace DoAn_CSharp.Services
                     OriginalTextHash = baseHash
                 };
                 await _context.POITranslations.AddAsync(translation);
-
-                if (!string.IsNullOrWhiteSpace(dto.AudioText))
-                {
-                    shouldGenerateAudio = true;
-                    textToGenerate = dto.AudioText;
-                }
             }
             else
             {
-                if (translation.AudioText != dto.AudioText && !string.IsNullOrWhiteSpace(dto.AudioText))
-                {
-                    shouldGenerateAudio = true;
-                    textToGenerate = dto.AudioText;
-                }
+                bool isTextModified = translation.AudioText != dto.AudioText || 
+                                      translation.Name != dto.Name || 
+                                      translation.ShortDescription != dto.ShortDescription || 
+                                      translation.FullDescription != dto.FullDescription;
 
                 // Update existing
                 translation.Name = dto.Name;
                 translation.ShortDescription = dto.ShortDescription;
                 translation.FullDescription = dto.FullDescription;
                 translation.AudioText = dto.AudioText;
-                translation.OriginalTextHash = baseHash;
+                
+                // Only update OriginalTextHash if the user actually modified the target language text
+                // OR if they are updating the base language ('vi').
+                if (isTextModified || targetLang == "vi")
+                {
+                    translation.OriginalTextHash = baseHash;
+                }
             }
 
             await _context.SaveChangesAsync();
-
-            if (shouldGenerateAudio)
-            {
-                try
-                {
-                    var ttsResult = await _ttsService.GenerateAudioAsync(textToGenerate, targetLang, dto.POIId);
-                    
-                    var existingAudio = await _context.AudioFiles.FirstOrDefaultAsync(a => a.TranslationType == TranslationType.POI && a.TranslationId == translation.Id && a.LanguageCode == targetLang && a.AudioType == "tts");
-                    if (existingAudio == null)
-                    {
-                        var audioFile = new AudioFile
-                        {
-                            TranslationType = TranslationType.POI,
-                            TranslationId = translation.Id,
-                            LanguageCode = targetLang,
-                            FilePath = ttsResult.Url,
-                            DurationSeconds = ttsResult.DurationSeconds,
-                            AudioType = "tts",
-                            TTSProvider = "edge-tts",
-                            GeneratedAt = DateTime.UtcNow,
-                            IsDefault = true
-                        };
-                        await _context.AudioFiles.AddAsync(audioFile);
-                    }
-                    else
-                    {
-                        existingAudio.FilePath = ttsResult.Url;
-                        existingAudio.DurationSeconds = ttsResult.DurationSeconds;
-                        existingAudio.GeneratedAt = DateTime.UtcNow;
-                    }
-                    await _context.SaveChangesAsync();
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error generating TTS: {ex.Message}");
-                }
-            }
 
             return MapToDto(translation);
         }

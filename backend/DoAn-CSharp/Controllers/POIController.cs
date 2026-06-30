@@ -5,6 +5,8 @@ using DoAn_CSharp.Services;
 using DoAn_CSharp.Models.DTOs;
 
 using DoAn_CSharp.Data;
+using DoAn_CSharp.Models.Entities;
+using Microsoft.EntityFrameworkCore;
 
 namespace DoAn_CSharp.Controllers
 {
@@ -132,6 +134,62 @@ namespace DoAn_CSharp.Controllers
             if (result == null)
                 return NotFound(new { error = "NotFound", message = $"POI with ID {id} was not found." });
             return Ok(result);
+        }
+
+        /// <summary>Xóa mềm POI (Admin only)</summary>
+        [HttpGet("test-raw-db-edit")]
+        [AllowAnonymous]
+        public async Task<IActionResult> TestRawDbEdit()
+        {
+            // 1. Create a POI directly
+            var poi = new POI
+            {
+                Name = "Test Raw DB Edit",
+                Slug = "test-raw-db-edit-" + Guid.NewGuid().ToString().Substring(0, 6),
+                Category = "historical",
+                IsActive = true,
+                ApprovalStatus = "approved"
+            };
+            _context.POIs.Add(poi);
+            await _context.SaveChangesAsync();
+
+            // Add VI translation
+            var viTrans = new POITranslation
+            {
+                POIId = poi.Id,
+                LanguageCode = "vi",
+                Name = "Test Raw DB Edit",
+                AudioText = "xin chào"
+            };
+            _context.POITranslations.Add(viTrans);
+            await _context.SaveChangesAsync();
+
+            // Set the proper hash like UpsertTranslationAsync does
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            var rawText = $"{viTrans.Name}|{viTrans.ShortDescription}|{viTrans.FullDescription}|{viTrans.AudioText}";
+            var bytes = System.Text.Encoding.UTF8.GetBytes(rawText);
+            var hashBytes = sha256.ComputeHash(bytes);
+            viTrans.OriginalTextHash = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+            await _context.SaveChangesAsync();
+
+            // 2. Simulate First Scan (en)
+            var poiService = HttpContext.RequestServices.GetService<IPOIService>();
+            var firstScanResult = await poiService.GetBySlugAsync(poi.Slug, "en");
+
+            // 3. Simulate Manual DB Edit (using raw SQL to bypass EF Core tracking)
+            await _context.Database.ExecuteSqlRawAsync(
+                "UPDATE POITranslations SET AudioText = 'con chó' WHERE POIId = {0} AND LanguageCode = 'vi'", poi.Id);
+
+            // 4. Simulate Second Scan (en) on a new scope to avoid EF Core cache in this request
+            using var scope = HttpContext.RequestServices.CreateScope();
+            var newPoiService = scope.ServiceProvider.GetRequiredService<IPOIService>();
+            var secondScanResult = await newPoiService.GetBySlugAsync(poi.Slug, "en");
+
+            return Ok(new
+            {
+                FirstScanAudioText = firstScanResult?.AudioText,
+                SecondScanAudioText = secondScanResult?.AudioText
+            });
         }
 
         /// <summary>Xóa mềm POI (Admin only)</summary>
