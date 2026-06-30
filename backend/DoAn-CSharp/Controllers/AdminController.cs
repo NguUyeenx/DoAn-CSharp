@@ -464,6 +464,13 @@ namespace DoAn_CSharp.Controllers
                 return NotFound(new { error = "NotFound", message = $"POI translation (ID: {audio.TranslationId}) not found." });
             }
 
+            // Refresh/update the translation first (will re-translate if base text changed)
+            var translationDto = await _translationService.GetTranslationAsync(translation.POIId, audio.LanguageCode);
+            if (translationDto != null)
+            {
+                await _context.Entry(translation).ReloadAsync();
+            }
+
             if (string.IsNullOrWhiteSpace(translation.AudioText))
             {
                 return BadRequest(new { error = "BadRequest", message = "Translation audio text is empty." });
@@ -532,84 +539,74 @@ namespace DoAn_CSharp.Controllers
                 {
                     try
                     {
-                        // Check if translation exists
+                        // Get or create/update the translation first (ensures it is up-to-date with Vietnamese)
+                        var translationDto = await _translationService.GetTranslationAsync(poi.Id, langCode);
+                        if (translationDto == null || string.IsNullOrWhiteSpace(translationDto.AudioText))
+                        {
+                            failCount++;
+                            continue;
+                        }
+
+                        // Find the updated translation record
                         var translation = await _context.POITranslations
                             .FirstOrDefaultAsync(t => t.POIId == poi.Id && t.LanguageCode.ToLower() == langCode);
 
                         if (translation == null)
                         {
-                            // If translation doesn't exist, use translation service to automatically translate on-the-fly
-                            // This translates text and automatically creates/saves POITranslation and AudioFile records
-                            var newTranslationDto = await _translationService.GetTranslationAsync(poi.Id, langCode);
-                            if (newTranslationDto != null)
+                            failCount++;
+                            continue;
+                        }
+
+                        // Find its corresponding AudioFile record
+                        var audio = await _context.AudioFiles
+                            .FirstOrDefaultAsync(x => x.TranslationId == translation.Id && x.AudioType == "tts" && x.TranslationType == Models.Entities.TranslationType.POI);
+
+                        if (audio != null)
+                        {
+                            // Delete existing physical file if it exists
+                            var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audio.FilePath.TrimStart('/'));
+                            if (System.IO.File.Exists(physicalPath))
                             {
-                                successCount++;
+                                try
+                                {
+                                    System.IO.File.Delete(physicalPath);
+                                }
+                                catch (System.Exception ex)
+                                {
+                                    System.Console.WriteLine($"Error deleting physical audio file before regeneration: {ex.Message}");
+                                }
                             }
-                            else
+                        }
+
+                        // Generate new audio using edge-tts
+                        var ttsResult = await _ttsService.GenerateAudioAsync(translation.AudioText, langCode, poi.Id);
+
+                        if (audio == null)
+                        {
+                            // Create new AudioFile record if it didn't exist
+                            audio = new AudioFile
                             {
-                                failCount++;
-                            }
+                                TranslationType = Models.Entities.TranslationType.POI,
+                                TranslationId = translation.Id,
+                                LanguageCode = langCode,
+                                FilePath = ttsResult.Url,
+                                DurationSeconds = ttsResult.DurationSeconds,
+                                AudioType = "tts",
+                                TTSProvider = "edge-tts",
+                                GeneratedAt = DateTime.UtcNow,
+                                IsDefault = true
+                            };
+                            await _context.AudioFiles.AddAsync(audio);
                         }
                         else
                         {
-                            if (string.IsNullOrWhiteSpace(translation.AudioText))
-                            {
-                                failCount++;
-                                continue;
-                            }
-
-                            // If translation exists, find its corresponding AudioFile record
-                            var audio = await _context.AudioFiles
-                                .FirstOrDefaultAsync(x => x.TranslationId == translation.Id && x.AudioType == "tts" && x.TranslationType == Models.Entities.TranslationType.POI);
-
-                            if (audio != null)
-                            {
-                                // Delete existing physical file if it exists
-                                var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", audio.FilePath.TrimStart('/'));
-                                if (System.IO.File.Exists(physicalPath))
-                                {
-                                    try
-                                    {
-                                        System.IO.File.Delete(physicalPath);
-                                    }
-                                    catch (System.Exception ex)
-                                    {
-                                        System.Console.WriteLine($"Error deleting physical audio file before regeneration: {ex.Message}");
-                                    }
-                                }
-                            }
-
-                            // Generate new audio using edge-tts
-                            var ttsResult = await _ttsService.GenerateAudioAsync(translation.AudioText, langCode, poi.Id);
-
-                            if (audio == null)
-                            {
-                                // Create new AudioFile record if it didn't exist
-                                audio = new AudioFile
-                                {
-                                    TranslationType = Models.Entities.TranslationType.POI,
-                                    TranslationId = translation.Id,
-                                    LanguageCode = langCode,
-                                    FilePath = ttsResult.Url,
-                                    DurationSeconds = ttsResult.DurationSeconds,
-                                    AudioType = "tts",
-                                    TTSProvider = "edge-tts",
-                                    GeneratedAt = DateTime.UtcNow,
-                                    IsDefault = true
-                                };
-                                await _context.AudioFiles.AddAsync(audio);
-                            }
-                            else
-                            {
-                                // Update existing AudioFile record
-                                audio.FilePath = ttsResult.Url;
-                                audio.DurationSeconds = ttsResult.DurationSeconds;
-                                audio.GeneratedAt = DateTime.UtcNow;
-                            }
-
-                            await _context.SaveChangesAsync();
-                            successCount++;
+                            audio.FilePath = ttsResult.Url;
+                            audio.DurationSeconds = ttsResult.DurationSeconds;
+                            audio.GeneratedAt = DateTime.UtcNow;
                         }
+
+                        await _context.SaveChangesAsync();
+                        successCount++;
                     }
                     catch (System.Exception ex)
                     {

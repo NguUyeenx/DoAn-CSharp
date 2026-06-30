@@ -25,15 +25,8 @@ namespace DoAn_CSharp.Services
         public async Task<TranslationDto?> GetTranslationAsync(int poiId, string lang)
         {
             var targetLang = lang.ToLowerInvariant();
-            var translation = await _context.POITranslations
-                .FirstOrDefaultAsync(t => t.POIId == poiId && t.LanguageCode.ToLower() == targetLang);
-
-            if (translation != null)
-            {
-                return MapToDto(translation);
-            }
-
-            // Fallback: translate on the fly if requested language translation is missing
+            
+            // Find base translation (prefer 'vi', fallback to 'en', then any)
             var baseTranslation = await _context.POITranslations
                 .FirstOrDefaultAsync(t => t.POIId == poiId && t.LanguageCode.ToLower() == "vi")
                 ?? await _context.POITranslations
@@ -46,7 +39,26 @@ namespace DoAn_CSharp.Services
                 return null;
             }
 
-            // Perform automatic translation using Google Translate free endpoint
+            var translation = await _context.POITranslations
+                .FirstOrDefaultAsync(t => t.POIId == poiId && t.LanguageCode.ToLower() == targetLang);
+
+            // If we are requesting the base translation language itself, just return it
+            if (baseTranslation.LanguageCode.ToLower() == targetLang)
+            {
+                if (translation != null) return MapToDto(translation);
+                return MapToDto(baseTranslation);
+            }
+
+            // Compute hash of the base translation content
+            string baseHash = ComputeTextHash(baseTranslation.Name, baseTranslation.ShortDescription, baseTranslation.FullDescription, baseTranslation.AudioText);
+
+            // If translation exists and matches the base translation hash, return it
+            if (translation != null && translation.OriginalTextHash == baseHash)
+            {
+                return MapToDto(translation);
+            }
+
+            // Otherwise, we perform the translation (either it doesn't exist or hash is outdated)
             string translatedName = baseTranslation.Name;
             if (baseTranslation.LanguageCode.ToLower() != targetLang)
             {
@@ -56,40 +68,71 @@ namespace DoAn_CSharp.Services
             string translatedFullDesc = await TranslateTextAsync(baseTranslation.FullDescription, targetLang);
             string translatedAudioText = await TranslateTextAsync(baseTranslation.AudioText, targetLang);
 
-            // Save new translation to the database
-            translation = new POITranslation
+            if (translation == null)
             {
-                POIId = poiId,
-                LanguageCode = targetLang,
-                Name = translatedName,
-                ShortDescription = translatedShortDesc,
-                FullDescription = translatedFullDesc,
-                AudioText = translatedAudioText
-            };
+                translation = new POITranslation
+                {
+                    POIId = poiId,
+                    LanguageCode = targetLang
+                };
+                await _context.POITranslations.AddAsync(translation);
+            }
 
-            await _context.POITranslations.AddAsync(translation);
+            translation.Name = translatedName;
+            translation.ShortDescription = translatedShortDesc;
+            translation.FullDescription = translatedFullDesc;
+            translation.AudioText = translatedAudioText;
+            translation.OriginalTextHash = baseHash;
+            
             await _context.SaveChangesAsync();
 
-            // Pre-generate audio for the new translation
+            // Pre-generate or update audio for the translation
             if (!string.IsNullOrWhiteSpace(translatedAudioText))
             {
                 try
                 {
                     var ttsResult = await _ttsService.GenerateAudioAsync(translatedAudioText, targetLang, poiId);
 
-                    var audioFile = new AudioFile
+                    var existingAudio = await _context.AudioFiles.FirstOrDefaultAsync(a => 
+                        a.TranslationType == TranslationType.POI && 
+                        a.TranslationId == translation.Id && 
+                        a.LanguageCode == targetLang && 
+                        a.AudioType == "tts");
+
+                    if (existingAudio == null)
                     {
-                        TranslationType = TranslationType.POI,
-                        TranslationId = translation.Id,
-                        LanguageCode = targetLang,
-                        FilePath = ttsResult.Url,
-                        DurationSeconds = ttsResult.DurationSeconds,
-                        AudioType = "tts",
-                        TTSProvider = "edge-tts",
-                        GeneratedAt = DateTime.UtcNow,
-                        IsDefault = true
-                    };
-                    await _context.AudioFiles.AddAsync(audioFile);
+                        var audioFile = new AudioFile
+                        {
+                            TranslationType = TranslationType.POI,
+                            TranslationId = translation.Id,
+                            LanguageCode = targetLang,
+                            FilePath = ttsResult.Url,
+                            DurationSeconds = ttsResult.DurationSeconds,
+                            AudioType = "tts",
+                            TTSProvider = "edge-tts",
+                            GeneratedAt = DateTime.UtcNow,
+                            IsDefault = true
+                        };
+                        await _context.AudioFiles.AddAsync(audioFile);
+                    }
+                    else
+                    {
+                        // Delete old file if it exists and is local
+                        var isCloudUrl = existingAudio.FilePath.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                                         existingAudio.FilePath.StartsWith("https://", StringComparison.OrdinalIgnoreCase);
+                        if (!isCloudUrl)
+                        {
+                            var physicalPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "wwwroot", existingAudio.FilePath.TrimStart('/'));
+                            if (System.IO.File.Exists(physicalPath))
+                            {
+                                try { System.IO.File.Delete(physicalPath); } catch {}
+                            }
+                        }
+                        
+                        existingAudio.FilePath = ttsResult.Url;
+                        existingAudio.DurationSeconds = ttsResult.DurationSeconds;
+                        existingAudio.GeneratedAt = DateTime.UtcNow;
+                    }
                     await _context.SaveChangesAsync();
                 }
                 catch (Exception ex)
@@ -99,6 +142,15 @@ namespace DoAn_CSharp.Services
             }
 
             return MapToDto(translation);
+        }
+
+        private static string ComputeTextHash(string name, string shortDesc, string fullDesc, string audioText)
+        {
+            using var sha256 = System.Security.Cryptography.SHA256.Create();
+            var rawText = $"{name ?? ""}|{shortDesc ?? ""}|{fullDesc ?? ""}|{audioText ?? ""}";
+            var bytes = System.Text.Encoding.UTF8.GetBytes(rawText);
+            var hashBytes = sha256.ComputeHash(bytes);
+            return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
         }
 
         private async Task<string> TranslateTextAsync(string text, string targetLanguage)
@@ -148,6 +200,19 @@ namespace DoAn_CSharp.Services
             var translation = await _context.POITranslations
                 .FirstOrDefaultAsync(t => t.POIId == dto.POIId && t.LanguageCode.ToLower() == targetLang);
 
+            var baseTranslation = await _context.POITranslations
+                .FirstOrDefaultAsync(t => t.POIId == dto.POIId && t.LanguageCode.ToLower() == "vi")
+                ?? await _context.POITranslations
+                .FirstOrDefaultAsync(t => t.POIId == dto.POIId && t.LanguageCode.ToLower() == "en")
+                ?? await _context.POITranslations
+                .FirstOrDefaultAsync(t => t.POIId == dto.POIId);
+
+            string baseHash = string.Empty;
+            if (baseTranslation != null)
+            {
+                baseHash = ComputeTextHash(baseTranslation.Name, baseTranslation.ShortDescription, baseTranslation.FullDescription, baseTranslation.AudioText);
+            }
+
             bool shouldGenerateAudio = false;
             string textToGenerate = string.Empty;
 
@@ -161,7 +226,8 @@ namespace DoAn_CSharp.Services
                     Name = dto.Name,
                     ShortDescription = dto.ShortDescription,
                     FullDescription = dto.FullDescription,
-                    AudioText = dto.AudioText
+                    AudioText = dto.AudioText,
+                    OriginalTextHash = baseHash
                 };
                 await _context.POITranslations.AddAsync(translation);
 
@@ -184,6 +250,7 @@ namespace DoAn_CSharp.Services
                 translation.ShortDescription = dto.ShortDescription;
                 translation.FullDescription = dto.FullDescription;
                 translation.AudioText = dto.AudioText;
+                translation.OriginalTextHash = baseHash;
             }
 
             await _context.SaveChangesAsync();
